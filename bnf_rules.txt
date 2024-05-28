@@ -1,0 +1,24 @@
+<formula> ::= <atom> | <formula> <binary-connective> <formula> | 
+              <unary-connective> <formula> | <quantifier> <variable> <formula>
+              
+<atom>    ::= <predicate> "(" <term-list> ")" | <term> <equality> <term>
+
+<term-list> ::= <term> | <term> "," <term-list>
+
+<term>    ::= <constant> | <variable> | <function> "(" <term-list> ")"
+
+<binary-connective>  ::= "&" | "|" | "->"
+
+<unary-connective>  ::= "!" 
+
+<quantifier> ::= "forall" | "exists"  
+
+<equality> ::= "="
+
+<predicate> ::= [A-Z][A-Za-z0-9_]*
+
+<function> ::= [f-h][A-Za-z0-9_]*
+
+<constant> ::= [a-e][A-Za-z0-9_]*
+
+<variable> ::= [i-z][A-Za-z0-9_]*

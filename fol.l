@@ -1,27 +1,21 @@
 %{
-#include "fol.tab.h"
-extern int yyerror(const char *msg);
+#include "fol.tab.h"  // Include Bison-generated header
 %}
 
 %%
-
-[ \t\n]                ; // skip spaces, tabs, newlines
-"&"                    { return AND; }
-"|"                    { return OR; }
-"->"                   { return IMPLY; }
-"!"                    { return NOT; }
-"forall"               { return FORALL; }
-"exists"               { return EXISTS; }
-"="                    { return EQ; }
-"("                    { return LPAREN; }
-")"                    { return RPAREN; }
-","                    { return COMMA; }
-[A-Z][A-Za-z0-9_]*     { yylval.str = strdup(yytext); return PREDICATE; }
-[f-h][A-Za-z0-9_]*     { yylval.str = strdup(yytext); return FUNCTION; }  
-[a-e][A-Za-z0-9_]*     { yylval.str = strdup(yytext); return CONSTANT; }
-[i-z][A-Za-z0-9_]*     { yylval.str = strdup(yytext); return VARIABLE; }
-.                      { yyerror("invalid character"); }  
-        
+[a-z]             { yylval.string = strdup(yytext); return VARIABLE; }
+[A-Z]             { yylval.string = strdup(yytext); return PREDICATE; }
+[0-9]+            { yylval.number = atoi(yytext); return CONSTANT; }
+"forall"          { return FORALL; }
+"exists"          { return EXISTS; }
+"and"             { return AND; }
+"or"              { return OR; }
+"not"             { return NOT; }
+"implies"         { return IMPLIES; }
+"iff"             { return IFF; }
+[()=,()]         { return yytext[0]; }
+[ \t\n]           ; // Ignore whitespace
+.                 { printf("Error: Unknown character '%c'\n", yytext[0]); }
 %%
 
-int yywrap() { return 1; }
+int yywrap(void) { return 1; } 

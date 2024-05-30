@@ -3,65 +3,51 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern int yylex();
-extern int yyparse();
-extern FILE* yyin;
-
-void yyerror(const char* s);
+void yyerror(char *s); 
+int yylex(void);
 %}
 
 %union {
-	char *str;
+    char *string;
+    int number;
 }
 
-%token AND OR IMPLY NOT FORALL EXISTS EQ 
-%token LPAREN RPAREN COMMA
-%token <str> PREDICATE FUNCTION CONSTANT VARIABLE
+%token <string> VARIABLE PREDICATE
+%token <number> CONSTANT
+%token FORALL EXISTS AND OR NOT IMPLIES IFF
 
-%type <str> formula atom term termlist
-
-%%
-
-formula: 
-  atom                                 { $$ = $1; printf("atom formula Parsed formula: %s\n", $$); }  
-| formula AND formula                  { $$ = $1; printf("formula and formula, Parsed formula: %s & %s\n", $1, $3); }
-| formula OR formula                   { $$ = $1; printf("Parsed formula: %s | %s\n", $1, $3); }
-| formula IMPLY formula                { $$ = $1; printf("Parsed formula: %s -> %s\n", $1, $3); }
-| NOT formula                          { $$ = ""; printf("NOT formula Parsed formula: !%s\n", $2); }        
-| FORALL VARIABLE formula              { $$ = ""; printf("Parsed formula: forall %s %s\n", $2, $3); }
-| EXISTS VARIABLE formula              { $$ = ""; printf("Parsed formula: exists %s %s\n", $2, $3); }
-| LPAREN formula RPAREN                { $$ = $2; }
-;
-
-atom:  
-  PREDICATE LPAREN termlist RPAREN     { $$ = $1; printf("Parsed atom: %s(%s)\n", $1, $3); }
-| term EQ term                         { $$ = $1; printf("Parsed atom: %s=%s\n", $1, $3); }  
-;
-      
-termlist:
-  term                                 { $$ = $1; }  
-| term COMMA termlist                  { $$ = $1; }
-;
-  
-term:
-  CONSTANT                             { $$ = $1; }  
-| VARIABLE                             { $$ = $1; }
-| FUNCTION LPAREN termlist RPAREN      { $$ = $1; printf("Parsed term: %s(%s)\n", $1, $3); }
-;
+%type <string> formula
+%type <string> term_list // Corrected type declaration for term_list
+%type <string> term
+%type <string> atomic_formula
 
 %%
 
-int main() {
-  yyin = stdin;
+formula    : FORALL VARIABLE formula             { printf("Forall Formula: forall %s %s\n", $2, $3); $$ = (char *)malloc(strlen($2) + strlen($3) + 8); sprintf($$, "forall %s %s", $2, $3); }
+             | EXISTS VARIABLE formula            { printf("Exists Formula: exists %s %s\n", $2, $3); $$ = (char *)malloc(strlen($2) + strlen($3) + 8); sprintf($$, "exists %s %s", $2, $3); }
+             | formula AND formula                { printf("And Formula: %s and %s\n", $1, $3); $$ = (char *)malloc(strlen($1) + strlen($3) + 5); sprintf($$, "%s and %s", $1, $3); }
+             | formula OR formula                 { printf("Or Formula: %s or %s\n", $1, $3); $$ = (char *)malloc(strlen($1) + strlen($3) + 4); sprintf($$, "%s or %s", $1, $3); }
+             | NOT formula                       { printf("Not Formula: not %s\n", $2); $$ = (char *)malloc(strlen($2) + 5); sprintf($$, "not %s", $2); }
+             | formula IMPLIES formula           { printf("Implies Formula: %s implies %s\n", $1, $3); $$ = (char *)malloc(strlen($1) + strlen($3) + 9); sprintf($$, "%s implies %s", $1, $3); }
+             | formula IFF formula               { printf("Iff Formula: %s iff %s\n", $1, $3); $$ = (char *)malloc(strlen($1) + strlen($3) + 5); sprintf($$, "%s iff %s", $1, $3); }
+             | '(' formula ')'                   { printf("Parenthesized Formula: (%s)\n", $2); $$ = (char *)malloc(strlen($2) + 3); sprintf($$, "(%s)", $2); }
+             | atomic_formula                    { printf("Atomic Formula: %s\n", $1); $$ = strdup($1); } 
 
-  do { 
+atomic_formula  : PREDICATE '(' term_list ')'      { printf("Atomic Formula: %s(%s)\n", $1, $3); $$ = (char *)malloc(strlen($1) + strlen($3) + 3); sprintf($$, "%s(%s)", $1, $3); }
+
+term_list   : term                             { printf("Term List: %s\n", $1); $$ = strdup($1); }
+             | term_list ',' term                { printf("Term List: %s, %s\n", $1, $3); $$ = (char *)malloc(strlen($1) + strlen($3) + 2); sprintf($$, "%s, %s", $1, $3); }
+
+term        : VARIABLE                           { printf("Term (Variable): %s\n", $1); $$ = strdup($1); }
+             | CONSTANT                          { printf("Term (Constant): %d\n", $1); $$ = (char *)malloc(12); sprintf($$, "%d", $1); }
+
+%%
+
+int main(int argc, char *argv[]) { // Correct main function definition
     yyparse();
-  } while(!feof(yyin));
-
-  return 0;
+    return 0;
 }
 
-void yyerror(const char* s) {
-  fprintf(stderr, "Parse error: %s\n", s);
-  exit(1);
+void yyerror(char *s) {
+    fprintf(stderr, "%s\n", s);
 }

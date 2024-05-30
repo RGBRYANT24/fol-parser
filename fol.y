@@ -23,11 +23,11 @@ void yyerror(const char* s);
 %%
 
 formula: 
-  atom                                 { $$ = $1; printf("Parsed formula: %s\n", $$); }  
-| formula AND formula                  { $$ = $1; printf("Parsed formula: %s & %s\n", $1, $3); }
+  atom                                 { $$ = $1; printf("atom formula Parsed formula: %s\n", $$); }  
+| formula AND formula                  { $$ = $1; printf("formula and formula, Parsed formula: %s & %s\n", $1, $3); }
 | formula OR formula                   { $$ = $1; printf("Parsed formula: %s | %s\n", $1, $3); }
 | formula IMPLY formula                { $$ = $1; printf("Parsed formula: %s -> %s\n", $1, $3); }
-| NOT formula                          { $$ = ""; printf("Parsed formula: !%s\n", $2); }        
+| NOT formula                          { $$ = ""; printf("NOT formula Parsed formula: !%s\n", $2); }        
 | FORALL VARIABLE formula              { $$ = ""; printf("Parsed formula: forall %s %s\n", $2, $3); }
 | EXISTS VARIABLE formula              { $$ = ""; printf("Parsed formula: exists %s %s\n", $2, $3); }
 | LPAREN formula RPAREN                { $$ = $2; }

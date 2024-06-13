@@ -1,4 +1,6 @@
 %{
+#include <memory>
+#include "./ASTtree/AllNodes.h"
 #include "fol.tab.h"  // Include Bison-generated header
 %}
 

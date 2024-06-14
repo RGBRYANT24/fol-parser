@@ -23,7 +23,6 @@ int yylex(void);
     char *string;
     int number;
     AST::Node *node;
-    //testNode node;
 }
 
 %token <string> VARIABLE PREDICATE
@@ -32,37 +31,29 @@ int yylex(void);
 
 %type <string> formula
 %type <string> term_list
-%type <string> term
-%type <string> atomic_formula
+%type <node> term
+%type <node> atomic_formula
 
 %%
 
 
-atomic_formula  : PREDICATE '(' term_list ')'      
-                { 
-                    printf("Atomic Formula: %s(%s)\n", $1, $3); 
-                    $$ = (char *)malloc(strlen($1) + strlen($3) + 3); 
-                    sprintf($$, "%s(%s)", $1, $3); 
-                }
-                | PREDICATE 
-                {
-                    printf("Atomic Formula: %s\n", $1);
 
-                }
 
-term_list   : term                             { printf("Term List: %s\n", $1); $$ = strdup($1); }
-             | term_list ',' term                { printf("Term List: %s, %s\n", $1, $3); $$ = (char *)malloc(strlen($1) + strlen($3) + 2); sprintf($$, "%s, %s", $1, $3); }
-
-term        : VARIABLE                           { 
-    printf("Creating Variable AST NODE\n");
-    printf("Term (Variable): %s\n", $1); 
-    $$ = strdup($1); 
-    std::shared_ptr<Node> tmp = std::make_shared<AST::VariableNode>($$);
-    //AST::VariableNode* tmp = new AST::VariableNode($$);
-    tmp -> print();
-    //delete tmp;
-    }
-             | CONSTANT                          { printf("Term (Constant): %d\n", $1); $$ = (char *)malloc(12); sprintf($$, "%d", $1); }
+term        : 
+    VARIABLE                           
+        { 
+            printf("Term (Variable): %s\n", $1); 
+            $$ = new AST::VariableNode($1);
+            $$ -> print();
+        }
+    | CONSTANT
+        {
+            // Convert integer to string
+            //$$ = std::make_shared<AST::ConstantNode>(std::to_string($1));
+            $$ = new AST::ConstantNode(std::to_string($1));
+            $$ -> print();
+            std::cout << "Term (Constant): " << $1 << std::endl;
+        }
 
 %%
 

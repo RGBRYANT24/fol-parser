@@ -1,3 +1,6 @@
+#ifndef NODE_H
+#define NODE_H
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -8,7 +11,7 @@ namespace AST
     class Node
     {
     protected:
-        std::string content;//便于打印信息
+        std::string content; //便于打印信息
     public:
         enum NodeType
         {
@@ -27,6 +30,7 @@ namespace AST
         virtual NodeType getType() const = 0;
         virtual void print() {};
         virtual ~Node() {} // Virtual destructor for proper cleanup
-
     };
 }
+
+#endif // NODE_H

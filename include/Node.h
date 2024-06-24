@@ -19,6 +19,8 @@ namespace AST
             FUNCTION,
             VARIABLE,
             CONSTANT,
+            TERMLIST,
+            TERM,
             AND,
             OR,
             IMPLY,
@@ -29,6 +31,7 @@ namespace AST
         };
         virtual NodeType getType() const = 0;
         virtual void print() {};
+        virtual bool insert() {return false;}; // insert arguments
         virtual ~Node() {} // Virtual destructor for proper cleanup
     };
 }

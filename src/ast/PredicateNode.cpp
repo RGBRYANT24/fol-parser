@@ -5,5 +5,5 @@ void AST::PredicateNode::print(){
     for(const auto arg : this -> arguments){
         std::cout << arg << " ";
     }
-    std::cout << endl;
+    std::cout << std::endl;
 }

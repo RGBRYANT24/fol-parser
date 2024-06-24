@@ -5,5 +5,6 @@
 #include "ConstantNode.h"
 #include "VariableNode.h"
 #include "PredicataNode.h"
+#include "TermListNode.h"
 
 #endif // ALL_NODES_H

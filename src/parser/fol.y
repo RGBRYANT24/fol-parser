@@ -39,36 +39,60 @@ int yyparse(void);
 %type <string> formula
 %type <node> term_list
 %type <node> term
+%type <node> non_function_term
 %type <node> atomic_formula
 
 %%
 
-
+term        : 
+    term_list
+        {
+            $$ = $1;
+            root = $$;
+            std::cout<< "Term Node: ";
+            $$ -> print();
+        }
+    | FUNCTION '(' term_list ')'
+        {
+            std::cout << "Function Node as Term" << std::endl;
+            AST::FunctionNode* tmp = new AST::FunctionNode($1, $3);
+            root = tmp;
+            $$ = tmp;
+            $$ -> print();
+        }
+    | FUNCTION '(', ')'
+        {
+            //function可以是零元函数
+            std::cout << "Function Node Without params as Term" << std::endl;
+            AST::FunctionNode* tmp = new AST::FunctionNode();
+            tmp -> name = $1;
+            $$ = tmp;
+            root = tmp;
+        }
 
 term_list   :
-    term
+    non_function_term
         {
-            std::cout << "Term List Term " << std::endl;
+            std::cout << "Term List Single Term " << std::endl;
             AST::TermListNode* tmp = new AST::TermListNode();
             tmp -> insert($1);
             root = tmp;
             $$ = tmp;
         }
-    | term_list ',' term
+    | term_list ',' non_function_term
         {
-            std::cout << "Term List Lists " << std::endl;
+            std::cout << "Term List Multiple Terms " << std::endl;
             AST::TermListNode* tmp = dynamic_cast<AST::TermListNode*>($1);
             tmp -> insert($3);
-            root = tmp;
             $$ = tmp;
         }
 
-term        : 
+non_function_term :
     VARIABLE                           
         { 
-            printf("Term (Variable): %s\n", $1); 
             $$ = new AST::VariableNode($1);
             $$ -> print();
+            printf("Term (Variable): %s\n", $1); 
         }
     | CONSTANT
         {
@@ -76,14 +100,8 @@ term        :
             $$ -> print();
             std::cout << "Term (Constant): " << $1 << std::endl;
         }
-    | FUNCTION '(' term_list ')'
-        {
-            std::cout << "Funciton Node with Term Lists" << std::endl;
-            AST::FunctionNode* tmp = new AST::FunctionNode($1, $3);
-            root = tmp;
-            $$ = tmp;
-            $$ -> print();
-        }
+
+
 
 %%
 

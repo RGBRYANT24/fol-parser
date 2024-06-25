@@ -32,9 +32,9 @@ int yyparse(void);
     AST::Node *node;
 }
 
-%token <string> VARIABLE PREDICATE
+%token <string> VARIABLE PREDICATE FUNCTION
 %token <number> CONSTANT
-%token FORALL EXISTS AND OR NOT IMPLIES IFF FUNCTION
+%token FORALL EXISTS AND OR NOT IMPLIES IFF
 
 %type <string> formula
 %type <node> term_list
@@ -75,6 +75,14 @@ term        :
             $$ = new AST::ConstantNode(std::to_string($1));
             $$ -> print();
             std::cout << "Term (Constant): " << $1 << std::endl;
+        }
+    | FUNCTION '(' term_list ')'
+        {
+            std::cout << "Funciton Node with Term Lists" << std::endl;
+            AST::FunctionNode* tmp = new AST::FunctionNode($1, $3);
+            root = tmp;
+            $$ = tmp;
+            $$ -> print();
         }
 
 %%

@@ -44,6 +44,24 @@ int yyparse(void);
 
 %%
 
+atomic_formula  : 
+    PREDICATE '(' term_list ')'   
+        {
+            std::cout << "Atomic Formula with Term List" << std::endl;
+            AST::PredicateNode* tmp = new AST::PredicateNode($1, $3);
+            root = tmp;
+            $$ = tmp;
+            $$ -> print();
+        }
+    | PREDICATE
+        {
+            std::cout << "Atomic Formula (Predicate only)" << std::endl;
+            AST::PredicateNode* tmp = new AST::PredicateNode($1);
+            root = tmp;
+            $$ = tmp;
+            $$ -> print();
+        }
+
 term        : 
     term_list
         {

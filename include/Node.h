@@ -31,7 +31,7 @@ namespace AST
         };
         virtual NodeType getType() const = 0;
         virtual void print() {};
-        virtual bool insert() {return false;}; // insert arguments
+        virtual bool insert(Node* term) {return false;}; // insert arguments
         virtual ~Node() {} // Virtual destructor for proper cleanup
     };
 }

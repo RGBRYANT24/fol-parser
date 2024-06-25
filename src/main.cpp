@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
     if (argc > 1) {
         fclose(yyin);
     }
+    delete root;
 
     return 0;
 }

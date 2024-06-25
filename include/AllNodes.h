@@ -6,5 +6,6 @@
 #include "VariableNode.h"
 #include "PredicataNode.h"
 #include "TermListNode.h"
+#include "FunctionNode.h"
 
 #endif // ALL_NODES_H

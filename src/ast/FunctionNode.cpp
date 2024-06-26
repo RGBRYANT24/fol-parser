@@ -28,3 +28,4 @@ AST::FunctionNode::~FunctionNode()
     delete this -> termlists;
     std::cout << "Function Node: " << this->name << " Destroy" << std::endl;
 }
+

@@ -18,17 +18,32 @@ ADD_FLEX_BISON_DEPENDENCY(FOLScanner FOLParser)
 
 # Include directories
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_SOURCE_DIR}/include)
+
+# Automatically find and include all subdirectories in the include folder
+file(GLOB_RECURSE HEADER_FILES 
+    ${CMAKE_SOURCE_DIR}/include/*.h
+    ${CMAKE_SOURCE_DIR}/include/*.hpp
+)
+
+set(INCLUDE_DIRS "")
+foreach(_headerFile ${HEADER_FILES})
+    get_filename_component(_dir ${_headerFile} PATH)
+    list(APPEND INCLUDE_DIRS ${_dir})
+endforeach()
+list(REMOVE_DUPLICATES INCLUDE_DIRS)
+
+include_directories(${INCLUDE_DIRS})
 
 # Collect all source files
-file(GLOB_RECURSE AST_SOURCES "${CMAKE_SOURCE_DIR}/src/ast/*.cpp")
+file(GLOB_RECURSE SOURCE_FILES 
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
+)
 
 # Create executable
 add_executable(fol_parser 
     ${FLEX_FOLScanner_OUTPUTS}
     ${BISON_FOLParser_OUTPUTS}
-    ${AST_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/main.cpp
+    ${SOURCE_FILES}
 )
 
 # Link against flex and bison libraries if needed

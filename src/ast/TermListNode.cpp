@@ -7,7 +7,6 @@ bool AST::TermListNode::insert(AST::Node *term)
         if (term == node)
         {
             std::cout << "Insert term failed, already exists in arguments" << std::endl;
-            // term -> print();
             return false;
         }
     }

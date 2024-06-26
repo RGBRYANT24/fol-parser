@@ -36,13 +36,31 @@ int yyparse(void);
 %token <number> CONSTANT
 %token FORALL EXISTS AND OR NOT IMPLIES IFF
 
-%type <string> formula
+%type <node> formula
 %type <node> term_list
 %type <node> term
 %type <node> non_function_term
 %type <node> atomic_formula
 
 %%
+
+formula :
+    NOT formula
+    {
+        std::cout << "Not formula " << std::endl;
+        AST::UnaryOpNode* tmp = new AST::UnaryOpNode(AST::Node::NodeType::NOT, $2);
+        root = tmp;
+        $$ = root;
+    }
+    |'(' formula ')'
+    {
+            $$ = $2;
+    }
+    |atomic_formula
+    {
+        std::cout << "Formula construct by atomic_formula " << std::endl;
+        $$ = $1;
+    }
 
 atomic_formula  : 
     PREDICATE '(' term_list ')'   
@@ -53,7 +71,7 @@ atomic_formula  :
             $$ = tmp;
             $$ -> print();
         }
-    | PREDICATE
+    | PREDICATE '(' ')'
         {
             std::cout << "Atomic Formula (Predicate only)" << std::endl;
             AST::PredicateNode* tmp = new AST::PredicateNode($1);
@@ -78,7 +96,7 @@ term        :
             $$ = tmp;
             $$ -> print();
         }
-    | FUNCTION '(', ')'
+    | FUNCTION '(' ')'
         {
             //function可以是零元函数
             std::cout << "Function Node Without params as Term" << std::endl;

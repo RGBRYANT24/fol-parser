@@ -7,5 +7,6 @@
 #include "PredicataNode.h"
 #include "TermListNode.h"
 #include "FunctionNode.h"
+#include "UnaryOpNode.h"
 
 #endif // ALL_NODES_H

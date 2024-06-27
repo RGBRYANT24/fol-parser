@@ -39,7 +39,7 @@ int yyparse(void);
 %type <node> formula
 %type <node> term_list
 %type <node> term
-%type <node> non_function_term
+%type <node> non_function_term function_term
 %type <node> atomic_formula
 
 %%
@@ -61,11 +61,24 @@ formula :
         std::cout << "Formula construct by atomic_formula " << std::endl;
         $$ = $1;
     }
+    | term
+    {
+        std::cout << "Formula construct by term" << std::endl;
+        $$ = $1;
+    }
 
 atomic_formula  : 
-    PREDICATE '(' term_list ')'   
+    PREDICATE '(' term ')'   
         {
-            std::cout << "Atomic Formula with Term List" << std::endl;
+            std::cout << "Atomic Formula with Term" << std::endl;
+            AST::PredicateNode* tmp = new AST::PredicateNode($1, $3);
+            root = tmp;
+            $$ = tmp;
+            $$ -> print();
+        }
+    | PREDICATE '(' term_list ')'
+        {
+            std::cout << "Atomic Formula with Term Lists" << std::endl;
             AST::PredicateNode* tmp = new AST::PredicateNode($1, $3);
             root = tmp;
             $$ = tmp;
@@ -81,12 +94,30 @@ atomic_formula  :
         }
 
 term        : 
-    term_list
+    non_function_term
         {
             $$ = $1;
             root = $$;
             std::cout<< "Term Node: ";
             $$ -> print();
+        }
+    | function_term
+        {
+            $$ = $1;
+            root = $$;
+            std::cout<< "Term Node with function_term: ";
+            $$ -> print();
+        }
+
+function_term  :
+    FUNCTION '(' ')'
+        {
+            //function可以是零元函数
+            std::cout << "Function Node Without params as Term" << std::endl;
+            AST::FunctionNode* tmp = new AST::FunctionNode();
+            tmp -> name = $1;
+            $$ = tmp;
+            root = tmp;
         }
     | FUNCTION '(' term_list ')'
         {
@@ -96,18 +127,10 @@ term        :
             $$ = tmp;
             $$ -> print();
         }
-    | FUNCTION '(' ')'
-        {
-            //function可以是零元函数
-            std::cout << "Function Node Without params as Term" << std::endl;
-            AST::FunctionNode* tmp = new AST::FunctionNode();
-            tmp -> name = $1;
-            $$ = tmp;
-            root = tmp;
-        }
+    
 
 term_list   :
-    non_function_term
+    term
         {
             std::cout << "Term List Single Term " << std::endl;
             AST::TermListNode* tmp = new AST::TermListNode();
@@ -115,11 +138,11 @@ term_list   :
             root = tmp;
             $$ = tmp;
         }
-    | term_list ',' non_function_term
+    | term ',' term_list
         {
             std::cout << "Term List Multiple Terms " << std::endl;
-            AST::TermListNode* tmp = dynamic_cast<AST::TermListNode*>($1);
-            tmp -> insert($3);
+            AST::TermListNode* tmp = dynamic_cast<AST::TermListNode*>($3);
+            tmp -> insert($1);
             $$ = tmp;
         }
 

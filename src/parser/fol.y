@@ -68,15 +68,7 @@ formula :
     }
 
 atomic_formula  : 
-    PREDICATE '(' term ')'   
-        {
-            std::cout << "Atomic Formula with Term" << std::endl;
-            AST::PredicateNode* tmp = new AST::PredicateNode($1, $3);
-            root = tmp;
-            $$ = tmp;
-            $$ -> print();
-        }
-    | PREDICATE '(' term_list ')'
+    PREDICATE '(' term_list ')'
         {
             std::cout << "Atomic Formula with Term Lists" << std::endl;
             AST::PredicateNode* tmp = new AST::PredicateNode($1, $3);

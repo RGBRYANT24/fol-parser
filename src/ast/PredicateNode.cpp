@@ -2,12 +2,12 @@
 
 AST::PredicateNode::PredicateNode()
 {
-    this -> name = "";
+    this -> Node::name = "";
     this -> termlists = nullptr;
 }
 
 void AST::PredicateNode::print(){
-    std::cout << "PredicateNode name " << name << " arguments: ";
+    std::cout << "PredicateNode name " << this -> Node::name << " arguments: ";
     if(this -> termlists == nullptr){
         std::cout<<"No Predicate term lists " << std::endl;
         return;
@@ -15,7 +15,6 @@ void AST::PredicateNode::print(){
     else{
         this -> termlists -> print();
     }
-    std::cout << std::endl;
 }
 
 bool AST::PredicateNode::insert(AST::Node *term)
@@ -26,5 +25,5 @@ bool AST::PredicateNode::insert(AST::Node *term)
 AST::PredicateNode::~PredicateNode()
 {
     delete this -> termlists;
-    std::cout << "Predicate Node: " << this->name << " Destroy" << std::endl;
+    std::cout << "Predicate Node: " << this -> Node::name << " Destroy" << std::endl;
 }

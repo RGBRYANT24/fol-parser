@@ -6,12 +6,13 @@
 namespace AST{
     class PredicateNode : public Node {
 public:
-    std::string name;
+    //std::string name;
+    
     //std::vector<AST::Node*> arguments; // Arguments could be vars, constants, functions
     AST::Node* termlists;
     PredicateNode();
-    PredicateNode(const std::string& n) : name(n), termlists(nullptr) {}
-    PredicateNode(const std::string& n, AST::Node* term_lists) : name(n), termlists(term_lists) {}
+    PredicateNode(const std::string& n) : termlists(nullptr) {this -> Node::name = n;}
+    PredicateNode(const std::string& n, AST::Node* term_lists) : termlists(term_lists) {this -> Node::name = n;}
     void print();
     bool insert(AST::Node* term);
     NodeType getType() const override { return PREDICATE; }

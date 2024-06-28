@@ -29,6 +29,7 @@ namespace AST
             EXISTS,
             EQ
         };
+        std::string name;//节点名字 
         virtual NodeType getType() const = 0;
         virtual void print() {};
         virtual bool insert(Node* term) {return false;}; // insert arguments

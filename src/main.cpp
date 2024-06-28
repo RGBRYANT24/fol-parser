@@ -2,7 +2,9 @@
 #include <memory>
 #include "Parser.h"
 #include "AllNodes.h"
-
+#include "KnowledgeBase.h"
+//#include "CNF.h"
+#include "Clause.h"
 extern AST::Node* root;
 
 extern "C" int yylex();
@@ -35,12 +37,20 @@ int main(int argc, char **argv) {
     } else {
         std::cout << "解析失败" << std::endl;
     }
+    LogicSystem::CNF* cnf = new LogicSystem::CNF(root);
+    cnf -> print();
+    LogicSystem::Clause* clause = new LogicSystem::Clause();
+    clause -> addLiteral(cnf);
+    clause -> print();
+    LogicSystem::KnowledgeBase kb;
+    kb.addClause(clause);
+    kb.print();
 
     // 如果打开了文件，记得关闭
     if (argc > 1) {
         fclose(yyin);
     }
-    delete root;
+    //delete root;
 
     return 0;
 }

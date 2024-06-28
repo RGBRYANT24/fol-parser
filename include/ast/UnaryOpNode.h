@@ -9,8 +9,9 @@ namespace AST {
         AST::Node* child;
         AST::Node::NodeType op;
 
+        //std::string name;
         UnaryOpNode();
-        UnaryOpNode(AST::Node::NodeType op, AST::Node* child) : op(op), child(child) {}
+        UnaryOpNode(AST::Node::NodeType op, AST::Node* child) : op(op), child(child) {this -> name = this -> child -> name;}
         void print() override;
         bool insert(AST::Node* term) override;
         NodeType getType() const override {return this -> op;}

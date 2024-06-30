@@ -14,6 +14,7 @@ namespace AST {
         UnaryOpNode(AST::Node::NodeType op, AST::Node* child) : op(op), child(child) {this -> name = this -> child -> name;}
         void print() override;
         bool insert(AST::Node* term) override;
+        AST::Node* clone() const override;
         NodeType getType() const override {return this -> op;}
         ~UnaryOpNode();
     };

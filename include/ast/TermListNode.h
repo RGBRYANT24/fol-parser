@@ -10,6 +10,7 @@ public:
     std::vector<Node*> arguments; // Arguments could be vars, constants, functions
 
     TermListNode() {}
+    AST::Node* clone() const override;
     bool insert(AST::Node* term);
     void print();
     NodeType getType() const override { return TERMLIST; }

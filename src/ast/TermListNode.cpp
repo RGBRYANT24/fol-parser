@@ -23,6 +23,17 @@ void AST::TermListNode::print()
     }
 }
 
+// 在 TermListNode 类中添加：
+AST::Node *AST::TermListNode::clone() const
+{
+    TermListNode *newNode = new TermListNode();
+    for (const auto &arg : arguments)
+    {
+        newNode->insert(arg->clone());
+    }
+    return newNode;
+}
+
 AST::TermListNode::~TermListNode()
 {
     for (Node *node : this->arguments)

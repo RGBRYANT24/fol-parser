@@ -15,6 +15,7 @@ public:
     bool insert(AST::Node* term);//add function arity in this->arguments
     void print();
     NodeType getType() const override { return FUNCTION; }
+    AST::Node* clone() const override;
     ~FunctionNode();
 };
 }

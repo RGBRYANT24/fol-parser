@@ -13,6 +13,8 @@ namespace LogicSystem
         void print() const;
         std::string getPredicateName() const;
         bool isNegated() const;
+        CNF(const CNF& other); //拷贝构造
+        CNF& operator=(const CNF& other);  // 赋值运算符
         ~CNF();
 
     private:

@@ -29,9 +29,11 @@ namespace AST
             EXISTS,
             EQ
         };
+        std::string name;//节点名字 
         virtual NodeType getType() const = 0;
         virtual void print() {};
         virtual bool insert(Node* term) {return false;}; // insert arguments
+        virtual Node* clone() const = 0;//add deep copy
         virtual ~Node() {} // Virtual destructor for proper cleanup
     };
 }

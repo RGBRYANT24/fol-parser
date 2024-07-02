@@ -1,25 +1,24 @@
 #ifndef LOGIC_SYSTEM_CLAUSE_H
 #define LOGIC_SYSTEM_CLAUSE_H
 
-#include <unordered_map>
-#include <string>
 #include <vector>
-#include "CNF.h"
+#include <string>
+#include "Literal.h"
 
-namespace LogicSystem {
-    class Clause {
+namespace LogicSystem
+{
+    class KnowledgeBase;
+
+    class Clause
+    {
     public:
-        void addLiteral(CNF* cnf);
-        void removeLiteral(const std::string& predicateName);
-        void print() const;
-        std::vector<CNF*> getAllLiterals() const;
-        CNF* getLiteral(const std::string& predicateName) const;
-        bool containsPredicate(const std::string& predicateName) const;
-        size_t size() const;
-        ~Clause();
-
+        void addLiteral(const Literal& lit);
+        const std::vector<Literal>& getLiterals() const;
+        bool isEmpty() const;
+        std::string toString(const KnowledgeBase& kb) const;
+        std::vector<Literal> literals;
     private:
-        std::unordered_map<std::string, CNF*> literals;
+        
     };
 }
 

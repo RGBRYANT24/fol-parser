@@ -9,7 +9,7 @@
 #include "KnowledgeBase.h"
 #include "Clause.h"
 #include "CNF.h"
-#include "Resolver.h"
+
 
 namespace fs = std::filesystem;
 
@@ -18,8 +18,10 @@ extern "C" int yylex();
 extern "C" FILE *yyin;
 
 // 函数声明
-LogicSystem::Clause *parseFileToClause(const std::string &filename);
-LogicSystem::CNF *parseLiteral(const std::string &literal);
+bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb);
+bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb);
+void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb);
+void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated);
 
 int main()
 {
@@ -31,14 +33,12 @@ int main()
         if (entry.path().extension() == ".txt")
         {
             std::string filename = entry.path().string();
-            LogicSystem::Clause *clause = parseFileToClause(filename);
+            //LogicSystem::Clause *clause = parseFileToClause(filename);
+            bool addClause = readClause(filename, kb);
 
-            if (clause)
+            if (addClause)
             {
-                kb.addClause(clause);
-                std::cout << "从文件 " << filename << " 添加了子句：";
-                clause->print();
-                std::cout << std::endl;
+                std::cout << "从文件 " << filename << " 添加子句" <<std::endl;
             }
             else
             {
@@ -50,58 +50,45 @@ int main()
     std::cout << "\n最终知识库：" << std::endl;
     kb.print();
 
-    LogicSystem::Resolver resolver;
-    bool isSatisfiable = resolver.isSatisfiable(kb);
+    std::cout << "After standerlized variables " << std::endl;
+    kb.standardizeVariables();
+    kb.print();
 
-    if (isSatisfiable)
-    {
-        std::cout << "The knowledge base is satisfiable." << std::endl;
-    }
-    else
-    {
-        std::cout << "The knowledge base is unsatisfiable." << std::endl;
-    }
-    return 0;
 }
 
-LogicSystem::Clause *parseFileToClause(const std::string &filename)
+bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb)
 {
     std::ifstream file(filename);
     if (!file.is_open())
     {
         std::cerr << "无法打开文件: " << filename << std::endl;
-        return nullptr;
+        return false;
     }
 
-    LogicSystem::Clause *clause = new LogicSystem::Clause();
     std::string line;
-
     while (std::getline(file, line))
     {
-        // 跳过空行
+         // 跳过空行
         if (line.empty())
         {
             continue;
         }
-
-        LogicSystem::CNF *cnf = parseLiteral(line);
-        if (cnf)
+        if(parseLiteral(line, kb))
         {
-            clause->addLiteral(cnf);
-            std::cout << "成功添加字面量"; // 调试输出
-            cnf->print();
+            std::cout << "成功添加字面量 " << line << std::endl; // 调试输出
+            continue;
         }
         else
         {
             std::cerr << "解析 " << line << " 失败" << std::endl;
+            return false;
         }
     }
-
     file.close();
-    return clause;
+    return true;
 }
 
-LogicSystem::CNF *parseLiteral(const std::string &literal)
+bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb)
 {
     // 重置解析状态
     if (root)
@@ -109,19 +96,49 @@ LogicSystem::CNF *parseLiteral(const std::string &literal)
         delete root;
         root = nullptr;
     }
-
     // 设置输入为当前literal
-    yyin = fmemopen((void *)literal.c_str(), literal.length(), "r");
-
+    yyin = fmemopen((void *)line.c_str(), line.length(), "r");
     if (yyparse() == 0 && root)
     {
-        LogicSystem::CNF *cnf = new LogicSystem::CNF(root);
+        buildKnowledgeBase(root, kb);// add literal to kb
+        //delete root;
         fclose(yyin);
-        return cnf;
+        return true;
     }
     else
     {
         fclose(yyin);
-        return nullptr;
+        return false;
     }
+}
+
+void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb) {
+    if (node->getType() == AST::Node::PREDICATE) {
+        handlePredicate(static_cast<AST::PredicateNode*>(node), kb, false);
+    } else if (node->getType() == AST::Node::NOT) {
+        AST::UnaryOpNode* notNode = static_cast<AST::UnaryOpNode*>(node);
+        if (notNode->child->getType() == AST::Node::PREDICATE) {
+            handlePredicate(static_cast<AST::PredicateNode*>(notNode->child), kb, true);
+        }
+    }
+}
+
+void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated) {
+    int predicateId = kb.addPredicate(node->name);
+    std::vector<int> argumentIds;
+    
+    AST::TermListNode* termList = static_cast<AST::TermListNode*>(node->termlists);
+    for (AST::Node* arg : termList->arguments) {
+        if (arg->getType() == AST::Node::VARIABLE) {
+            argumentIds.push_back(kb.addVariable(arg->name));
+        } else if (arg->getType() == AST::Node::CONSTANT) {
+            argumentIds.push_back(kb.addConstant(arg->name));
+        }
+    }
+    //delete node; //AST 的析构函数可能还是有问题
+    
+    LogicSystem::Literal literal(predicateId, argumentIds, isNegated);
+    LogicSystem::Clause clause;
+    clause.addLiteral(literal);
+    kb.addClause(clause);
 }

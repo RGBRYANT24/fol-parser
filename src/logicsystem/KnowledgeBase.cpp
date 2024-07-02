@@ -4,82 +4,152 @@
 
 namespace LogicSystem
 {
-
-    void KnowledgeBase::addClause(Clause *clause)
+    int KnowledgeBase::addPredicate(const std::string &predicate)
     {
-        this->clauseOrder.push_back(clause);
-        this->indexClause(clause);
+        return predicateTable.insert(predicate);
     }
 
-    void KnowledgeBase::removeClause(Clause *clause)
+    int KnowledgeBase::addVariable(const std::string &variable)
     {
-        this->deindexClause(clause);
-        //"erase-remove idiom"
-        // remove 将所有不等于 clause 的元素移到 vector 的前面,返回一个迭代器，指向最后一个不应被删除的元素之后的位置
-        // erase 方法真正从 vector 中删除元素,它删除从 std::remove 返回的迭代器位置到 vector 末尾的所有元素
-        // 能在一次操作中高效地删除 vector 中的所有指定元素。时间复杂度为 O(n)，其中 n 是 vector 的大小
-        this->clauseOrder.erase(std::remove(this->clauseOrder.begin(), this->clauseOrder.end(), clause), this->clauseOrder.end());
-        delete clause;
+        return variableTable.insert(variable);
     }
 
-    std::vector<Clause *> KnowledgeBase::getClauses() const
+    int KnowledgeBase::addConstant(const std::string &constant)
     {
-        return this->clauseOrder;
+        return constantTable.insert(constant);
     }
 
-    std::vector<Clause *> KnowledgeBase::getClausesWithPredicate(const std::string &predicateName) const
+    void KnowledgeBase::addClause(const Clause &clause)
     {
-        auto it = this->predicateIndex.find(predicateName);
-        if (it != this->predicateIndex.end())
+        clauses.push_back(clause);
+    }
+
+    void KnowledgeBase::addFact(const Fact &fact)
+    {
+        if (!hasFact(fact))
         {
-            return std::vector<Clause *>(it->second.begin(), it->second.end());
+            facts.push_back(fact);
         }
-        return std::vector<Clause *>();
+    }
+
+    const std::vector<Clause> &KnowledgeBase::getClauses() const
+    {
+        return clauses;
+    }
+
+    const std::vector<Fact> &KnowledgeBase::getFacts() const
+    {
+        return facts;
+    }
+
+    std::string KnowledgeBase::getPredicateName(int id) const
+    {
+        return predicateTable.get(id);
+    }
+
+    std::string KnowledgeBase::getVariableName(int id) const
+    {
+        return variableTable.get(id);
+    }
+
+    std::string KnowledgeBase::getConstantName(int id) const
+    {
+        return constantTable.get(id);
+    }
+
+    bool KnowledgeBase::isVariable(int id) const
+    {
+        return id < variableTable.size();
+    }
+
+    bool KnowledgeBase::hasFact(const Fact &fact) const
+    {
+        return std::find(facts.begin(), facts.end(), fact) != facts.end();
+    }
+
+    void KnowledgeBase::setStandardizedVariableName(int id, const std::string &name)
+    {
+        standardizedVariableNames[id] = name;
+    }
+
+    void KnowledgeBase::standardizeVariables()
+    {
+        int nextStandardId = 0;
+        std::map<int, int> variableMap;
+
+        for (Clause &clause : clauses)
+        {
+            for (Literal &literal : clause.literals)
+            {
+                for (int &argId : literal.argumentIds)
+                {
+                    if (isVariable(argId))
+                    {
+                        if (variableMap.find(argId) == variableMap.end())
+                        {
+                            int newId = nextVariableId++;
+                            variableMap[argId] = newId;
+                            // 设置新的标准化变量名
+                            setStandardizedVariableName(newId, "X" + std::to_string(nextStandardId++));
+                        }
+                        argId = variableMap[argId];
+                    }
+                }
+            }
+        }
+    }
+
+    void KnowledgeBase::standardizeClause(Clause &clause)
+    {
+        std::map<int, int> variableMap;
+        std::vector<Literal> literals = clause.getLiterals();
+        for (Literal &literal : literals)
+        {
+            std::vector<int> arguments = literal.getArgumentIds();
+            for (int &argId : arguments)
+            {
+                if (isVariable(argId))
+                {
+                    if (variableMap.find(argId) == variableMap.end())
+                    {
+                        variableMap[argId] = nextVariableId++;
+                    }
+                    argId = variableMap[argId];
+                }
+            }
+        }
     }
 
     void KnowledgeBase::print() const
     {
-        std::cout << "Knowledge Base Print Begin-------------------" << std::endl;
-        for (size_t i = 0; i < this->clauseOrder.size(); ++i)
+        for (const Clause &clause : clauses)
         {
-            std::cout << "Clause " << i + 1 << ": ";
-            this->clauseOrder[i]->print();
-            std::cout << std::endl;
-        }
-        std::cout << "Knowledge Base Print End-------------------" << std::endl;
-    }
-
-    size_t KnowledgeBase::size() const
-    {
-        return this->clauseOrder.size();
-    }
-
-    KnowledgeBase::~KnowledgeBase()
-    {
-        for (auto clause : this->clauseOrder)
-        {
-            delete clause;
-        }
-    }
-
-    void KnowledgeBase::indexClause(Clause *clause)
-    {
-        for (const auto &literal : clause->getAllLiterals())
-        {
-            this->predicateIndex[literal->getPredicateName()].insert(clause);
-        }
-    }
-
-    void KnowledgeBase::deindexClause(Clause *clause)
-    {
-        for (const auto &literal : clause->getAllLiterals())
-        {
-            auto &clauses = this->predicateIndex[literal->getPredicateName()];
-            clauses.erase(clause);
-            if (clauses.empty())
+            for (const Literal &literal : clause.literals)
             {
-                this->predicateIndex.erase(literal->getPredicateName());
+                if (literal.negated)
+                {
+                    std::cout << "¬";
+                }
+                std::cout << getPredicateName(literal.predicateId) << "(";
+                for (size_t i = 0; i < literal.argumentIds.size(); ++i)
+                {
+                    int argId = literal.argumentIds[i];
+                    if (isVariable(argId))
+                    {
+                        std::cout << getVariableName(argId);
+                    }
+                    else
+                    {
+                        std::cout << getConstantName(argId);
+                    }
+                    if (i < literal.argumentIds.size() - 1)
+                    {
+                        std::cout << ", ";
+                    }
+                }
+                std::cout << ") ";
             }
+            std::cout << std::endl;
         }
     }
 }

@@ -31,9 +31,6 @@ namespace LogicSystem
         bool isVariable(int id) const;
         bool hasFact(const Fact& fact) const;
 
-        void standardizeVariables();//变量标准化，避免重名
-        void setStandardizedVariableName(int id, const std::string& name);
-        std::string getOriginalVariableName(int id) const;
         void print() const;
 
     private:
@@ -42,11 +39,7 @@ namespace LogicSystem
         ConstantTable constantTable;
         std::vector<Clause> clauses;
         std::vector<Fact> facts;
-        std::map<int, std::string> standardizedVariableNames; //存储标准化之后的变量名
 
-        
-        void standardizeClause(Clause& clause);
-        int nextVariableId = 0;
         int nextSkolemFunctionId = 0;
     };
 }

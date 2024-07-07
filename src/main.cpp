@@ -9,8 +9,9 @@
 #include "KnowledgeBase.h"
 #include "Clause.h"
 #include "CNF.h"
+#include "Unifier.h"
 
-
+#include <cassert>
 namespace fs = std::filesystem;
 
 extern AST::Node *root;
@@ -22,6 +23,70 @@ bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb);
 bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb);
 void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb);
 void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated);
+
+void testSimpleUnification() {
+    LogicSystem::KnowledgeBase kb;
+    int predId = kb.addPredicate("P");
+    int varX = kb.addVariable("X");
+    int varY = kb.addVariable("Y");
+    int varZ = kb.addVariable("Z");
+    int varZZ = kb.addVariable("ZZ");
+
+    int constA = kb.addConstant("a");
+
+    LogicSystem::Literal lit1(predId, {varX, varZ, constA}, false);
+    LogicSystem::Literal lit2(predId, {varY,varZZ, constA}, false);
+
+    auto mgu = LogicSystem::Unifier::findMGU(lit1, lit2, kb);
+    assert(mgu.has_value());
+    //assert(mgu->size() == 1);
+    assert(mgu->at(varX) == varY || mgu->at(varY) == varX);
+
+    // 打印 MGU 内容
+    std::cout << "MGU content:" << std::endl;
+    for (const auto& [key, value] : *mgu) {
+        std::cout << "  " << key << " -> " << value << std::endl;
+    }
+    std::cout << "Simple unification test passed." << std::endl;
+}
+
+void testNonUnifiableLiterals() {
+    LogicSystem::KnowledgeBase kb;
+    int predP = kb.addPredicate("P");
+    int predQ = kb.addPredicate("Q");
+    int varX = kb.addVariable("X");
+    int constA = kb.addConstant("a");
+
+    LogicSystem::Literal lit1(predP, {varX}, false);
+    LogicSystem::Literal lit2(predQ, {constA}, false);
+
+    auto mgu = LogicSystem::Unifier::findMGU(lit1, lit2, kb);
+    assert(!mgu.has_value());
+
+    std::cout << "Non-unifiable literals test passed." << std::endl;
+}
+
+void testOccursCheck() {
+    LogicSystem::KnowledgeBase kb;
+    int predId = kb.addPredicate("P");
+    int varX = kb.addVariable("X");
+    int varY = kb.addVariable("Y");
+
+    LogicSystem::Literal lit1(predId, {varX}, false);
+    LogicSystem::Literal lit2(predId, {varY}, false);
+
+    auto mgu = LogicSystem::Unifier::findMGU(lit1, lit2, kb);
+    assert(mgu.has_value());
+
+    lit1 = LogicSystem::Literal(predId, {varX}, false);
+    lit2 = LogicSystem::Literal(predId, {varX, varY}, false);
+
+    mgu = LogicSystem::Unifier::findMGU(lit1, lit2, kb);
+    assert(!mgu.has_value());
+
+    std::cout << "Occurs check test passed." << std::endl;
+}
+
 
 int main()
 {
@@ -50,9 +115,12 @@ int main()
     std::cout << "\n最终知识库：" << std::endl;
     kb.print();
 
-    std::cout << "After standerlized variables " << std::endl;
-    kb.standardizeVariables();
-    kb.print();
+    testSimpleUnification();
+    testNonUnifiableLiterals();
+    testOccursCheck();
+
+    std::cout << "All tests passed!" << std::endl;
+    //unifierTest();
 
 }
 

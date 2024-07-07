@@ -16,9 +16,9 @@ namespace LogicSystem
         const std::vector<Literal>& getLiterals() const;
         bool isEmpty() const;
         std::string toString(const KnowledgeBase& kb) const;
-        std::vector<Literal> literals;
-    private:
         
+    private:
+        std::vector<Literal> literals;
     };
 }
 

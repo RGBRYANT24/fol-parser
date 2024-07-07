@@ -20,10 +20,11 @@ namespace LogicSystem
         bool isNegated() const;
 
 
+        
+    private:
         int predicateId;
         std::vector<int> argumentIds;
         bool negated;
-    private:
         
     };
 }

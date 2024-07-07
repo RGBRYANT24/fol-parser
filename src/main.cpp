@@ -10,7 +10,7 @@
 #include "Clause.h"
 #include "CNF.h"
 #include "Unifier.h"
-
+#include "Resolution.h"
 #include <cassert>
 namespace fs = std::filesystem;
 
@@ -23,74 +23,11 @@ bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb);
 bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb);
 void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb);
 void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated);
-
-void testSimpleUnification() {
-    LogicSystem::KnowledgeBase kb;
-    int predId = kb.addPredicate("P");
-    int varX = kb.addVariable("X");
-    int varY = kb.addVariable("Y");
-    int varZ = kb.addVariable("Z");
-    int varZZ = kb.addVariable("ZZ");
-
-    int constA = kb.addConstant("a");
-
-    LogicSystem::Literal lit1(predId, {varX, varZ, constA}, false);
-    LogicSystem::Literal lit2(predId, {varY,varZZ, constA}, false);
-
-    auto mgu = LogicSystem::Unifier::findMGU(lit1, lit2, kb);
-    assert(mgu.has_value());
-    //assert(mgu->size() == 1);
-    assert(mgu->at(varX) == varY || mgu->at(varY) == varX);
-
-    // 打印 MGU 内容
-    std::cout << "MGU content:" << std::endl;
-    for (const auto& [key, value] : *mgu) {
-        std::cout << "  " << key << " -> " << value << std::endl;
-    }
-    std::cout << "Simple unification test passed." << std::endl;
-}
-
-void testNonUnifiableLiterals() {
-    LogicSystem::KnowledgeBase kb;
-    int predP = kb.addPredicate("P");
-    int predQ = kb.addPredicate("Q");
-    int varX = kb.addVariable("X");
-    int constA = kb.addConstant("a");
-
-    LogicSystem::Literal lit1(predP, {varX}, false);
-    LogicSystem::Literal lit2(predQ, {constA}, false);
-
-    auto mgu = LogicSystem::Unifier::findMGU(lit1, lit2, kb);
-    assert(!mgu.has_value());
-
-    std::cout << "Non-unifiable literals test passed." << std::endl;
-}
-
-void testOccursCheck() {
-    LogicSystem::KnowledgeBase kb;
-    int predId = kb.addPredicate("P");
-    int varX = kb.addVariable("X");
-    int varY = kb.addVariable("Y");
-
-    LogicSystem::Literal lit1(predId, {varX}, false);
-    LogicSystem::Literal lit2(predId, {varY}, false);
-
-    auto mgu = LogicSystem::Unifier::findMGU(lit1, lit2, kb);
-    assert(mgu.has_value());
-
-    lit1 = LogicSystem::Literal(predId, {varX}, false);
-    lit2 = LogicSystem::Literal(predId, {varX, varY}, false);
-
-    mgu = LogicSystem::Unifier::findMGU(lit1, lit2, kb);
-    assert(!mgu.has_value());
-
-    std::cout << "Occurs check test passed." << std::endl;
-}
-
+bool resolutionTest();
 
 int main()
 {
-    const std::string input_dir = "../input_files";
+    /*const std::string input_dir = "../input_files";
     LogicSystem::KnowledgeBase kb;
 
     for (const auto &entry : fs::directory_iterator(input_dir))
@@ -115,13 +52,20 @@ int main()
     std::cout << "\n最终知识库：" << std::endl;
     kb.print();
 
-    testSimpleUnification();
-    testNonUnifiableLiterals();
-    testOccursCheck();
+    LogicSystem::Clause goal;
+    int xiaomingID = kb.addConstant("xiaoming");
+    int PredicateID = kb.addPredicate("R");
+    goal.addLiteral(LogicSystem::Literal(PredicateID,{xiaomingID}, false));
 
-    std::cout << "All tests passed!" << std::endl;
-    //unifierTest();
+    bool proved = LogicSystem::Resolution::prove(kb, goal);
+    if (proved) {
+        std::cout << "Goal proved!" << std::endl;
+    } else {
+        std::cout << "Unable to prove the goal." << std::endl;
+    }*/
 
+   resolutionTest();
+   return 0;
 }
 
 bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb)
@@ -209,4 +153,67 @@ void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, b
     LogicSystem::Clause clause;
     clause.addLiteral(literal);
     kb.addClause(clause);
+}
+
+bool resolutionTest()
+{
+    LogicSystem::KnowledgeBase kb;
+
+    // 添加谓词
+    int dogId = kb.addPredicate("Dog");
+    int animalId = kb.addPredicate("Animal");
+    int breathesId = kb.addPredicate("Breathes");
+    int ownsId = kb.addPredicate("Owns");
+
+    // 添加常量
+    int xiaomingId = kb.addConstant("Xiaoming");
+
+    // 添加变量
+    int xId = kb.addVariable("X");
+    int yId = kb.addVariable("Y");
+
+    // 1. 所有的狗都是动物: ∀X(Dog(X) → Animal(X))
+    // 转换为子句形式: ¬Dog(X) ∨ Animal(X)
+    LogicSystem::Clause clause1;
+    clause1.addLiteral(LogicSystem::Literal(dogId, {xId}, true));  // ¬Dog(X)
+    clause1.addLiteral(LogicSystem::Literal(animalId, {xId}, false));  // Animal(X)
+    kb.addClause(clause1);
+
+    // 2. 所有的动物都会呼吸: ∀Y(Animal(Y) → Breathes(Y))
+    // 转换为子句形式: ¬Animal(Y) ∨ Breathes(Y)
+    LogicSystem::Clause clause2;
+    clause2.addLiteral(LogicSystem::Literal(animalId, {yId}, true));  // ¬Animal(Y)
+    clause2.addLiteral(LogicSystem::Literal(breathesId, {yId}, false));  // Breathes(Y)
+    kb.addClause(clause2);
+
+    // 3. 小明养了一只狗: Dog(Xiaoming's_dog) ∧ Owns(Xiaoming, Xiaoming's_dog)
+    // 我们将这拆分为两个事实
+    LogicSystem::Clause factClause;
+    factClause.addLiteral(LogicSystem::Literal(dogId, {kb.addConstant("Xiaoming's_dog")}, false));
+    factClause.addLiteral(LogicSystem::Literal(ownsId, {xiaomingId, kb.addConstant("Xiaoming's_dog")},false));
+    kb.addClause(factClause);
+    /*LogicSystem::Fact fact1(dogId, {kb.addConstant("Xiaoming's_dog")});
+    kb.addFact(fact1);*/
+
+    /*LogicSystem::Fact fact2(ownsId, {xiaomingId, kb.addConstant("Xiaoming's_dog")});
+    kb.addFact(fact2);*/
+
+    // 创建目标子句：证明小明养的动物会呼吸
+    // 目标: ∃Z(Owns(Xiaoming, Z) ∧ Animal(Z) ∧ Breathes(Z))
+    // 否定后: ∀Z(¬Owns(Xiaoming, Z) ∨ ¬Animal(Z) ∨ ¬Breathes(Z))
+    int zId = kb.addVariable("Z");
+    LogicSystem::Clause goal;
+    goal.addLiteral(LogicSystem::Literal(ownsId, {xiaomingId, zId}, true));  // ¬Owns(Xiaoming, Z)
+    goal.addLiteral(LogicSystem::Literal(animalId, {zId}, true));  // ¬Animal(Z)
+    goal.addLiteral(LogicSystem::Literal(breathesId, {zId}, true));  // ¬Breathes(Z)
+
+    // 尝试证明
+    bool proved = LogicSystem::Resolution::prove(kb, goal);
+
+    if (proved) {
+        std::cout << "Goal proved: Xiaoming owns an animal that breathes!" << std::endl;
+    } else {
+        std::cout << "Unable to prove the goal." << std::endl;
+    }
+    return proved;
 }

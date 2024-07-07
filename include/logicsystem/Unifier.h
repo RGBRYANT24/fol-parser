@@ -15,6 +15,7 @@ namespace LogicSystem
         using Substitution = std::unordered_map<int, int>;
 
         static std::optional<Substitution> findMGU(const Literal& lit1, const Literal& lit2, const KnowledgeBase& kb);
+        static Literal applySubstitutionToLiteral(const Literal& lit, const Substitution& substitution, const KnowledgeBase& kb);
 
     private:
         static bool unify(const std::vector<int>& args1, const std::vector<int>& args2, Substitution& subst, const KnowledgeBase& kb);

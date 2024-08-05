@@ -66,6 +66,7 @@ namespace LogicSystem
                         if (isComplementary(resolvant->getLiterals()[i], clause.getLiterals()[j]))
                         {
                             double score = calculateHeuristic(*resolvant, clause, i, j);
+                            std::cout << "score " << score << std::endl;
                             pq.emplace(&clauses.back(), &clause, static_cast<int>(i), static_cast<int>(j), score);
                         }
                     }
@@ -108,6 +109,7 @@ namespace LogicSystem
         Clause resolvant;
         for (const auto &lit : c1.getLiterals())
         {
+            //auto clause1 = c1.getLiterals();
             if (&lit != &c1.getLiterals()[l1])
             {
                 resolvant.addLiteral(Unifier::applySubstitutionToLiteral(lit, *mgu, kb));

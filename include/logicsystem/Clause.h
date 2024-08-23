@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include "Literal.h"
 
 namespace LogicSystem
@@ -18,7 +19,10 @@ namespace LogicSystem
         std::string toString(const KnowledgeBase& kb) const;
         
     private:
+        std::unordered_map<int, int> literalMap;//PredicateId -> 出现次数
         std::vector<Literal> literals;
+
+        bool hasOppositeLiteral(const Literal& lit) const;
     };
 }
 

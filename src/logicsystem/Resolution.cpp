@@ -8,6 +8,7 @@ namespace LogicSystem
 
     bool Resolution::prove(const KnowledgeBase &kb, const Clause &goal)
     {
+
         std::vector<Clause> clauses = kb.getClauses();
         clauses.push_back(goal);
 
@@ -27,7 +28,7 @@ namespace LogicSystem
                     {
                         if (isComplementary(c1.getLiterals()[l1], c2.getLiterals()[l2]))
                         {
-                            std::cout << c1.toString(kb) << " " << c2.toString(kb) << std::endl;
+                            std::cout << "c1 " << c1.toString(kb) << " c2 " << c2.toString(kb) << std::endl;
                             double score = calculateHeuristic(c1, c2, l1, l2);
                             pq.emplace(&c1, &c2, l1, l2, score);
                         }
@@ -36,18 +37,28 @@ namespace LogicSystem
             }
         }
 
+        int count = 0;
         while(!pq.empty())
         {
+            std::cout << "Round " << count + 1 << std::endl;
+            
             ResolutionPair pair = pq.top();
             pq.pop();
 
+            if(pair.clause1->isEmpty() && pair.clause2->isEmpty()) return true;
+            std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " <<pair.literal1Index<< " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
             auto resolvant = resolve(*pair.clause1, *pair.clause2, pair.literal1Index, pair.literal2Index, kb);
 
             if (!resolvant)
             {
+                std::cout << "unresolvant with " << (*pair.clause1).toString(kb) << " index " <<pair.literal1Index<< " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
                 continue;
             }
-
+            else
+            {
+                std::cout << "resolvant " << resolvant->toString(kb) << std::endl;
+            }
+            //break;
             if (resolvant->isEmpty())
             {
                 return true; // 找到空子句，证明成功
@@ -67,11 +78,14 @@ namespace LogicSystem
                         {
                             double score = calculateHeuristic(*resolvant, clause, i, j);
                             std::cout << "score " << score << std::endl;
+                            std::cout << "new Complementary Pair " << resolvant->toString(kb) << " clause " << clause.toString(kb) << std::endl;
                             pq.emplace(&clauses.back(), &clause, static_cast<int>(i), static_cast<int>(j), score);
                         }
                     }
                 }
             }
+            if(count >= 4) break;
+            count ++;
         }
 
         return false; // 无法证明
@@ -107,22 +121,33 @@ namespace LogicSystem
         }
 
         Clause resolvant;
+        //std::cout << "resolvant pinjie add c1" << std::endl;
         for (const auto &lit : c1.getLiterals())
         {
             //auto clause1 = c1.getLiterals();
             if (&lit != &c1.getLiterals()[l1])
             {
-                resolvant.addLiteral(Unifier::applySubstitutionToLiteral(lit, *mgu, kb));
+                LogicSystem::Literal newLiteral = Unifier::applySubstitutionToLiteral(lit, *mgu, kb);
+                resolvant.addLiteral(newLiteral);
+                /*std::cout << "literal " << newLiteral.toString(kb) << " predicate id " << newLiteral.getPredicateId() << std::endl;
+                std::cout << "resolvant after add this literal " << resolvant.toString(kb) << std::endl;*/
+                //resolvant.addLiteral(Unifier::applySubstitutionToLiteral(lit, *mgu, kb));
             }
         }
+        //std::cout <<"resolvant pinjie add c2 " << std::endl;
         for (const auto &lit : c2.getLiterals())
         {
             if (&lit != &c2.getLiterals()[l2])
             {
-                resolvant.addLiteral(Unifier::applySubstitutionToLiteral(lit, *mgu, kb));
+                LogicSystem::Literal newLiteral = Unifier::applySubstitutionToLiteral(lit, *mgu, kb);
+                resolvant.addLiteral(newLiteral);
+                /*std::cout << "literal " << newLiteral.toString(kb) << " predicate id " << newLiteral.getPredicateId() << std::endl;
+                std::cout << "resolvant after add this literal " << resolvant.toString(kb) << std::endl;*/
+                //resolvant.addLiteral(Unifier::applySubstitutionToLiteral(lit, *mgu, kb));
             }
         }
 
+        //resolvant.check()//这里面clause应该做检查 如果有互补的文字项直接删除，相同的文字项只保留一个
         return resolvant;
     }
 

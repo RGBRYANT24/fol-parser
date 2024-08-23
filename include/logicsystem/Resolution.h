@@ -11,7 +11,7 @@ namespace LogicSystem {
     class Resolution {
     public:
         static bool prove(const KnowledgeBase& kb, const Clause& goal);
-
+        static std::optional<Clause> testResolve(const Clause& c1, const Clause& c2, int l1, int l2, const KnowledgeBase& kb) {return resolve(c1, c2,l1,l2,kb);}
     private:
         static double calculateHeuristic(const Clause& c1, const Clause& c2, int l1, int l2);
         static std::optional<Clause> resolve(const Clause& c1, const Clause& c2, int l1, int l2, const KnowledgeBase& kb);

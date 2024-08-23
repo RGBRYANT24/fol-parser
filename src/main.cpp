@@ -20,14 +20,14 @@ extern "C" FILE *yyin;
 
 // 函数声明
 bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb);
-bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb);
-void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb);
-void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated);
+bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb, LogicSystem::Clause& clause);
+void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb, LogicSystem::Clause& clause);
+void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated, LogicSystem::Clause& clause);
 bool resolutionTest();
 
 int main()
 {
-    /*const std::string input_dir = "../input_files";
+    const std::string input_dir = "../input_files";
     LogicSystem::KnowledgeBase kb;
 
     for (const auto &entry : fs::directory_iterator(input_dir))
@@ -52,7 +52,7 @@ int main()
     std::cout << "\n最终知识库：" << std::endl;
     kb.print();
 
-    LogicSystem::Clause goal;
+    /*LogicSystem::Clause goal;
     int xiaomingID = kb.addConstant("xiaoming");
     int PredicateID = kb.addPredicate("R");
     goal.addLiteral(LogicSystem::Literal(PredicateID,{xiaomingID}, false));
@@ -64,13 +64,14 @@ int main()
         std::cout << "Unable to prove the goal." << std::endl;
     }*/
 
-   resolutionTest();
+   //resolutionTest();
    return 0;
 }
 
 bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb)
 {
     std::ifstream file(filename);
+    LogicSystem::Clause clause; // 每个文件应该保存在一个clause中
     if (!file.is_open())
     {
         std::cerr << "无法打开文件: " << filename << std::endl;
@@ -85,7 +86,7 @@ bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb)
         {
             continue;
         }
-        if(parseLiteral(line, kb))
+        if(parseLiteral(line, kb, clause))
         {
             std::cout << "成功添加字面量 " << line << std::endl; // 调试输出
             continue;
@@ -97,10 +98,13 @@ bool readClause(const std::string &filename, LogicSystem::KnowledgeBase& kb)
         }
     }
     file.close();
+    std::cout << "添加 clause " << std::endl;
+    std::cout << clause.toString(kb) << std::endl;
+    kb.addClause(clause);
     return true;
 }
 
-bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb)
+bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb, LogicSystem::Clause& clause)
 {
     // 重置解析状态
     if (root)
@@ -112,7 +116,7 @@ bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb)
     yyin = fmemopen((void *)line.c_str(), line.length(), "r");
     if (yyparse() == 0 && root)
     {
-        buildKnowledgeBase(root, kb);// add literal to kb
+        buildKnowledgeBase(root, kb, clause);// add literal to kb
         //delete root;
         fclose(yyin);
         return true;
@@ -124,18 +128,18 @@ bool parseLiteral(const std::string& line, LogicSystem::KnowledgeBase& kb)
     }
 }
 
-void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb) {
+void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb, LogicSystem::Clause& clause) {
     if (node->getType() == AST::Node::PREDICATE) {
-        handlePredicate(static_cast<AST::PredicateNode*>(node), kb, false);
+        handlePredicate(static_cast<AST::PredicateNode*>(node), kb, false, clause);
     } else if (node->getType() == AST::Node::NOT) {
         AST::UnaryOpNode* notNode = static_cast<AST::UnaryOpNode*>(node);
         if (notNode->child->getType() == AST::Node::PREDICATE) {
-            handlePredicate(static_cast<AST::PredicateNode*>(notNode->child), kb, true);
+            handlePredicate(static_cast<AST::PredicateNode*>(notNode->child), kb, true, clause);
         }
     }
 }
 
-void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated) {
+void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated, LogicSystem::Clause& clause) {
     int predicateId = kb.addPredicate(node->name);
     std::vector<int> argumentIds;
     
@@ -150,9 +154,9 @@ void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, b
     //delete node; //AST 的析构函数可能还是有问题
     
     LogicSystem::Literal literal(predicateId, argumentIds, isNegated);
-    LogicSystem::Clause clause;
+    //LogicSystem::Clause clause;
     clause.addLiteral(literal);
-    kb.addClause(clause);
+    //kb.addClause(clause);
 }
 
 bool resolutionTest()
@@ -207,13 +211,17 @@ bool resolutionTest()
     goal.addLiteral(LogicSystem::Literal(animalId, {zId}, true));  // ¬Animal(Z)
     goal.addLiteral(LogicSystem::Literal(breathesId, {zId}, true));  // ¬Breathes(Z)
 
+    std::cout << "print kb" << std::endl;
+    kb.print();
+
     // 尝试证明
-    bool proved = LogicSystem::Resolution::prove(kb, goal);
+    /*bool proved = LogicSystem::Resolution::prove(kb, goal);
 
     if (proved) {
         std::cout << "Goal proved: Xiaoming owns an animal that breathes!" << std::endl;
     } else {
         std::cout << "Unable to prove the goal." << std::endl;
     }
-    return proved;
+    return proved;*/
+    return 1;
 }

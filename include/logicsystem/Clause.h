@@ -17,6 +17,20 @@ namespace LogicSystem
         const std::vector<Literal>& getLiterals() const;
         bool isEmpty() const;
         std::string toString(const KnowledgeBase& kb) const;
+        // 默认构造函数
+        Clause() = default;
+
+        // 复制构造函数
+        Clause(const Clause& other);
+
+        // 赋值运算符
+        Clause& operator=(const Clause& other);
+
+        // 移动构造函数
+        Clause(Clause&& other) noexcept;
+
+        // 移动赋值运算符
+        Clause& operator=(Clause&& other) noexcept;
         
     private:
         std::unordered_map<int, int> literalMap;//PredicateId -> 出现次数

@@ -194,12 +194,15 @@ bool resolutionTest()
 
     // 3. 小明养了一只狗: Dog(Xiaoming's_dog) ∧ Owns(Xiaoming, Xiaoming's_dog)
     // 我们将这拆分为两个事实
-    LogicSystem::Clause factClause;
+    LogicSystem::Clause factClause1, factClause2;
     int xiaomingDogId = kb.addVariable("Xiaoming's_dog");
     //std::cout << "xiaomingDogId "<< xiaomingDogId << std::endl;
-    factClause.addLiteral(LogicSystem::Literal(dogId, {xiaomingDogId}, false));
-    factClause.addLiteral(LogicSystem::Literal(ownsId, {xiaomingId, xiaomingDogId},false));
-    kb.addClause(factClause);
+    factClause1.addLiteral(LogicSystem::Literal(dogId, {xiaomingDogId}, false));
+    factClause2.addLiteral(LogicSystem::Literal(ownsId, {xiaomingId, xiaomingDogId},false));
+    //factClause.addLiteral(LogicSystem::Literal(ownsId, {xiaomingId, xiaomingDogId},true));
+    kb.addClause(factClause1);
+    kb.addClause(factClause2);
+    kb.print();
     //std::cout << "factClause " << factClause.toString(kb) << std::endl;
     /*LogicSystem::Fact fact1(dogId, {kb.addConstant("Xiaoming's_dog")});
     kb.addFact(fact1);*/
@@ -232,7 +235,9 @@ bool resolutionTest()
 
 
     // 尝试证明
-    bool proved = LogicSystem::Resolution::prove(kb, goal);
+    //bool proved = LogicSystem::Resolution::prove(kb, goal);
+    //bool proved = LogicSystem::Resolution::proveDFS(kb, goal);
+    bool proved = LogicSystem::Resolution::proveBFS(kb, goal);
 
     if (proved) {
         std::cout << "Goal proved: Xiaoming owns an animal that breathes!" << std::endl;
@@ -264,8 +269,8 @@ void addClauseTest()
     clause1.addLiteral(LogicSystem::Literal(dogId, {xId}, true));  // ¬Dog(X)
     clause1.addLiteral(LogicSystem::Literal(animalId, {xId}, false));  // Animal(X)
     std::cout << "before " << clause1.toString(kb) << std::endl;
-    clause1.addLiteral(LogicSystem::Literal(animalId, {xId}, true));  // Animal(X)
-    clause1.addLiteral(LogicSystem::Literal(breathesId, {yId}, false));  // Animal(X)
+    clause1.addLiteral(LogicSystem::Literal(animalId, {xId}, false));  // Animal(X)
+    clause1.addLiteral(LogicSystem::Literal(breathesId, {yId}, true));  // Animal(Y)
     std::cout << "after " << clause1.toString(kb) << std::endl;
 
 

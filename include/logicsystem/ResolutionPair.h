@@ -16,7 +16,7 @@ namespace LogicSystem {
             : clause1(c1), clause2(c2), literal1Index(l1), literal2Index(l2), heuristicScore(score) {}
 
         bool operator<(const ResolutionPair& other) const {
-            return heuristicScore < other.heuristicScore;
+            return heuristicScore > other.heuristicScore;
         }
     };
 }

@@ -3,8 +3,19 @@
 #include "Unifier.h"
 #include <algorithm>
 #include <iostream>
+#include <memory>
 namespace LogicSystem
 {
+    std::vector<std::unique_ptr<Clause>> convertToUniquePtr(const std::vector<Clause> &originalClauses)
+    {
+        std::vector<std::unique_ptr<Clause>> newClauses;
+        newClauses.reserve(originalClauses.size());
+        for (const auto &clause : originalClauses)
+        {
+            newClauses.push_back(std::make_unique<Clause>(clause));
+        }
+        return newClauses;
+    }
     void printPriorityQueue(const std::priority_queue<ResolutionPair> &pq, const KnowledgeBase &kb)
     {
         std::cout << "Priority Queue Contents:" << std::endl;
@@ -28,11 +39,10 @@ namespace LogicSystem
             // // 将元素添加到临时队列
             // temp_pq.push(pair);
             // pq.pop();
-            
         }
 
         // 将所有元素放回原始优先队列
-        //pq = std::move(temp_pq);
+        // pq = std::move(temp_pq);
 
         std::cout << "End of Priority Queue Contents" << std::endl;
     }
@@ -59,11 +69,10 @@ namespace LogicSystem
             // // 将元素添加到临时队列
             // temp_pq.push(pair);
             // pq.pop();
-            
         }
 
         // 将所有元素放回原始优先队列
-        //pq = std::move(temp_pq);
+        // pq = std::move(temp_pq);
 
         std::cout << "End of Priority Queue Contents" << std::endl;
     }
@@ -109,12 +118,12 @@ namespace LogicSystem
 
             /*if (pair.clause1->isEmpty() && pair.clause2->isEmpty())
                 return true;*/
-            //std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
+            // std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
             auto resolvant = resolve(*pair.clause1, *pair.clause2, pair.literal1Index, pair.literal2Index, kb);
 
             if (!resolvant)
             {
-                //std::cout << "unresolvant with " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
+                // std::cout << "unresolvant with " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
                 continue;
             }
             else
@@ -151,8 +160,8 @@ namespace LogicSystem
                     }
                 }
             }
-            //std::cout << pq.size() << " " << std::endl;
-            //printPriorityQueue(pq, kb);
+            // std::cout << pq.size() << " " << std::endl;
+            // printPriorityQueue(pq, kb);
             if (count >= 4)
                 break;
             count++;
@@ -161,7 +170,6 @@ namespace LogicSystem
         return false; // 无法证明
     }
 
-    
     bool Resolution::proveDFS(const KnowledgeBase &kb, const Clause &goal)
     {
 
@@ -203,12 +211,12 @@ namespace LogicSystem
 
             /*if (pair.clause1->isEmpty() && pair.clause2->isEmpty())
                 return true;*/
-            //std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
+            // std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
             auto resolvant = resolve(*pair.clause1, *pair.clause2, pair.literal1Index, pair.literal2Index, kb);
 
             if (!resolvant)
             {
-                //std::cout << "unresolvant with " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
+                // std::cout << "unresolvant with " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
                 continue;
             }
             else
@@ -245,8 +253,8 @@ namespace LogicSystem
                     }
                 }
             }
-            //std::cout << pq.size() << " " << std::endl;
-            //printPriorityQueue(pq, kb);
+            // std::cout << pq.size() << " " << std::endl;
+            // printPriorityQueue(pq, kb);
             if (count >= 4)
                 break;
             count++;
@@ -258,8 +266,9 @@ namespace LogicSystem
     bool Resolution::proveBFS(const KnowledgeBase &kb, const Clause &goal)
     {
 
-        std::vector<Clause> clauses = kb.getClauses();
-        clauses.push_back(goal);
+        std::vector<Clause> originclauses = kb.getClauses();
+        std::vector<std::unique_ptr<Clause>> clauses = convertToUniquePtr(originclauses);
+        clauses.push_back(std::make_unique<Clause>(goal));
         std::queue<ResolutionPair> q;
         std::cout << "BFS" << std::endl;
         // 初始化优先队列
@@ -267,8 +276,8 @@ namespace LogicSystem
         {
             for (size_t j = i + 1; j < clauses.size(); ++j)
             {
-                const Clause &c1 = clauses[i];
-                const Clause &c2 = clauses[j];
+                const Clause &c1 = *clauses[i];
+                const Clause &c2 = *clauses[j];
 
                 for (size_t l1 = 0; l1 < c1.getLiterals().size(); ++l1)
                 {
@@ -277,8 +286,8 @@ namespace LogicSystem
                         if (isComplementary(c1.getLiterals()[l1], c2.getLiterals()[l2]))
                         {
                             std::cout << "c1 " << c1.toString(kb) << " c2 " << c2.toString(kb) << std::endl;
-                            //double score = calculateHeuristic(c1, c2, l1, l2);
-                            double score = 1;// BFS放的是在搜索树的层数， 1为起点
+                            // double score = calculateHeuristic(c1, c2, l1, l2);
+                            double score = 1; // BFS放的是在搜索树的层数， 1为起点
                             q.emplace(&c1, &c2, l1, l2, score);
                         }
                     }
@@ -290,15 +299,15 @@ namespace LogicSystem
         while (!q.empty())
         {
             std::cout << "Round " << count + 1 << std::endl;
-            std::cout << "queue before resolve " << std::endl;
-            printQueue(q, kb);
+            // std::cout << "queue before resolve " << std::endl;
+            //printQueue(q, kb);
 
             ResolutionPair pair = q.front();
             q.pop();
 
             /*if (pair.clause1->isEmpty() && pair.clause2->isEmpty())
                 return true;*/
-            //std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
+            // std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
             auto resolvant = resolve(*pair.clause1, *pair.clause2, pair.literal1Index, pair.literal2Index, kb);
 
             if (!resolvant)
@@ -316,37 +325,37 @@ namespace LogicSystem
             {
                 return true; // 找到空子句，证明成功
             }
-            std::cout << "queue after resolve before push back " << std::endl;
-            printQueue(q, kb);
+            // std::cout << "queue after resolve before push back " << std::endl;
+            // printQueue(q, kb);
             // 添加新的子句到 clauses
-            clauses.push_back(*resolvant);
-            std::cout << "Original Clauses after push_back: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
-            std::cout << "queue after push back resolve before emplace new" << std::endl;
-            printQueue(q, kb);
+            clauses.push_back(std::make_unique<Clause>(*resolvant));
+            // std::cout << "Original Clauses after push_back: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
+            // std::cout << "queue after push back resolve before emplace new" << std::endl;
+            // printQueue(q, kb);
             // 将新子句与现有子句进行比较
             for (const auto &clause : clauses)
             {
                 for (size_t i = 0; i < resolvant->getLiterals().size(); ++i)
                 {
-                    for (size_t j = 0; j < clause.getLiterals().size(); ++j)
+                    for (size_t j = 0; j < clause->getLiterals().size(); ++j)
                     {
-                        if (resolvant->isEmpty())
-                            std::cout << "add resolvant but empty" << std::endl;
-                        if (clause.isEmpty())
-                            std::cout << "add clause but empty" << std::endl;
-                        if (isComplementary(resolvant->getLiterals()[i], clause.getLiterals()[j]))
+                        // if (resolvant->isEmpty())
+                        //     std::cout << "add resolvant but empty" << std::endl;
+                        // if (clause->isEmpty())
+                        //     std::cout << "add clause but empty" << std::endl;
+                        if (isComplementary(resolvant->getLiterals()[i], clause->getLiterals()[j]))
                         {
                             double score = pair.heuristicScore + 1;
                             // std::cout << "score " << score << std::endl;
                             // std::cout << "new Complementary Pair " << resolvant->toString(kb) << " clause " << clause.toString(kb) << std::endl;
-                            q.emplace(&clauses.back(), &clause, static_cast<int>(i), static_cast<int>(j), score);
+                            q.emplace(clauses.back().get(), clause.get(), static_cast<int>(i), static_cast<int>(j), score);
                         }
                     }
                 }
             }
-            std::cout << "queue after emplace " << std::endl;
-            printQueue(q, kb);
-            if (count >= 4)
+            // std::cout << "queue after emplace " << std::endl;
+            // printQueue(q, kb);
+            if (count >= 200)
                 break;
             count++;
         }

@@ -1,29 +1,46 @@
 #ifndef LOGIC_SYSTEM_KNOWLEDGE_BASE_H
 #define LOGIC_SYSTEM_KNOWLEDGE_BASE_H
 
-#include <unordered_map>
-#include <unordered_set>
-#include <string>
 #include <vector>
+#include <string>
+#include "PredicateTable.h"
+#include "VariableTable.h"
+#include "ConstantTable.h"
 #include "Clause.h"
+#include "Fact.h"
+#include <map>
 
-namespace LogicSystem {
-    class KnowledgeBase {
+namespace LogicSystem
+{
+    class KnowledgeBase
+    {
     public:
-        void addClause(Clause* clause);
-        void removeClause(Clause* clause);
-        std::vector<Clause*> getClauses() const;
-        std::vector<Clause*> getClausesWithPredicate(const std::string& predicateName) const;
+        int addPredicate(const std::string& predicate);
+        int addVariable(const std::string& variable);
+        int addConstant(const std::string& constant);
+        void addClause(const Clause& clause);
+        void addFact(const Fact& fact);
+
+        const std::vector<Clause>& getClauses() const;
+        const std::vector<Fact>& getFacts() const;
+
+        std::string getPredicateName(int id) const;
+        std::string getVariableName(int id) const;
+        std::string getConstantName(int id) const;
+
+        bool isVariable(int id) const;
+        bool hasFact(const Fact& fact) const;
+
         void print() const;
-        size_t size() const;
-        ~KnowledgeBase();
 
     private:
-        std::unordered_map<std::string, std::unordered_set<Clause*>> predicateIndex;
-        std::vector<Clause*> clauseOrder;  // 仅用于保持插入顺序
+        PredicateTable predicateTable;
+        VariableTable variableTable;
+        ConstantTable constantTable;
+        std::vector<Clause> clauses;
+        std::vector<Fact> facts;
 
-        void indexClause(Clause* clause);
-        void deindexClause(Clause* clause);
+        int nextSkolemFunctionId = 0;
     };
 }
 

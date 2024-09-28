@@ -4,82 +4,78 @@
 
 namespace LogicSystem
 {
-
-    void KnowledgeBase::addClause(Clause *clause)
+    int KnowledgeBase::addPredicate(const std::string &predicate)
     {
-        this->clauseOrder.push_back(clause);
-        this->indexClause(clause);
+        return predicateTable.insert(predicate);
     }
 
-    void KnowledgeBase::removeClause(Clause *clause)
+    int KnowledgeBase::addVariable(const std::string &variable)
     {
-        this->deindexClause(clause);
-        //"erase-remove idiom"
-        // remove 将所有不等于 clause 的元素移到 vector 的前面,返回一个迭代器，指向最后一个不应被删除的元素之后的位置
-        // erase 方法真正从 vector 中删除元素,它删除从 std::remove 返回的迭代器位置到 vector 末尾的所有元素
-        // 能在一次操作中高效地删除 vector 中的所有指定元素。时间复杂度为 O(n)，其中 n 是 vector 的大小
-        this->clauseOrder.erase(std::remove(this->clauseOrder.begin(), this->clauseOrder.end(), clause), this->clauseOrder.end());
-        delete clause;
+        return variableTable.insert(variable);
     }
 
-    std::vector<Clause *> KnowledgeBase::getClauses() const
+    int KnowledgeBase::addConstant(const std::string &constant)
     {
-        return this->clauseOrder;
+        return constantTable.insert(constant);
     }
 
-    std::vector<Clause *> KnowledgeBase::getClausesWithPredicate(const std::string &predicateName) const
+    void KnowledgeBase::addClause(const Clause &clause)
     {
-        auto it = this->predicateIndex.find(predicateName);
-        if (it != this->predicateIndex.end())
+        clauses.push_back(clause);
+    }
+
+    void KnowledgeBase::addFact(const Fact &fact)
+    {
+        if (!hasFact(fact))
         {
-            return std::vector<Clause *>(it->second.begin(), it->second.end());
-        }
-        return std::vector<Clause *>();
-    }
-
-    void KnowledgeBase::print() const
-    {
-        std::cout << "Knowledge Base Print Begin-------------------" << std::endl;
-        for (size_t i = 0; i < this->clauseOrder.size(); ++i)
-        {
-            std::cout << "Clause " << i + 1 << ": ";
-            this->clauseOrder[i]->print();
-            std::cout << std::endl;
-        }
-        std::cout << "Knowledge Base Print End-------------------" << std::endl;
-    }
-
-    size_t KnowledgeBase::size() const
-    {
-        return this->clauseOrder.size();
-    }
-
-    KnowledgeBase::~KnowledgeBase()
-    {
-        for (auto clause : this->clauseOrder)
-        {
-            delete clause;
+            facts.push_back(fact);
         }
     }
 
-    void KnowledgeBase::indexClause(Clause *clause)
+    const std::vector<Clause> &KnowledgeBase::getClauses() const
     {
-        for (const auto &literal : clause->getAllLiterals())
-        {
-            this->predicateIndex[literal->getPredicateName()].insert(clause);
-        }
+        return clauses;
     }
 
-    void KnowledgeBase::deindexClause(Clause *clause)
+    const std::vector<Fact> &KnowledgeBase::getFacts() const
     {
-        for (const auto &literal : clause->getAllLiterals())
-        {
-            auto &clauses = this->predicateIndex[literal->getPredicateName()];
-            clauses.erase(clause);
-            if (clauses.empty())
-            {
-                this->predicateIndex.erase(literal->getPredicateName());
-            }
+        return facts;
+    }
+
+    std::string KnowledgeBase::getPredicateName(int id) const
+    {
+        return predicateTable.get(id);
+    }
+
+    std::string KnowledgeBase::getVariableName(int id) const
+    {
+        return variableTable.get(id);
+    }
+
+    std::string KnowledgeBase::getConstantName(int id) const
+    {
+        return constantTable.get(id);
+    }
+
+    bool KnowledgeBase::isVariable(int id) const
+    {
+        return id < variableTable.size();
+    }
+
+    bool KnowledgeBase::hasFact(const Fact &fact) const
+    {
+        return std::find(facts.begin(), facts.end(), fact) != facts.end();
+    }
+
+    void KnowledgeBase::print() const {
+        std::cout << "Knowledge Base:\n";
+        std::cout << "Clauses:\n";
+        for (const auto& clause : clauses) {
+            std::cout << "  " << clause.toString(*this) << "\n";
+        }
+        std::cout << "Facts:\n";
+        for (const auto& fact : facts) {
+            std::cout << "  " << fact.toString(*this) << "\n";
         }
     }
 }

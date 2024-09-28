@@ -1,3 +1,3 @@
 not P(x)
-not Q(y)
+not Q(x)
 not R(z)

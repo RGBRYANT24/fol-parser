@@ -17,6 +17,7 @@ namespace LogicSystem
         const std::vector<Literal>& getLiterals() const;
         bool isEmpty() const;
         std::string toString(const KnowledgeBase& kb) const;
+        bool isTautology() const; // 检查是否为重言式
         // 默认构造函数
         Clause() = default;
 
@@ -35,6 +36,7 @@ namespace LogicSystem
     private:
         std::unordered_map<int, int> literalMap;//PredicateId -> 出现次数
         std::vector<Literal> literals;
+        bool isTautologyFlag; // 标记是否为重言式
 
         bool hasOppositeLiteral(const Literal& lit) const;
     };

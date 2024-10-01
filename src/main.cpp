@@ -25,6 +25,7 @@ void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb, LogicSy
 void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated, LogicSystem::Clause& clause);
 bool resolutionTest();
 void addClauseTest();
+void isTautologyTest();
 
 int main()
 {
@@ -65,7 +66,8 @@ int main()
         std::cout << "Unable to prove the goal." << std::endl;
     }*/
 
-   resolutionTest();
+   //resolutionTest();
+   isTautologyTest();
    //addClauseTest();
    return 0;
 }
@@ -159,6 +161,29 @@ void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, b
     //LogicSystem::Clause clause;
     clause.addLiteral(literal);
     //kb.addClause(clause);
+}
+
+void isTautologyTest()
+{
+    LogicSystem::KnowledgeBase kb;
+    // 添加谓词
+    int dogId = kb.addPredicate("Dog");
+    int animalId = kb.addPredicate("Animal");
+    int breathesId = kb.addPredicate("Breathes");
+    int ownsId = kb.addPredicate("Owns");
+
+    // 添加常量
+    int xiaomingId = kb.addVariable("Xiaoming");
+
+    // 添加变量
+    int xId = kb.addVariable("X");
+    int yId = kb.addVariable("Y");
+
+    LogicSystem::Clause clause1;
+    clause1.addLiteral(LogicSystem::Literal(dogId, {xId}, true));  // ¬Dog(X)
+    clause1.addLiteral(LogicSystem::Literal(animalId, {xId}, true));  // ¬Animal(X)
+    clause1.addLiteral(LogicSystem::Literal(animalId, {yId}, false));  // Animal(X)
+    std::cout<< clause1.toString(kb);
 }
 
 bool resolutionTest()

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include "SymbolType.h"
 
 namespace LogicSystem
 {
@@ -11,19 +12,19 @@ namespace LogicSystem
     class Literal
     {
     public:
-        Literal(int predId, const std::vector<int>& argIds, bool negated);
+        Literal(int predId, const std::vector<SymbolId>& argIds, bool negated);
 
         std::string toString(const KnowledgeBase& kb) const;
 
         int getPredicateId() const;
-        const std::vector<int>& getArgumentIds() const;
+        const std::vector<SymbolId>& getArgumentIds() const;
         bool isNegated() const;
 
 
         
     private:
         int predicateId;
-        std::vector<int> argumentIds;
+        std::vector<SymbolId> argumentIds;
         bool negated;
         
     };

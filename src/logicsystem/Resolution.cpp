@@ -389,7 +389,7 @@ namespace LogicSystem
         std::cout << " MGU " << std::endl;
         for (const auto &[key, value] : *mgu)
         {
-            std::cout << "  " << kb.getVariableName(key) << " -> " << kb.getVariableName(value) << std::endl;
+            std::cout << "  " << kb.getSymbolName(key) << " -> " << kb.getSymbolName(value) << std::endl;
         }
 
         Clause resolvant;

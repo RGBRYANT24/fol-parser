@@ -8,7 +8,9 @@
 #include "ConstantTable.h"
 #include "Clause.h"
 #include "Fact.h"
+#include "SymbolType.h"
 #include <map>
+#include <optional>
 
 namespace LogicSystem
 {
@@ -16,8 +18,8 @@ namespace LogicSystem
     {
     public:
         int addPredicate(const std::string& predicate);
-        int addVariable(const std::string& variable);
-        int addConstant(const std::string& constant);
+        SymbolId  addVariable(const std::string& variable);
+        SymbolId  addConstant(const std::string& constant);
         void addClause(const Clause& clause);
         void addFact(const Fact& fact);
 
@@ -25,11 +27,13 @@ namespace LogicSystem
         const std::vector<Fact>& getFacts() const;
 
         std::string getPredicateName(int id) const;
-        std::string getVariableName(int id) const;
-        std::string getConstantName(int id) const;
+        std::string getSymbolName(const SymbolId& symbolId) const;
 
-        bool isVariable(int id) const;
+        bool isVariable(const SymbolId& symbolId) const;
         bool hasFact(const Fact& fact) const;
+
+        std::optional<int> getPredicateId(const std::string& predicateName) const;
+        std::optional<SymbolId> getSymbolId(const std::string& symbolName) const;
 
         void print() const;
 

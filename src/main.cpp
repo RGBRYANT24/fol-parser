@@ -11,6 +11,7 @@
 #include "CNF.h"
 #include "Unifier.h"
 #include "Resolution.h"
+#include "SymbolType.h"
 #include <cassert>
 namespace fs = std::filesystem;
 
@@ -145,7 +146,7 @@ void buildKnowledgeBase(AST::Node* node, LogicSystem::KnowledgeBase& kb, LogicSy
 
 void handlePredicate(AST::PredicateNode* node, LogicSystem::KnowledgeBase& kb, bool isNegated, LogicSystem::Clause& clause) {
     int predicateId = kb.addPredicate(node->name);
-    std::vector<int> argumentIds;
+    std::vector<LogicSystem::SymbolId> argumentIds;
     
     AST::TermListNode* termList = static_cast<AST::TermListNode*>(node->termlists);
     for (AST::Node* arg : termList->arguments) {
@@ -173,11 +174,11 @@ void isTautologyTest()
     int ownsId = kb.addPredicate("Owns");
 
     // 添加常量
-    int xiaomingId = kb.addVariable("Xiaoming");
+    LogicSystem::SymbolId xiaomingId = kb.addVariable("Xiaoming");
 
     // 添加变量
-    int xId = kb.addVariable("X");
-    int yId = kb.addVariable("Y");
+    LogicSystem::SymbolId xId = kb.addVariable("X");
+    LogicSystem::SymbolId yId = kb.addVariable("Y");
 
     LogicSystem::Clause clause1;
     clause1.addLiteral(LogicSystem::Literal(dogId, {xId}, true));  // ¬Dog(X)
@@ -197,11 +198,11 @@ bool resolutionTest()
     int ownsId = kb.addPredicate("Owns");
 
     // 添加常量
-    int xiaomingId = kb.addVariable("Xiaoming");
+    LogicSystem::SymbolId xiaomingId = kb.addVariable("Xiaoming");
 
     // 添加变量
-    int xId = kb.addVariable("X");
-    int yId = kb.addVariable("Y");
+    LogicSystem::SymbolId xId = kb.addVariable("X");
+    LogicSystem::SymbolId yId = kb.addVariable("Y");
     //std::cout <<"xId " << xId << " yId " << yId << std::endl;
     // 1. 所有的狗都是动物: ∀X(Dog(X) → Animal(X))
     // 转换为子句形式: ¬Dog(X) ∨ Animal(X)
@@ -220,7 +221,7 @@ bool resolutionTest()
     // 3. 小明养了一只狗: Dog(Xiaoming's_dog) ∧ Owns(Xiaoming, Xiaoming's_dog)
     // 我们将这拆分为两个事实
     LogicSystem::Clause factClause1, factClause2;
-    int xiaomingDogId = kb.addVariable("Xiaoming's_dog");
+    LogicSystem::SymbolId xiaomingDogId = kb.addVariable("Xiaoming's_dog");
     //std::cout << "xiaomingDogId "<< xiaomingDogId << std::endl;
     factClause1.addLiteral(LogicSystem::Literal(dogId, {xiaomingDogId}, false));
     factClause2.addLiteral(LogicSystem::Literal(ownsId, {xiaomingId, xiaomingDogId},false));
@@ -238,7 +239,7 @@ bool resolutionTest()
     // 创建目标子句：证明小明养的动物会呼吸
     // 目标: ∃Z(Owns(Xiaoming, Z) ∧ Animal(Z) ∧ Breathes(Z))
     // 否定后: ∀Z(¬Owns(Xiaoming, Z) ∨ ¬Animal(Z) ∨ ¬Breathes(Z))
-    int zId = kb.addVariable("Z");
+    LogicSystem::SymbolId zId = kb.addVariable("Z");
     LogicSystem::Clause goal;
     goal.addLiteral(LogicSystem::Literal(ownsId, {xiaomingId, zId}, true));  // ¬Owns(Xiaoming, Z)
     goal.addLiteral(LogicSystem::Literal(animalId, {zId}, true));  // ¬Animal(Z)
@@ -283,11 +284,11 @@ void addClauseTest()
     int ownsId = kb.addPredicate("Owns");
 
     // 添加常量
-    int xiaomingId = kb.addVariable("Xiaoming");
+    LogicSystem::SymbolId xiaomingId = kb.addVariable("Xiaoming");
 
     // 添加变量
-    int xId = kb.addVariable("X");
-    int yId = kb.addVariable("Y");
+    LogicSystem::SymbolId xId = kb.addVariable("X");
+    LogicSystem::SymbolId yId = kb.addVariable("Y");
 
 
     LogicSystem::Clause clause1;

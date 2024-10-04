@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include "SymbolType.h"
 
 namespace LogicSystem
 {
@@ -11,10 +12,10 @@ namespace LogicSystem
     class Fact
     {
     public:
-        Fact(int predId, const std::vector<int>& argIds);
+        Fact(int predId, const std::vector<SymbolId>& argIds);
 
         int getPredicateId() const;
-        const std::vector<int>& getArgumentIds() const;
+        const std::vector<SymbolId>& getArgumentIds() const;
 
         bool operator==(const Fact& other) const;
 
@@ -22,7 +23,7 @@ namespace LogicSystem
 
     private:
         int predicateId;
-        std::vector<int> argumentIds;
+        std::vector<SymbolId> argumentIds;
     };
 }
 

@@ -5,8 +5,8 @@ namespace LogicSystem
 
     Literal Unifier::applySubstitutionToLiteral(const Literal &lit, const Substitution &substitution, const KnowledgeBase &kb)
     {
-        std::vector<int> newArgs;
-        for (int argId : lit.getArgumentIds())
+        std::vector<SymbolId> newArgs;
+        for (const SymbolId& argId : lit.getArgumentIds())
         {
             newArgs.push_back(applySubstitution(argId, substitution));
         }
@@ -23,15 +23,15 @@ namespace LogicSystem
         return std::nullopt;
     }
 
-    bool Unifier::unify(const std::vector<int> &args1, const std::vector<int> &args2, Substitution &subst, const KnowledgeBase &kb)
+    bool Unifier::unify(const std::vector<SymbolId> &args1, const std::vector<SymbolId> &args2, Substitution &subst, const KnowledgeBase &kb)
     {
         if (args1.size() != args2.size())
             return false;
 
         for (size_t i = 0; i < args1.size(); ++i)
         {
-            int term1 = applySubstitution(args1[i], subst);
-            int term2 = applySubstitution(args2[i], subst);
+            SymbolId term1 = applySubstitution(args1[i], subst);
+            SymbolId term2 = applySubstitution(args2[i], subst);
 
             if (term1 != term2)
             {
@@ -58,18 +58,19 @@ namespace LogicSystem
         return true;
     }
 
-    int Unifier::applySubstitution(int termId, const Substitution &subst)
+    SymbolId Unifier::applySubstitution(const SymbolId& termId, const Substitution &subst)
     {
-        auto it = subst.find(termId);
+        SymbolId currentId = termId;
+        auto it = subst.find(currentId);
         while (it != subst.end())
         {
-            termId = it->second;
-            it = subst.find(termId);
+            currentId = it->second;
+            it = subst.find(currentId);
         }
-        return termId;
+        return currentId;
     }
 
-    bool Unifier::occursCheck(int varId, int termId, const Substitution &subst)
+    bool Unifier::occursCheck(const SymbolId& varId, const SymbolId& termId, const Substitution &subst)
     {
         if (varId == termId)
             return true;

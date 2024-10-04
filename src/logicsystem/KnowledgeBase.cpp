@@ -9,14 +9,14 @@ namespace LogicSystem
         return predicateTable.insert(predicate);
     }
 
-    int KnowledgeBase::addVariable(const std::string &variable)
+    SymbolId KnowledgeBase::addVariable(const std::string &variable)
     {
-        return variableTable.insert(variable);
+        return {SymbolType::VARIABLE, variableTable.insert(variable)};
     }
 
-    int KnowledgeBase::addConstant(const std::string &constant)
+    SymbolId KnowledgeBase::addConstant(const std::string &constant)
     {
-        return constantTable.insert(constant);
+        return {SymbolType::CONSTANT, constantTable.insert(constant)};
     }
 
     void KnowledgeBase::addClause(const Clause &clause)
@@ -47,19 +47,46 @@ namespace LogicSystem
         return predicateTable.get(id);
     }
 
-    std::string KnowledgeBase::getVariableName(int id) const
+    std::string KnowledgeBase::getSymbolName(const SymbolId &symbolId) const
     {
-        return variableTable.get(id);
+        if (symbolId.type == SymbolType::VARIABLE)
+        {
+            return variableTable.get(symbolId.id);
+        }
+        else
+        {
+            return constantTable.get(symbolId.id);
+        }
     }
 
-    std::string KnowledgeBase::getConstantName(int id) const
+    std::optional<int> KnowledgeBase::getPredicateId(const std::string &predicateName) const
     {
-        return constantTable.get(id);
+        return predicateTable.getId(predicateName);
     }
 
-    bool KnowledgeBase::isVariable(int id) const
+    std::optional<SymbolId> KnowledgeBase::getSymbolId(const std::string &symbolName) const
     {
-        return id < variableTable.size();
+        // 首先在变量表中查找
+        int varId = variableTable.getId(symbolName);
+        if (varId != -1)
+        {
+            return SymbolId{SymbolType::VARIABLE, varId};
+        }
+
+        // 然后在常量表中查找
+        int constId = constantTable.getId(symbolName);
+        if (constId != -1)
+        {
+            return SymbolId{SymbolType::CONSTANT, constId};
+        }
+
+        // 如果都找不到，返回空的 optional
+        return std::nullopt;
+    }
+
+    bool KnowledgeBase::isVariable(const SymbolId &symbolId) const
+    {
+        return symbolId.type == SymbolType::VARIABLE;
     }
 
     bool KnowledgeBase::hasFact(const Fact &fact) const
@@ -67,14 +94,17 @@ namespace LogicSystem
         return std::find(facts.begin(), facts.end(), fact) != facts.end();
     }
 
-    void KnowledgeBase::print() const {
+    void KnowledgeBase::print() const
+    {
         std::cout << "Knowledge Base:\n";
         std::cout << "Clauses:\n";
-        for (const auto& clause : clauses) {
+        for (const auto &clause : clauses)
+        {
             std::cout << "  " << clause.toString(*this) << "\n";
         }
         std::cout << "Facts:\n";
-        for (const auto& fact : facts) {
+        for (const auto &fact : facts)
+        {
             std::cout << "  " << fact.toString(*this) << "\n";
         }
     }

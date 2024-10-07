@@ -48,7 +48,7 @@ namespace LogicSystem
         std::string result;
         if (isTautologyFlag)
         {
-            result += "⊤ (Tautology): ";
+            result += "T (Tautology): ";
         }
         for (size_t i = 0; i < literals.size(); ++i)
         {

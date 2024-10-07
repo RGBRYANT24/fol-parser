@@ -14,14 +14,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
-# Generate lexer and parser
-FLEX_TARGET(FOLScanner ${CMAKE_SOURCE_DIR}/src/lexer/fol.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc)
-BISON_TARGET(FOLParser ${CMAKE_SOURCE_DIR}/src/parser/fol.y ${CMAKE_CURRENT_BINARY_DIR}/fol.tab.cc
-             DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/fol.tab.hh)
-ADD_FLEX_BISON_DEPENDENCY(FOLScanner FOLParser)
+# # Generate lexer and parser
+# FLEX_TARGET(FOLScanner ${CMAKE_SOURCE_DIR}/src/lexer/fol.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc)
+# BISON_TARGET(FOLParser ${CMAKE_SOURCE_DIR}/src/parser/fol.y ${CMAKE_CURRENT_BINARY_DIR}/fol.tab.cc
+#              DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/fol.tab.hh)
+# ADD_FLEX_BISON_DEPENDENCY(FOLScanner FOLParser)
 
-# Include directories
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+# # Include directories
+# include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # Automatically find and include all subdirectories in the include folder
 file(GLOB_RECURSE HEADER_FILES 
@@ -40,14 +40,16 @@ include_directories(${INCLUDE_DIRS})
 
 # Add subdirectories for each module
 add_subdirectory(src/ast)
+add_subdirectory(src/parser)
 add_subdirectory(src/lexer)
 add_subdirectory(src/logicsystem)
-add_subdirectory(src/parser)
+
+
 
 # Create main executable
 add_executable(fol_parser 
-    ${FLEX_FOLScanner_OUTPUTS}
-    ${BISON_FOLParser_OUTPUTS}
+    # ${FLEX_FOLScanner_OUTPUTS}
+    # ${BISON_FOLParser_OUTPUTS}
     src/main.cpp
 )
 
@@ -55,11 +57,14 @@ add_executable(fol_parser
 target_link_libraries(fol_parser 
     ast
     lexer
-    logicsystem
     parser
+    logicsystem
     ${FLEX_LIBRARIES}
     ${BISON_LIBRARIES}
 )
+
+message(STATUS "FLEX_LIBRARIES: ${FLEX_LIBRARIES}")
+message(STATUS "BISON_LIBRARIES: ${BISON_LIBRARIES}")
 
 # Enable testing
 enable_testing()
@@ -76,3 +81,11 @@ FetchContent_MakeAvailable(googletest)
 
 # Add test directory
 add_subdirectory(src/tests)
+
+get_target_property(LEXER_LIB lexer TYPE)
+get_target_property(PARSER_LIB parser TYPE)
+message(STATUS "Lexer library type: ${LEXER_LIB}")
+message(STATUS "Parser library type: ${PARSER_LIB}")
+
+get_target_property(LOGICSYSTEM_LINK_LIBRARIES logicsystem LINK_LIBRARIES)
+message(STATUS "Logicsystem link libraries: ${LOGICSYSTEM_LINK_LIBRARIES}")

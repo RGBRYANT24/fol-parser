@@ -2,7 +2,8 @@
 #include <memory>
 //#include "../../include/AllNodes.h"
 #include "AllNodes.h"
-#include "fol.tab.hh"  // Include Bison-generated header
+#include "../parser/fol.tab.hh"  // Include Bison-generated header
+//#include "fol.tab.hh"
 %}
 
 %%

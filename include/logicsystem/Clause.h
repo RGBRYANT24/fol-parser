@@ -36,7 +36,7 @@ namespace LogicSystem
     private:
         std::unordered_map<int, int> literalMap;//PredicateId -> 出现次数
         std::vector<Literal> literals;
-        bool isTautologyFlag; // 标记是否为重言式
+        bool isTautologyFlag = false; // 标记是否为重言式
 
         bool hasOppositeLiteral(const Literal& lit) const;
     };

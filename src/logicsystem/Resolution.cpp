@@ -271,25 +271,21 @@ namespace LogicSystem
         clauses.push_back(std::make_unique<Clause>(goal));
         std::queue<ResolutionPair> q;
         std::cout << "BFS" << std::endl;
-        // 初始化优先队列
+        // 初始化优先队列 这里初始化只和goal配对
         for (size_t i = 0; i < clauses.size(); ++i)
         {
-            for (size_t j = i + 1; j < clauses.size(); ++j)
+            const Clause &c1 = *clauses[i];
+            const Clause &c2 = goal;
+            for (size_t l1 = 0; l1 < c1.getLiterals().size(); ++l1)
             {
-                const Clause &c1 = *clauses[i];
-                const Clause &c2 = *clauses[j];
-
-                for (size_t l1 = 0; l1 < c1.getLiterals().size(); ++l1)
+                for (size_t l2 = 0; l2 < c2.getLiterals().size(); ++l2)
                 {
-                    for (size_t l2 = 0; l2 < c2.getLiterals().size(); ++l2)
+                    if (isComplementary(c1.getLiterals()[l1], c2.getLiterals()[l2]))
                     {
-                        if (isComplementary(c1.getLiterals()[l1], c2.getLiterals()[l2]))
-                        {
-                            std::cout << "c1 " << c1.toString(kb) << " c2 " << c2.toString(kb) << std::endl;
-                            // double score = calculateHeuristic(c1, c2, l1, l2);
-                            double score = 1; // BFS放的是在搜索树的层数， 1为起点
-                            q.emplace(&c1, &c2, l1, l2, score);
-                        }
+                        std::cout << "c1 " << c1.toString(kb) << " c2 " << c2.toString(kb) << std::endl;
+                        // double score = calculateHeuristic(c1, c2, l1, l2);
+                        double score = 1; // BFS放的是在搜索树的层数， 1为起点
+                        q.emplace(&c1, &c2, l1, l2, score);
                     }
                 }
             }
@@ -300,7 +296,7 @@ namespace LogicSystem
         {
             std::cout << "Round " << count + 1 << std::endl;
             // std::cout << "queue before resolve " << std::endl;
-            //printQueue(q, kb);
+            // printQueue(q, kb);
 
             ResolutionPair pair = q.front();
             q.pop();
@@ -315,6 +311,11 @@ namespace LogicSystem
                 std::cout << "unresolvant with " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
                 continue;
             }
+            else if (resolvant->isTautology())
+            {
+                std::cout << "Is Tautology " << resolvant->toString(kb) << std::endl;
+                continue;
+            }
             else
             {
                 std::cout << "resolvant " << resolvant->toString(kb) << std::endl;
@@ -327,8 +328,11 @@ namespace LogicSystem
             }
             // std::cout << "queue after resolve before push back " << std::endl;
             // printQueue(q, kb);
-            // 添加新的子句到 clauses
-            clauses.push_back(std::make_unique<Clause>(*resolvant));
+            // 只添加长度为1新的子句到 clauses
+            if (resolvant->getLiterals().size() == 1)
+            {
+                clauses.push_back(std::make_unique<Clause>(*resolvant));
+            }
             // std::cout << "Original Clauses after push_back: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
             // std::cout << "queue after push back resolve before emplace new" << std::endl;
             // printQueue(q, kb);
@@ -355,7 +359,7 @@ namespace LogicSystem
             }
             // std::cout << "queue after emplace " << std::endl;
             // printQueue(q, kb);
-            if (count >= 200)
+            if (count >= 1e5)
                 break;
             count++;
         }

@@ -316,11 +316,17 @@ namespace LogicSystem
                 std::cout << "Is Tautology " << resolvant->toString(kb) << std::endl;
                 continue;
             }
+            else if (resolvant->containsSelfLoop(kb))
+            {
+                std::cout << "Contains self-loop E(x, x), skipping " << resolvant->toString(kb) << std::endl;
+                continue; // 剪枝，不再继续处理该子句
+            }
             else
             {
                 std::cout << "resolvant " << resolvant->toString(kb) << std::endl;
                 std::cout << "Original Clauses: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
             }
+
             // break;
             if (resolvant->isEmpty())
             {
@@ -329,33 +335,36 @@ namespace LogicSystem
             // std::cout << "queue after resolve before push back " << std::endl;
             // printQueue(q, kb);
             // 只添加长度为1新的子句到 clauses
+            auto newClause = std::make_unique<Clause>(*resolvant);
             if (resolvant->getLiterals().size() == 1)
             {
-                clauses.push_back(std::make_unique<Clause>(*resolvant));
+                std::cout << "add new clause " << resolvant.value().toString(kb) << std::endl;
+                clauses.push_back(std::move(newClause));
+                return false;
             }
             // std::cout << "Original Clauses after push_back: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
             // std::cout << "queue after push back resolve before emplace new" << std::endl;
             // printQueue(q, kb);
             // 将新子句与现有子句进行比较
-            for (const auto &clause : clauses)
+            if (resolvant)
             {
-                for (size_t i = 0; i < resolvant->getLiterals().size(); ++i)
+                
+                for (const auto &clause : clauses)
                 {
-                    for (size_t j = 0; j < clause->getLiterals().size(); ++j)
+                    for (size_t i = 0; i < newClause->getLiterals().size(); ++i)
                     {
-                        // if (resolvant->isEmpty())
-                        //     std::cout << "add resolvant but empty" << std::endl;
-                        // if (clause->isEmpty())
-                        //     std::cout << "add clause but empty" << std::endl;
-                        if (isComplementary(resolvant->getLiterals()[i], clause->getLiterals()[j]))
+                        for (size_t j = 0; j < clause->getLiterals().size(); ++j)
                         {
-                            double score = pair.heuristicScore + 1;
-                            // std::cout << "score " << score << std::endl;
-                            // std::cout << "new Complementary Pair " << resolvant->toString(kb) << " clause " << clause.toString(kb) << std::endl;
-                            q.emplace(clauses.back().get(), clause.get(), static_cast<int>(i), static_cast<int>(j), score);
+                            if (isComplementary(newClause->getLiterals()[i], clause->getLiterals()[j]))
+                            {
+                                double score = pair.heuristicScore + 1;
+                                //std::cout << "new Complementary Pair " << newClause->toString(kb) << " clause " << clause->toString(kb) << std::endl;
+                                q.emplace(newClause.get(), clause.get(), static_cast<int>(i), static_cast<int>(j), score);
+                            }
                         }
                     }
                 }
+                //clauses.push_back(std::move(newClause));
             }
             // std::cout << "queue after emplace " << std::endl;
             // printQueue(q, kb);

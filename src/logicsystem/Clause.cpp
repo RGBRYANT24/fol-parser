@@ -7,9 +7,9 @@ namespace LogicSystem
     void Clause::addLiteral(const Literal &lit)
     {
         int predicateId = lit.getPredicateId();
-        //std::cout << "PredicatedId " << predicateId << std::endl;
+        // std::cout << "PredicatedId " << predicateId << std::endl;
 
-        //TOOD: 存在互补的文字证明有重言式
+        // TOOD: 存在互补的谓词，也要判断是不是都是变量，都是变量才是重言式。而一个变量一个常量就不是
         if (this->hasOppositeLiteral(lit)) // 如果存在互补的文字,不添加,直接删除
         {
             auto it = this->literalMap.find(predicateId);
@@ -18,19 +18,25 @@ namespace LogicSystem
                 // 发现重言式
                 isTautologyFlag = true;
                 literals.push_back(lit);
-                //this->literalMap[predicateId] = this->literals.size() - 1;
+                // this->literalMap[predicateId] = this->literals.size() - 1;
                 return;
             }
         }
-        else if (this->literalMap.find(predicateId) != this->literalMap.end()) // 如果已经有相同项，不操作
+        else if (this->literalMap.find(predicateId) != this->literalMap.end()) // 如果已经有相同
         {
-            return;
+            // 如果已经有相同谓词的文字项，检查是否完全相同
+            size_t existingLiteralIndex = this->literalMap[predicateId];
+            const Literal &existingLiteral = this->literals[existingLiteralIndex];
+            if (lit == existingLiteral)
+            {
+                // std::cout << "Literal is identical to existing one, skipping addition" << std::endl;
+                return;
+            }
         }
-        else
-        {
-            literals.push_back(lit);
-            this->literalMap[predicateId] = this->literals.size() - 1;
-        }
+
+        // 如果不存在相同的文字项，或者存在但不完全相同，则添加新的文字项
+        literals.push_back(lit);
+        this->literalMap[predicateId] = this->literals.size() - 1;
     }
 
     const std::vector<Literal> &Clause::getLiterals() const
@@ -81,8 +87,26 @@ namespace LogicSystem
         return isTautologyFlag;
     }
 
+    bool Clause::containsSelfLoop(const KnowledgeBase &kb) const
+    {
+        for (const auto &lit : literals)
+        {
+            // 检查谓词是否为 E
+            if (kb.getPredicateName(lit.getPredicateId()) == "E")
+            {
+                const auto &args = lit.getArgumentIds();
+                // 检查参数是否相同
+                if (args.size() == 2 && args[0] == args[1])
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // 复制构造函数
-    Clause::Clause(const Clause& other)
+    Clause::Clause(const Clause &other)
         : literalMap(other.literalMap), literals(other.literals)
     {
         // 由于 std::unordered_map 和 std::vector 都有正确的复制行为，
@@ -90,7 +114,7 @@ namespace LogicSystem
     }
 
     // 赋值运算符
-    Clause& Clause::operator=(const Clause& other)
+    Clause &Clause::operator=(const Clause &other)
     {
         if (this != &other)
         {
@@ -101,14 +125,14 @@ namespace LogicSystem
     }
 
     // 移动构造函数
-    Clause::Clause(Clause&& other) noexcept
-        : literalMap(std::move(other.literalMap)), 
+    Clause::Clause(Clause &&other) noexcept
+        : literalMap(std::move(other.literalMap)),
           literals(std::move(other.literals))
     {
     }
 
     // 移动赋值运算符
-    Clause& Clause::operator=(Clause&& other) noexcept
+    Clause &Clause::operator=(Clause &&other) noexcept
     {
         if (this != &other)
         {

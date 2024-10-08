@@ -3,7 +3,7 @@
 #include <KnowledgeBase.h>
 
 
-TEST(AstTest, SomeTest) {
+TEST(ClauseTest, SomeTest) {
     LogicSystem::KnowledgeBase kb;
     // 添加谓词
     int dogId = kb.addPredicate("Dog");
@@ -21,8 +21,8 @@ TEST(AstTest, SomeTest) {
     LogicSystem::Clause clause1;
     clause1.addLiteral(LogicSystem::Literal(dogId, {xId}, true));  // ¬Dog(X)
     clause1.addLiteral(LogicSystem::Literal(animalId, {xId}, true));  // ¬Animal(X)
-    clause1.addLiteral(LogicSystem::Literal(animalId, {yId}, false));  // Animal(X)
-    std::cout<< clause1.toString(kb);
+    clause1.addLiteral(LogicSystem::Literal(animalId, {yId}, true));  // Animal(X)
+    std::cout<< clause1.toString(kb) << std::endl;
 }
 
 // More tests...

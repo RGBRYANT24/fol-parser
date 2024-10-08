@@ -19,6 +19,10 @@ namespace LogicSystem
         int getPredicateId() const;
         const std::vector<SymbolId>& getArgumentIds() const;
         bool isNegated() const;
+        // 添加 == 运算符
+        bool operator==(const Literal& other) const;
+        // 添加 != 运算符
+        bool operator!=(const Literal& other) const;
 
 
         

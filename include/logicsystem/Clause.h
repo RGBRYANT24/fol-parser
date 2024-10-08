@@ -18,6 +18,8 @@ namespace LogicSystem
         bool isEmpty() const;
         std::string toString(const KnowledgeBase& kb) const;
         bool isTautology() const; // 检查是否为重言式
+        // 添加检测函数，检查是否包含 E(x, x) 这样的文字
+        bool containsSelfLoop(const KnowledgeBase &kb) const;
         // 默认构造函数
         Clause() = default;
 
@@ -34,7 +36,7 @@ namespace LogicSystem
         Clause& operator=(Clause&& other) noexcept;
         
     private:
-        std::unordered_map<int, int> literalMap;//PredicateId -> 出现次数
+        std::unordered_map<int, int> literalMap;//PredicateId -> 下标
         std::vector<Literal> literals;
         bool isTautologyFlag = false; // 标记是否为重言式
 

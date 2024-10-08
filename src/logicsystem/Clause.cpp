@@ -1,6 +1,7 @@
 #include "Clause.h"
 #include "KnowledgeBase.h"
 #include <iostream>
+#include <unordered_set>
 
 namespace LogicSystem
 {
@@ -140,5 +141,37 @@ namespace LogicSystem
             literals = std::move(other.literals);
         }
         return *this;
+    }
+
+    size_t Clause::hash() const
+    {
+        if (!hashComputed)
+        {
+            std::vector<size_t> literalHashes;
+            for (const auto &lit : literals)
+            {
+                literalHashes.push_back(lit.hash());
+            }
+            std::sort(literalHashes.begin(), literalHashes.end());
+
+            hashValue = 0;
+            for (const auto &h : literalHashes)
+            {
+                hashValue ^= h + 0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            }
+            hashComputed = true;
+        }
+        return hashValue;
+    }
+
+    bool Clause::operator==(const Clause &other) const
+    {
+        if (literals.size() != other.literals.size())
+            return false;
+
+        std::unordered_multiset<Literal> thisLiterals(literals.begin(), literals.end());
+        std::unordered_multiset<Literal> otherLiterals(other.literals.begin(), other.literals.end());
+
+        return thisLiterals == otherLiterals;
     }
 }

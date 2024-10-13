@@ -322,7 +322,12 @@ namespace LogicSystem
         std::vector<std::shared_ptr<Clause>> SingleLiteralClauses;
         while (!q.empty())
         {
-            std::cout << "Round " << count + 1 << std::endl;
+            count++;
+            if(count % 10000 == 1)
+            {
+                std::cout << "Round " << count << std::endl;
+            }
+            
             // std::cout << "queue before resolve " << std::endl;
             // printQueue(q, kb);
 
@@ -336,7 +341,7 @@ namespace LogicSystem
 
             if (!resolvant)
             {
-                std::cout << "unresolvant with " << pair.clause1->toString(kb) << " index " << pair.literal1Index << " " << pair.clause2->toString(kb) << " index " << pair.literal2Index << std::endl;
+                // std::cout << "unresolvant with " << pair.clause1->toString(kb) << " index " << pair.literal1Index << " " << pair.clause2->toString(kb) << " index " << pair.literal2Index << std::endl;
                 continue;
             }
             if (resolvant)
@@ -348,25 +353,25 @@ namespace LogicSystem
                 }
                 else if (resolvant->isTautology())
                 {
-                    std::cout << "Is Tautology " << resolvant->toString(kb) << std::endl;
+                    //std::cout << "Is Tautology " << resolvant->toString(kb) << std::endl;
                     continue;
                 }
                 else if (resolvant->containsSelfLoop(kb))
                 {
-                    std::cout << "Contains self-loop E(x, x), skipping " << resolvant->toString(kb) << std::endl;
+                    //std::cout << "Contains self-loop E(x, x), skipping " << resolvant->toString(kb) << std::endl;
                     continue; // 剪枝，不再继续处理该子句
                 }
                 else
                 {
-                    std::cout << "resolvant " << resolvant->toString(kb) << std::endl;
-                    std::cout << "Original Clauses: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
+                    // std::cout << "resolvant " << resolvant->toString(kb) << std::endl;
+                    // std::cout << "Original Clauses: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
                 }
                 auto newClause = std::make_shared<Clause>(*resolvant);
 
                 // 检查这个子句是否已经被处理过
                 if (visitedClauses.find(newClause) != visitedClauses.end())
                 {
-                    std::cout << "Skipping already visited clause: " << newClause->toString(kb) << std::endl;
+                    //std::cout << "Skipping already visited clause: " << newClause->toString(kb) << std::endl;
                     continue;
                 }
 
@@ -374,20 +379,20 @@ namespace LogicSystem
                 visitedClauses.insert(newClause);
 
                 // 只在特定条件下添加到 clauses
-                if (resolvant->getLiterals().size() == 1)
+                if (resolvant->getLiterals().size() <= 2)
                 {
                     std::cout << "add new clause " << resolvant.value().toString(kb) << std::endl;
                     SingleLiteralClauses.push_back(newClause);
                     clauses.push_back(newClause);
                     SingleLiteralCount++;
-                    if (SingleLiteralCount >= 50)
+                    if (SingleLiteralCount % 100 == 1)
                     {
                         std::cout << "Found " << SingleLiteralCount << " single literal " << std::endl;
                         for (const auto &slc : SingleLiteralClauses)
                         {
                             std::cout << slc->toString(kb) << std::endl;
                         }
-                        return false;
+                        //return false;
                     }
                 }
 
@@ -414,7 +419,7 @@ namespace LogicSystem
             // printQueue(q, kb);
             if (count >= 1e11)
                 break;
-            count++;
+            
         }
 
         return false; // 无法证明
@@ -441,13 +446,13 @@ namespace LogicSystem
             return std::nullopt;
         }
 
-        std::cout << "Calculate MGU " << std::endl;
-        std::cout << "c1 " << c1.toString(kb) << " c2 " << c2.toString(kb) << std::endl;
-        std::cout << " MGU " << std::endl;
-        for (const auto &[key, value] : *mgu)
-        {
-            std::cout << "  " << kb.getSymbolName(key) << " -> " << kb.getSymbolName(value) << std::endl;
-        }
+        // std::cout << "Calculate MGU " << std::endl;
+        // std::cout << "c1 " << c1.toString(kb) << " c2 " << c2.toString(kb) << std::endl;
+        // std::cout << " MGU " << std::endl;
+        // for (const auto &[key, value] : *mgu)
+        // {
+        //     std::cout << "  " << kb.getSymbolName(key) << " -> " << kb.getSymbolName(value) << std::endl;
+        // }
 
         Clause resolvant;
         // std::cout << "resolvant pinjie add c1" << std::endl;

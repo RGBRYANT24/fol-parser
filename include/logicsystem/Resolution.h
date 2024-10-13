@@ -4,6 +4,7 @@
 
 #include "KnowledgeBase.h"
 #include "ResolutionPair.h"
+#include "SearchStrategy.h"
 #include <queue>
 #include <optional>
 #include <unordered_set>
@@ -12,9 +13,7 @@
 namespace LogicSystem {
     class Resolution {
     public:
-        static bool prove(const KnowledgeBase& kb, const Clause& goal); //启发式方法
-        static bool proveDFS(const KnowledgeBase &kb, const Clause &goal); //DFS方法
-        static bool proveBFS(const KnowledgeBase &kb, const Clause &goal); //DFS方法
+        static bool prove(const KnowledgeBase &kb, const Clause &goal, SearchStrategy& strategy, int addClauseSize = 1); //启发式方法
         static std::optional<Clause> testResolve(const Clause& c1, const Clause& c2, int l1, int l2, const KnowledgeBase& kb) {return resolve(c1, c2,l1,l2,kb);}
     private:
         static double calculateHeuristic(const Clause& c1, const Clause& c2, int l1, int l2);

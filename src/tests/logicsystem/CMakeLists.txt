@@ -15,7 +15,7 @@ set_target_properties(logicsystem_tests PROPERTIES
 target_link_libraries(logicsystem_tests
     PUBLIC
     gtest_main
-    lexer
-    parser
+    # lexer
+    # parser
     logicsystem
 )

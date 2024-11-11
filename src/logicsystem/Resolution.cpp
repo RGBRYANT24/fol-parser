@@ -102,7 +102,7 @@ namespace LogicSystem
         std::cout << "End of Priority Queue Contents" << std::endl;
     }
 
-    bool Resolution::prove(const KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy, int addClauseSize = 1)
+    bool Resolution::prove(const KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy, int addClauseSize)
     {
         std::vector<std::shared_ptr<Clause>> clauses = convertToSharedPtr(kb.getClauses());
         clauses.push_back(std::make_shared<Clause>(goal));

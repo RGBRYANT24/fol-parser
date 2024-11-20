@@ -16,7 +16,7 @@ namespace LogicSystem
 
         static std::optional<Substitution> findMGU(const Literal& lit1, const Literal& lit2, const KnowledgeBase& kb);
         static Literal applySubstitutionToLiteral(const Literal& lit, const Substitution& substitution, const KnowledgeBase& kb);
-
+        static void printSubstitution(const Substitution& subst, const KnowledgeBase& kb);
     private:
         static bool unify(const std::vector<SymbolId>& args1, const std::vector<SymbolId>& args2, Substitution& subst, const KnowledgeBase& kb);
         static SymbolId  applySubstitution(const SymbolId& termId, const Substitution& subst);

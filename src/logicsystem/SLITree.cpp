@@ -56,7 +56,6 @@ namespace LogicSystem
             return {};
         }
 
-        // MGU和替换后的parent literal
         std::optional<Substitution> mgu;
         Literal substituted_parent_lit = parent->literal;
 
@@ -73,11 +72,31 @@ namespace LogicSystem
                 std::cout << "MGU unification failed" << std::endl;
                 return {};
             }
+            else
+            {
+                std::cout << "print MGU "<< std::endl;
+                Unifier::printSubstitution(mgu.value(), this->kb);
+            }
+
             try
             {
+                // 对父节点应用替换
                 substituted_parent_lit = Unifier::applySubstitutionToLiteral(parent->literal, *mgu, kb);
+
+                // 更新父节点的字面量
                 parent->literal = substituted_parent_lit;
+                // 标记父节点为A-literal（因为它参与了消解）
+                parent->is_A_literal = true;
+
                 std::cout << "Parent literal after MGU: " << substituted_parent_lit.toString(this->kb) << std::endl;
+
+                // 对父节点的所有祖先节点也应用相同的替换
+                /*auto current = parent;
+                while (current->parent && current->parent != root)
+                {
+                    current->parent->literal = Unifier::applySubstitutionToLiteral(current->parent->literal, *mgu, kb);
+                    current = current->parent;
+                }*/
             }
             catch (const std::exception &e)
             {
@@ -93,7 +112,7 @@ namespace LogicSystem
 
         std::vector<std::shared_ptr<SLINode>> added_nodes;
 
-        // 添加节点
+        // 添加节点，但跳过消解文字
         for (const Literal &lit : input_clause.getLiterals())
         {
             if (lit != resolving_literal)
@@ -102,6 +121,7 @@ namespace LogicSystem
 
                 try
                 {
+                    // 应用替换到新的文字
                     Literal substituted_lit = (parent == this->root)
                                                   ? lit
                                                   : Unifier::applySubstitutionToLiteral(lit, *mgu, kb);
@@ -114,22 +134,14 @@ namespace LogicSystem
 
                     std::cout << "Creating node with substituted literal: " << substituted_lit.toString(this->kb) << std::endl;
 
-                    auto child = std::make_shared<SLINode>(substituted_lit, is_A_literal, next_node_id++);
+                    auto child = std::make_shared<SLINode>(substituted_lit, is_A_literal=false, next_node_id++);
                     child->parent = parent;
                     child->depth = parent->depth + 1;
                     child->substitution = *mgu;
 
-                    try
+                    if (depth_map.size() <= child->depth)
                     {
-                        if (depth_map.size() <= child->depth)
-                        {
-                            depth_map.resize(child->depth + 1);
-                        }
-                    }
-                    catch (const std::bad_alloc &e)
-                    {
-                        std::cout << "Error: Memory allocation failed for depth_map resize" << std::endl;
-                        throw;
+                        depth_map.resize(child->depth + 1);
                     }
 
                     depth_map[child->depth].push_back(child);
@@ -166,8 +178,6 @@ namespace LogicSystem
         catch (const std::exception &e)
         {
             std::cout << "Error creating operation: " << e.what() << std::endl;
-            // 如果操作创建失败，可能需要清理已添加的节点
-            // 这里可能需要添加回滚逻辑
             throw;
         }
 

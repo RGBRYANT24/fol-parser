@@ -6,6 +6,7 @@ add_executable(logicsystem_tests
     ResolutionTest.cpp
     2ColorableTest.cpp
     SLITreeTest.cpp
+    UnifierTest.cpp
     # KnowledgeBaseBuilderTest.cpp
 )
 # 对于测试可执行文件

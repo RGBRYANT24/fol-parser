@@ -5,6 +5,7 @@
 #include "SLINode.h"
 #include "KnowledgeBase.h"
 #include "Unifier.h"
+#include "Resolution.h"
 #include <unordered_map>
 #include <stack>
 #include <memory>
@@ -39,26 +40,40 @@ namespace LogicSystem
     class AddOperation : public Operation
     {
     public:
-        AddOperation(std::shared_ptr<SLINode> new_node,
-                     std::unordered_map<size_t, std::shared_ptr<SLINode>> &lit_map,
-                     std::vector<std::vector<std::shared_ptr<SLINode>>> &d_map)
-            : node(new_node), literal_map_ref(lit_map), depth_map_ref(d_map) {}
+        AddOperation(const std::vector<std::shared_ptr<SLINode>> &nodes,
+                     std::unordered_map<size_t, std::shared_ptr<SLINode>> &litMap,
+                     std::vector<std::vector<std::shared_ptr<SLINode>>> &depthMap)
+            : added_nodes(nodes), literal_map(litMap), depth_map(depthMap) {}
 
         void undo() override;
 
     private:
-        std::shared_ptr<SLINode> node;
-        std::unordered_map<size_t, std::shared_ptr<SLINode>> &literal_map_ref;
-        std::vector<std::vector<std::shared_ptr<SLINode>>> &depth_map_ref;
+        std::vector<std::shared_ptr<SLINode>> added_nodes;
+        std::unordered_map<size_t, std::shared_ptr<SLINode>> &literal_map;
+        std::vector<std::vector<std::shared_ptr<SLINode>>> &depth_map;
     };
     class SLITree
     {
     public:
-        SLITree(KnowledgeBase &kb) : kb(kb), next_node_id(0) {}
+        SLITree(KnowledgeBase &kb) : kb(kb), next_node_id(0)
+        { // 创建空的根节点
+            root = std::make_shared<SLINode>(Literal(), false, next_node_id++);
+            root->depth = 0;
+            if (depth_map.empty())
+            {
+                depth_map.resize(1);
+            }
+            depth_map[0].push_back(root);
+        }
+        // 添加获取根节点的函数
+        std::shared_ptr<SLINode> getRoot() const
+        {
+            return root;
+        }
 
         // 核心操作
-        std::shared_ptr<SLINode> add_node(const Literal &literal, bool is_A_literal,
-                                          std::shared_ptr<SLINode> parent = nullptr);
+        std::vector<std::shared_ptr<SLINode>> add_node(const Clause &input_clause, const Literal &resolving_literal,
+                                                            bool is_A_literal, std::shared_ptr<SLINode> parent);
         bool is_ancestor(std::shared_ptr<SLINode> potential_ancestor,
                          std::shared_ptr<SLINode> potential_descendant);
         void truncate(std::shared_ptr<SLINode> node);

@@ -16,54 +16,162 @@ namespace LogicSystem
     // SLITree.cpp
     void AddOperation::undo()
     {
-        if (node)
+        for (const auto &node : added_nodes)
         {
-            // 从 literal_map_ref 中移除节点
-            size_t node_hash = node->literal.hash();
-            literal_map_ref.erase(node_hash);
-
-            // 从 depth_map_ref 中移除节点
-            if (node->depth < depth_map_ref.size())
+            // 从父节点的children中移除
+            if (auto parent = node->parent.lock())
             {
-                auto &nodes_at_depth = depth_map_ref[node->depth];
-                nodes_at_depth.erase(
-                    std::remove(nodes_at_depth.begin(), nodes_at_depth.end(), node),
-                    nodes_at_depth.end());
+                auto &children = parent->children;
+                children.erase(
+                    std::remove(children.begin(), children.end(), node),
+                    children.end());
             }
+
+            // 从深度图中移除
+            if (node->depth < depth_map.size())
+            {
+                auto &depth_level = depth_map[node->depth];
+                depth_level.erase(
+                    std::remove(depth_level.begin(), depth_level.end(), node),
+                    depth_level.end());
+            }
+
+            // 从文字映射中移除
+            literal_map.erase(node->literal.hash());
         }
     }
 
-    std::shared_ptr<SLINode> SLITree::add_node(const Literal &literal, bool is_A_literal,
-                                               std::shared_ptr<SLINode> parent)
+    std::vector<std::shared_ptr<SLINode>> SLITree::add_node(const Clause &input_clause, const Literal &resolving_literal,
+                                                            bool is_A_literal, std::shared_ptr<SLINode> parent)
     {
-        auto node = std::make_shared<SLINode>(literal, is_A_literal, next_node_id++);
-        node->rule_applied = "extension"; // node t-extension
-
-        if (parent)
+        // 基础检查
+        if (!parent)
         {
-            node->parent = parent;
-            node->depth = parent->depth + 1;
-            parent->children.push_back(node);
+            throw std::invalid_argument("Parent node must be specified");
+        }
+
+        if (input_clause.getLiterals().empty())
+        {
+            std::cout << "Warning: Empty input clause" << std::endl;
+            return {};
+        }
+
+        // MGU和替换后的parent literal
+        std::optional<Substitution> mgu;
+        Literal substituted_parent_lit = parent->literal;
+
+        std::cout << "Processing clause: " << input_clause.toString(this->kb) << std::endl;
+        std::cout << "Resolving literal: " << resolving_literal.toString(this->kb) << std::endl;
+        std::cout << "Parent literal: " << parent->literal.toString(this->kb) << std::endl;
+
+        // MGU计算和应用
+        if (parent != this->root && !resolving_literal.isEmpty())
+        {
+            mgu = Unifier::findMGU(resolving_literal, parent->literal, kb);
+            if (!mgu)
+            {
+                std::cout << "MGU unification failed" << std::endl;
+                return {};
+            }
+            try
+            {
+                substituted_parent_lit = Unifier::applySubstitutionToLiteral(parent->literal, *mgu, kb);
+                parent->literal = substituted_parent_lit;
+                std::cout << "Parent literal after MGU: " << substituted_parent_lit.toString(this->kb) << std::endl;
+            }
+            catch (const std::exception &e)
+            {
+                std::cout << "Error applying substitution to parent: " << e.what() << std::endl;
+                return {};
+            }
         }
         else
         {
-            root = node;
-            node->depth = 0;
+            mgu = Substitution();
+            std::cout << "Using empty substitution (root node or empty resolving literal)" << std::endl;
         }
 
-        if (depth_map.size() <= node->depth)
+        std::vector<std::shared_ptr<SLINode>> added_nodes;
+
+        // 添加节点
+        for (const Literal &lit : input_clause.getLiterals())
         {
-            depth_map.resize(node->depth + 1);
+            if (lit != resolving_literal)
+            {
+                std::cout << "Processing literal for addition: " << lit.toString(this->kb) << std::endl;
+
+                try
+                {
+                    Literal substituted_lit = (parent == this->root)
+                                                  ? lit
+                                                  : Unifier::applySubstitutionToLiteral(lit, *mgu, kb);
+
+                    if (substituted_lit.isEmpty())
+                    {
+                        std::cout << "Warning: Substitution resulted in empty literal, skipping" << std::endl;
+                        continue;
+                    }
+
+                    std::cout << "Creating node with substituted literal: " << substituted_lit.toString(this->kb) << std::endl;
+
+                    auto child = std::make_shared<SLINode>(substituted_lit, is_A_literal, next_node_id++);
+                    child->parent = parent;
+                    child->depth = parent->depth + 1;
+                    child->substitution = *mgu;
+
+                    try
+                    {
+                        if (depth_map.size() <= child->depth)
+                        {
+                            depth_map.resize(child->depth + 1);
+                        }
+                    }
+                    catch (const std::bad_alloc &e)
+                    {
+                        std::cout << "Error: Memory allocation failed for depth_map resize" << std::endl;
+                        throw;
+                    }
+
+                    depth_map[child->depth].push_back(child);
+                    literal_map[substituted_lit.hash()] = child;
+                    parent->children.push_back(child);
+                    added_nodes.push_back(child);
+
+                    std::cout << "Successfully added node at depth " << child->depth << std::endl;
+                }
+                catch (const std::exception &e)
+                {
+                    std::cout << "Error processing literal: " << e.what() << std::endl;
+                    continue;
+                }
+            }
+            else
+            {
+                std::cout << "Skipping resolving literal: " << lit.toString(this->kb) << std::endl;
+            }
         }
-        depth_map[node->depth].push_back(node);
 
-        literal_map[literal.hash()] = node;
+        if (added_nodes.empty())
+        {
+            std::cout << "No nodes were added to the tree" << std::endl;
+            return {};
+        }
 
-        // 创建并保存Operation
-        auto op = std::make_unique<AddOperation>(node, literal_map, depth_map);
-        operation_stack.push(std::move(op));
+        try
+        {
+            auto op = std::make_unique<AddOperation>(added_nodes, literal_map, depth_map);
+            operation_stack.push(std::move(op));
+            std::cout << "Successfully created and stored operation for " << added_nodes.size() << " nodes" << std::endl;
+        }
+        catch (const std::exception &e)
+        {
+            std::cout << "Error creating operation: " << e.what() << std::endl;
+            // 如果操作创建失败，可能需要清理已添加的节点
+            // 这里可能需要添加回滚逻辑
+            throw;
+        }
 
-        return node;
+        return added_nodes;
     }
 
     bool SLITree::is_ancestor(std::shared_ptr<SLINode> potential_ancestor,
@@ -119,7 +227,7 @@ namespace LogicSystem
         operation_stack.push(std::move(op));
     }
 
-    bool SLITree::t_factoring(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2)
+    /*bool SLITree::t_factoring(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2)
     {
         if (!node1 || !node2 || !node1->is_active || !node2->is_active)
         {
@@ -188,7 +296,7 @@ namespace LogicSystem
             operation_stack.top()->undo();
             operation_stack.pop();
         }
-    }
+    }*/
     void SLITree::print_tree(const KnowledgeBase &kb) const
     {
         if (!root)
@@ -196,10 +304,25 @@ namespace LogicSystem
             std::cout << "Empty tree\n";
             return;
         }
-        print_node_info(root, kb, "", true);
-        for (size_t i = 0; i < root->children.size(); ++i)
+
+        // 按深度遍历所有活跃节点
+        for (size_t depth = 0; depth < depth_map.size(); ++depth)
         {
-            print_node(root->children[i], kb, "", i == root->children.size() - 1);
+            std::cout << "Depth " << depth << ":\n";
+            for (const auto &node : depth_map[depth])
+            {
+                if (node && node->is_active)
+                {
+                    std::string prefix = "  ";
+                    print_node_info(node, kb, prefix, false);
+
+                    // 可选：显示与父节点的关系
+                    if (auto parent = node->parent.lock())
+                    {
+                        std::cout << prefix << "  └─ Parent: " << parent->node_id << "\n";
+                    }
+                }
+            }
         }
     }
 
@@ -223,6 +346,11 @@ namespace LogicSystem
     void SLITree::print_node_info(std::shared_ptr<SLINode> node, const KnowledgeBase &kb,
                                   std::string prefix, bool is_last) const
     {
+        if (node->literal.isEmpty())
+        {
+            std::cout << prefix << get_branch_str(is_last) << "ROOT" << std::endl;
+            return;
+        }
         // 第一行：基本树结构和文字信息
         std::cout << prefix << (prefix.empty() ? "" : get_branch_str(is_last))
                   << node->literal.toString(kb)

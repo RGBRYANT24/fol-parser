@@ -9,6 +9,7 @@ add_library(logicsystem
     Unifier.cpp
     VariableTable.cpp
     Literal.cpp
+    SLITree.cpp
     # KnowledgeBaseBuilder.cpp
 )
 

@@ -1,5 +1,5 @@
 #include "Unifier.h"
-
+#include <iostream>
 namespace LogicSystem
 {
 
@@ -81,4 +81,16 @@ namespace LogicSystem
 
         return false;
     }
+
+    void Unifier::printSubstitution(const Substitution& subst, const KnowledgeBase& kb) {
+    if (subst.empty()) {
+        std::cout << "Empty substitution (identity mapping)" << std::endl;
+        return;
+    }
+
+    std::cout << "Substitution:" << std::endl;
+    for (const auto& [var, term] : subst) {
+        std::cout << kb.getSymbolName(var) << " -> " << kb.getSymbolName(term) << std::endl;
+    }
+}
 }

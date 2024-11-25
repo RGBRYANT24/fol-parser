@@ -4,6 +4,7 @@
 
 #include "SLINode.h"
 #include "KnowledgeBase.h"
+#include "operation/Operations.h"
 #include "Unifier.h"
 #include "Resolution.h"
 #include <unordered_map>
@@ -12,46 +13,6 @@
 
 namespace LogicSystem
 {
-
-    class Operation
-    {
-    public:
-        virtual ~Operation() = default;
-        virtual void undo() = 0;
-    };
-
-    class TruncateOperation : public Operation
-    {
-    public:
-        explicit TruncateOperation(std::shared_ptr<SLINode> n) : node(n) {}
-        void save_state(std::shared_ptr<SLINode> n)
-        {
-            affected_nodes.push_back(n);
-            previous_states.push_back(n->is_active);
-        }
-        void undo() override;
-
-    private:
-        std::shared_ptr<SLINode> node;
-        std::vector<bool> previous_states;
-        std::vector<std::shared_ptr<SLINode>> affected_nodes;
-    };
-
-    class AddOperation : public Operation
-    {
-    public:
-        AddOperation(const std::vector<std::shared_ptr<SLINode>> &nodes,
-                     std::unordered_map<size_t, std::shared_ptr<SLINode>> &litMap,
-                     std::vector<std::vector<std::shared_ptr<SLINode>>> &depthMap)
-            : added_nodes(nodes), literal_map(litMap), depth_map(depthMap) {}
-
-        void undo() override;
-
-    private:
-        std::vector<std::shared_ptr<SLINode>> added_nodes;
-        std::unordered_map<size_t, std::shared_ptr<SLINode>> &literal_map;
-        std::vector<std::vector<std::shared_ptr<SLINode>>> &depth_map;
-    };
     class SLITree
     {
     public:
@@ -84,7 +45,7 @@ namespace LogicSystem
         std::vector<std::shared_ptr<SLINode>> get_active_nodes_at_depth(int depth) const;
 
         // SLI特定操作
-        bool t_factoring(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2);
+        bool t_factoring(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node);
         bool t_ancestry(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2);
 
         // 返回统一后的新文字，如果无法统一则返回nullopt
@@ -95,6 +56,9 @@ namespace LogicSystem
                 return std::nullopt;
             return Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
         }
+
+        std::vector<std::vector<std::shared_ptr<SLINode>>> getDepthMap() {return this->depth_map;};
+        std::unordered_map<size_t, std::shared_ptr<SLINode>> getLitMap() {return this->literal_map;};
 
         void print_tree(const KnowledgeBase &kb) const;
 

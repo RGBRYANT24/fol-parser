@@ -74,7 +74,7 @@ namespace LogicSystem
             }
             else
             {
-                std::cout << "print MGU "<< std::endl;
+                std::cout << "print MGU " << std::endl;
                 Unifier::printSubstitution(mgu.value(), this->kb);
             }
 
@@ -134,7 +134,7 @@ namespace LogicSystem
 
                     std::cout << "Creating node with substituted literal: " << substituted_lit.toString(this->kb) << std::endl;
 
-                    auto child = std::make_shared<SLINode>(substituted_lit, is_A_literal=false, next_node_id++);
+                    auto child = std::make_shared<SLINode>(substituted_lit, is_A_literal = false, next_node_id++);
                     child->parent = parent;
                     child->depth = parent->depth + 1;
                     child->substitution = *mgu;
@@ -163,11 +163,11 @@ namespace LogicSystem
             }
         }
 
-        if (added_nodes.empty())
+        /*if (added_nodes.empty())
         {
             std::cout << "No nodes were added to the tree" << std::endl;
             return {};
-        }
+        }*/
 
         try
         {
@@ -237,35 +237,79 @@ namespace LogicSystem
         operation_stack.push(std::move(op));
     }
 
-    /*bool SLITree::t_factoring(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2)
+    bool SLITree::t_factoring(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node)
     {
-        if (!node1 || !node2 || !node1->is_active || !node2->is_active)
+        // 基础检查
+        if (!upper_node || !lower_node || !upper_node->is_active || !lower_node->is_active)
         {
+            std::cout << "basic check failed in t-factoring " << std::endl;
+            return false;
+        }
+
+        // 检查正负号是否相同
+        if (upper_node->literal.isNegated() != lower_node->literal.isNegated())
+        {
+            std::cout << "try factoring a negative and positive literal" << std::endl;
+            return false;
+        }
+
+        // 检查深度是否正确, upper >=lower
+        if (upper_node->depth > lower_node->depth)
+        {
+            std::cout << "deepth wrong in t-factoring" << std::endl;
+            std::cout << "upper_node depth " << upper_node->depth << " lower_node_deepth " << lower_node->depth << std::endl;
             return false;
         }
 
         // 尝试统一两个节点的文字
-        auto unified_literal = try_unify(node1->literal, node2->literal);
-        if (!unified_literal)
+        auto mgu = Unifier::findMGU(upper_node->literal, lower_node->literal, kb);
+        if (!mgu)
         {
+            std::cout << "Find MGU Failed " << std::endl;
             return false;
         }
 
-        // 如果统一成功，创建新的节点
-        auto new_node = add_node(*unified_literal, true, node1);
-        new_node->rule_applied = "t_factoring"; // 添加规则信息
-
-        // 将新节点的substitution存储起来
-        auto mgu = Unifier::findMGU(node1->literal, node2->literal, kb);
-        if (mgu)
+        try
         {
-            new_node->substitution = *mgu;
-        }
+            std::cout << "try t-factoring " << std::endl;
+            // 对upper_node应用替换
+            Literal substituted_lit = Unifier::applySubstitutionToLiteral(upper_node->literal, *mgu, kb);
 
-        return true;
+            // 保存原始状态用于可能的回滚
+            auto previous_lit = upper_node->literal;
+            auto previous_substitution = upper_node->substitution;
+
+            // 更新upper_node
+            upper_node->literal = substituted_lit;
+            // 合并替换
+            for (const auto &[var, term] : *mgu)
+            {
+                upper_node->substitution[var] = term;
+            }
+
+            // 创建截断操作用于处理lower_node
+            truncate(lower_node);
+
+            // 创建操作记录
+            auto op = std::make_unique<FactoringOperation>(
+                upper_node,
+                lower_node,
+                previous_lit,
+                previous_substitution,
+                *mgu);
+            operation_stack.push(std::move(op));
+
+            upper_node->rule_applied = "t_factoring";
+            return true;
+        }
+        catch (const std::exception &e)
+        {
+            std::cout << "Error in t_factoring: " << e.what() << std::endl;
+            return false;
+        }
     }
 
-    bool SLITree::t_ancestry(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2)
+    /*bool SLITree::t_ancestry(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2)
     {
         if (!node1 || !node2 || !node1->is_active || !node2->is_active)
         {
@@ -297,7 +341,7 @@ namespace LogicSystem
         }
 
         return true;
-    }
+    }*/
 
     void SLITree::rollback()
     {
@@ -306,7 +350,7 @@ namespace LogicSystem
             operation_stack.top()->undo();
             operation_stack.pop();
         }
-    }*/
+    }
     void SLITree::print_tree(const KnowledgeBase &kb) const
     {
         if (!root)

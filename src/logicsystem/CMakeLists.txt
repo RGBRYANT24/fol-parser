@@ -10,8 +10,11 @@ add_library(logicsystem
     VariableTable.cpp
     Literal.cpp
     SLITree.cpp
+    SLINode.cpp
     # KnowledgeBaseBuilder.cpp
 )
+
+add_subdirectory(operation)
 
 target_include_directories(logicsystem
     PUBLIC

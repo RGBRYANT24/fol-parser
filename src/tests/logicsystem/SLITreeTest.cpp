@@ -408,3 +408,129 @@ TEST_F(SLITreeTest, TAncestry) {
     // result = tree.t_ancestry(nodes4[0], nodes5[0]);
     // EXPECT_FALSE(result);
 }
+
+TEST_F(SLITreeTest, TTruncate) {
+    SLITree tree(kb);
+
+    // 测试场景1：基本的t-truncate操作 - 单个A-literal叶子节点
+    std::cout << "\nTest Scenario 1: Basic T-Truncate with single A-literal leaf" << std::endl;
+    
+    // 创建基础子句：P(x,a)
+    Clause c1;
+    Literal l1(pred_P, {var_x, const_a}, false);
+    c1.addLiteral(l1);
+    
+    auto nodes1 = tree.add_node(c1, Literal(), false, tree.getRoot());
+    ASSERT_EQ(nodes1.size(), 1);
+    
+    // 标记为A-literal
+    nodes1[0]->is_A_literal = true;
+    
+    std::cout << "Before truncate:" << std::endl;
+    tree.print_tree(kb);
+    
+    tree.truncate(nodes1[0]);
+    
+    std::cout << "After truncate:" << std::endl;
+    tree.print_tree(kb);
+    
+    EXPECT_FALSE(nodes1[0]->is_active);
+    EXPECT_EQ(nodes1[0]->rule_applied, "t-truncate");
+
+    // 测试场景2：向上传播的t-truncate
+    std::cout << "\nTest Scenario 2: Upward propagation of T-Truncate" << std::endl;
+    
+    // 创建新的树结构：P(x,a) -> Q(b) -> R(c)
+    Clause c2;
+    Literal l2(pred_P, {var_x, const_a}, false);
+    c2.addLiteral(l2);
+    
+    auto parent = tree.add_node(c2, Literal(), false, tree.getRoot())[0];
+    parent->is_A_literal = true;
+    
+    Clause c3;
+    Literal l3(pred_Q, {const_b}, false);
+    c3.addLiteral(l3);
+    
+    auto middle = tree.add_node(c3, Literal(), false, parent)[0];
+    middle->is_A_literal = true;
+    
+    Clause c4;
+    Literal l4(pred_R, {const_c}, false);
+    c4.addLiteral(l4);
+    
+    auto leaf = tree.add_node(c4, Literal(), false, middle)[0];
+    leaf->is_A_literal = true;
+    
+    std::cout << "Before truncate cascade:" << std::endl;
+    tree.print_tree(kb);
+    
+    tree.truncate(leaf);
+    
+    std::cout << "After truncate cascade:" << std::endl;
+    tree.print_tree(kb);
+    
+    EXPECT_FALSE(leaf->is_active);
+    EXPECT_FALSE(middle->is_active);
+    EXPECT_FALSE(parent->is_active);
+
+    // 测试场景3：撤销truncate操作
+    std::cout << "\nTest Scenario 3: Undo T-Truncate" << std::endl;
+    
+    tree.rollback();
+    
+    std::cout << "After rollback:" << std::endl;
+    tree.print_tree(kb);
+    
+    EXPECT_TRUE(leaf->is_active);
+    EXPECT_TRUE(middle->is_active);
+    EXPECT_TRUE(parent->is_active);
+
+    // 测试场景4：非A-literal节点
+    std::cout << "\nTest Scenario 4: Non-A-literal node" << std::endl;
+    
+    Clause c5;
+    Literal l5(pred_P, {var_x, const_a}, false);
+    c5.addLiteral(l5);
+    
+    auto non_a_literal = tree.add_node(c5, Literal(), false, tree.getRoot())[0];
+    non_a_literal->is_A_literal = false; // 确保不是A-literal
+    
+    std::cout << "Before truncate on non-A-literal:" << std::endl;
+    tree.print_tree(kb);
+    
+    tree.truncate(non_a_literal);
+    
+    std::cout << "After truncate attempt on non-A-literal:" << std::endl;
+    tree.print_tree(kb);
+    
+    EXPECT_TRUE(non_a_literal->is_active); // 应该仍然是活动的
+
+    // 测试场景5：有活跃子节点的A-literal节点
+    std::cout << "\nTest Scenario 5: A-literal node with active children" << std::endl;
+    
+    Clause c6;
+    Literal l6(pred_P, {var_x, const_a}, false);
+    c6.addLiteral(l6);
+    
+    auto parent_with_children = tree.add_node(c6, Literal(), false, tree.getRoot())[0];
+    parent_with_children->is_A_literal = true;
+    
+    Clause c7;
+    Literal l7(pred_Q, {const_b}, false);
+    c7.addLiteral(l7);
+    
+    auto active_child = tree.add_node(c7, Literal(), false, parent_with_children)[0];
+    active_child->is_A_literal = false; // 子节点不是A-literal
+    
+    std::cout << "Before truncate on parent with active child:" << std::endl;
+    tree.print_tree(kb);
+    
+    tree.truncate(parent_with_children);
+    
+    std::cout << "After truncate attempt on parent with active child:" << std::endl;
+    tree.print_tree(kb);
+    
+    EXPECT_TRUE(parent_with_children->is_active); // 因为有活跃子节点，所以不应该被truncate
+    EXPECT_TRUE(active_child->is_active);
+}

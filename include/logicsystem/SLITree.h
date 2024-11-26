@@ -16,7 +16,7 @@ namespace LogicSystem
     class SLITree
     {
     public:
-        SLITree(KnowledgeBase &kb) : kb(kb), next_node_id(0)
+        SLITree(const KnowledgeBase &kb) : kb(kb), next_node_id(0)
         { // 创建空的根节点
             root = std::make_shared<SLINode>(Literal(), false, next_node_id++);
             root->depth = 0;
@@ -63,7 +63,7 @@ namespace LogicSystem
         void print_tree(const KnowledgeBase &kb) const;
 
     private:
-        KnowledgeBase &kb;
+        const KnowledgeBase &kb;
         std::unordered_map<size_t, std::shared_ptr<SLINode>> literal_map;
         std::vector<std::vector<std::shared_ptr<SLINode>>> depth_map;
         std::stack<std::unique_ptr<Operation>> operation_stack;

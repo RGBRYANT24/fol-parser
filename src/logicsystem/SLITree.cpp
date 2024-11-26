@@ -5,13 +5,6 @@
 namespace LogicSystem
 {
 
-    void TruncateOperation::undo()
-    {
-        for (size_t i = 0; i < affected_nodes.size(); ++i)
-        {
-            affected_nodes[i]->is_active = previous_states[i];
-        }
-    }
 
     // SLITree.cpp
     void AddOperation::undo()
@@ -49,7 +42,7 @@ namespace LogicSystem
         {
             throw std::invalid_argument("Parent node must be specified");
         }
-        
+
         // 不能在这里检查是不是互补的，一定要在调用之前检查
         /*if(parent->literal.isNegated() == resolving_literal.isNegated())
         {
@@ -216,31 +209,66 @@ namespace LogicSystem
     void SLITree::truncate(std::shared_ptr<SLINode> node)
     {
         if (!node || !node->is_active)
-            return;
-
-        auto op = std::make_unique<TruncateOperation>(node);
-        std::stack<std::shared_ptr<SLINode>> stack;
-        stack.push(node);
-
-        while (!stack.empty())
         {
-            auto current = stack.top();
-            stack.pop();
+            return;
+        }
 
-            if (current->is_active)
+        // Create operation for potential undo
+        auto op = std::make_unique<TruncateOperation>();
+        bool truncation_performed = false;
+
+        // Process current node and potentially propagate upwards
+        std::shared_ptr<SLINode> current = node;
+        while (current && current->is_active)
+        {
+            // Case 1: Node is a leaf and is an A-literal
+            if (current->children.empty() && current->is_A_literal)
             {
                 dynamic_cast<TruncateOperation *>(op.get())->save_state(current);
                 current->is_active = false;
-                current->rule_applied = "truncate"; // 添加规则信息
+                current->rule_applied = "t-truncate";
+                truncation_performed = true;
 
+                // Move to parent for potential further truncation
+                current = current->parent.lock();
+            }
+            // Case 2: Check if all children are inactive
+            else if (!current->children.empty())
+            {
+                bool all_children_inactive = true;
                 for (const auto &child : current->children)
                 {
-                    stack.push(child);
+                    if (child->is_active)
+                    {
+                        all_children_inactive = false;
+                        break;
+                    }
                 }
+
+                if (all_children_inactive && current->is_A_literal)
+                {
+                    dynamic_cast<TruncateOperation *>(op.get())->save_state(current);
+                    current->is_active = false;
+                    current->rule_applied = "t-truncate";
+                    truncation_performed = true;
+                    current = current->parent.lock();
+                }
+                else
+                {
+                    break; // Stop propagation if conditions aren't met
+                }
+            }
+            else
+            {
+                break; // Stop propagation if conditions aren't met
             }
         }
 
-        operation_stack.push(std::move(op));
+        // Only add the operation to stack if any truncation was performed
+        if (truncation_performed)
+        {
+            operation_stack.push(std::move(op));
+        }
     }
 
     bool SLITree::t_factoring(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node)
@@ -343,7 +371,7 @@ namespace LogicSystem
         {
             std::cout << "nodes are not in ancestor relationship" << std::endl;
             return false;
-        }      
+        }
 
         // 尝试统一两个节点的文字
         auto mgu = Unifier::findMGU(upper_node->literal, lower_node->literal, kb);
@@ -509,5 +537,24 @@ namespace LogicSystem
 
         std::cout << "\n";
     }
+
+    std::vector<std::shared_ptr<SLINode>> SLITree::get_active_nodes_at_depth(int depth) const {
+    std::vector<std::shared_ptr<SLINode>> active_nodes;
+    
+    // 检查深度是否有效
+    if (depth < 0 || depth >= depth_map.size()) {
+        return active_nodes;
+    }
+    
+    // 遍历指定深度的所有节点
+    for (const auto& node : depth_map[depth]) {
+        // 检查节点是否为活跃的且未参与过消解
+        if (node && node->is_active && !node->is_A_literal) {
+            active_nodes.push_back(node);
+        }
+    }
+    
+    return active_nodes;
+}
 
 } // namespace LogicSystem

@@ -252,12 +252,20 @@ namespace LogicSystem
             std::cout << "try factoring a negative and positive literal" << std::endl;
             return false;
         }
+        
 
         // 检查深度是否正确, upper >=lower
         if (upper_node->depth > lower_node->depth)
         {
             std::cout << "deepth wrong in t-factoring" << std::endl;
             std::cout << "upper_node depth " << upper_node->depth << " lower_node_deepth " << lower_node->depth << std::endl;
+            return false;
+        }
+
+        //检查是不是直接祖先关系
+        if(is_ancestor(upper_node, lower_node))
+        {
+            std::cout << "upper_node is lower_node's ancestor. t-factoring failed" << std::endl;
             return false;
         }
 

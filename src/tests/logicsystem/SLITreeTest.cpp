@@ -12,8 +12,10 @@ protected:
         // 设置知识库
         pred_P = kb.addPredicate("P"); // 二元谓词 P
         pred_Q = kb.addPredicate("Q"); // 一元谓词 Q
+        pred_R = kb.addPredicate("R");
         const_a = kb.addConstant("a");
         const_b = kb.addConstant("b");
+        const_c = kb.addConstant("c");
         var_x = kb.addVariable("x");
         var_y = kb.addVariable("y");
     }
@@ -21,8 +23,10 @@ protected:
     KnowledgeBase kb;
     int pred_P;
     int pred_Q;
+    int pred_R;
     SymbolId const_a;
     SymbolId const_b;
+    SymbolId const_c;
     SymbolId var_x;
     SymbolId var_y;
 };
@@ -247,48 +251,80 @@ TEST_F(SLITreeTest, TFactoring)
     EXPECT_EQ(nodes3[1]->is_active, original_active2);
     tree.print_tree(kb);
 
-    // // 测试场景4：带否定的文字
-    // std::cout << "\nTest Scenario 4: Literals with Negation" << std::endl;
-    // // ~P(x,a) ∨ ~P(b,y)
-    // Clause c5;
-    // Literal l9(pred_P, {var_x, const_a}, true);
-    // Literal l10(pred_P, {const_b, var_y}, true);
-    // c5.addLiteral(l9);
-    // c5.addLiteral(l10);
+    // 测试场景4：带否定的文字
+    std::cout << "\nTest Scenario 4: Literals with Negation" << std::endl;
+    // ~P(x,a) ∨ ~P(b,y)
+    Clause c5;
+    Literal l9(pred_P, {var_x, const_a}, true);
+    Literal l10(pred_P, {const_b, var_y}, true);
+    c5.addLiteral(l9);
+    c5.addLiteral(l10);
 
-    // auto nodes4 = tree.add_node(c5, Literal(), false, tree.getRoot());
-    // ASSERT_EQ(nodes4.size(), 2);
+    auto nodes4 = tree.add_node(c5, Literal(), false, tree.getRoot());
+    ASSERT_EQ(nodes4.size(), 2);
+    tree.print_tree(kb);
 
-    // result = tree.t_factoring(nodes4[0], nodes4[1]);
-    // EXPECT_TRUE(result);
-    // tree.print_tree(kb);
+    result = tree.t_factoring(nodes4[0], nodes4[1]);
+    EXPECT_TRUE(result);
+    tree.print_tree(kb);
 
-    // // 测试场景5：无效的节点组合
-    // std::cout << "\nTest Scenario 5: Invalid Node Combinations" << std::endl;
-    // result = tree.t_factoring(nullptr, nodes4[0]);
-    // EXPECT_FALSE(result);
+    // 测试场景5：直接祖先关系的情况
+    std::cout << "\nTest Scenario 5: Ancestor Relationship Cases" << std::endl;
+    
+    // 创建一个基础子句：P(x,a) ∨ Q(b)
+    Clause c6;
+    Literal l11(pred_P, {var_x, const_a}, false);
+    Literal l12(pred_Q, {const_b}, false);
+    c6.addLiteral(l11);
+    c6.addLiteral(l12);
 
-    // result = tree.t_factoring(nodes4[0], nullptr);
-    // EXPECT_FALSE(result);
+    auto nodes5 = tree.add_node(c6, Literal(), false, tree.getRoot());
+    ASSERT_EQ(nodes5.size(), 2);
 
-    // nodes4[1]->is_active = false;
-    // result = tree.t_factoring(nodes4[0], nodes4[1]);
-    // EXPECT_FALSE(result);
-    // tree.print_tree(kb);
+    // 在第一个节点下添加子节点：P(y,b) ∨ R(c)
+    Clause c7;
+    Literal l13(pred_P, {var_y, const_b}, false);
+    Literal l14(pred_R, {const_c}, false);
+    c7.addLiteral(l13);
+    c7.addLiteral(l14);
 
-    // // 测试场景6：复杂的替换情况
-    // std::cout << "\nTest Scenario 6: Complex Substitution" << std::endl;
-    // // P(x,y) ∨ P(y,x)
-    // Clause c6;
-    // Literal l11(pred_P, {var_x, var_y}, false);
-    // Literal l12(pred_P, {var_y, var_x}, false);
-    // c6.addLiteral(l11);
-    // c6.addLiteral(l12);
+    auto nodes5_children = tree.add_node(c7, Literal(), false, nodes5[0]);
+    ASSERT_EQ(nodes5_children.size(), 2);
+    tree.print_tree(kb);
 
-    // auto nodes6 = tree.add_node(c6, Literal(), false, tree.getRoot());
-    // ASSERT_EQ(nodes6.size(), 2);
+    // 尝试对祖先节点和后代节点进行t-factoring
+    std::cout << "Attempting t-factoring between ancestor and descendant" << std::endl;
+    result = tree.t_factoring(nodes5[0], nodes5_children[0]);
+    EXPECT_FALSE(result); // 应该失败，因为是直接祖先关系
 
-    // result = tree.t_factoring(nodes6[0], nodes6[1]);
-    // EXPECT_TRUE(result);
-    // tree.print_tree(kb);
+    // 测试场景6：其他无效的节点组合
+    std::cout << "\nTest Scenario 6: Invalid Node Combinations" << std::endl;
+    
+    // 测试空节点
+    result = tree.t_factoring(nullptr, nodes4[0]);
+    EXPECT_FALSE(result);
+
+    result = tree.t_factoring(nodes4[0], nullptr);
+    EXPECT_FALSE(result);
+
+    // 测试非活动节点
+    nodes4[1]->is_active = false;
+    result = tree.t_factoring(nodes4[0], nodes4[1]);
+    EXPECT_FALSE(result);
+
+    // 测试场景7：复杂的替换情况
+    std::cout << "\nTest Scenario 7: Complex Substitution" << std::endl;
+    // P(x,y) ∨ P(y,x)
+    Clause c8;
+    Literal l15(pred_P, {var_x, var_y}, false);
+    Literal l16(pred_P, {var_y, var_x}, false);
+    c8.addLiteral(l15);
+    c8.addLiteral(l16);
+
+    auto nodes7 = tree.add_node(c8, Literal(), false, tree.getRoot());
+    ASSERT_EQ(nodes7.size(), 2);
+
+    result = tree.t_factoring(nodes7[0], nodes7[1]);
+    EXPECT_TRUE(result);
+    tree.print_tree(kb);
 }

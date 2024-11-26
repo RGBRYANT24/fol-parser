@@ -328,3 +328,83 @@ TEST_F(SLITreeTest, TFactoring)
     EXPECT_TRUE(result);
     tree.print_tree(kb);
 }
+
+TEST_F(SLITreeTest, TAncestry) {
+    SLITree tree(kb);
+
+    // 测试场景1：基本的t-ancestry操作
+    std::cout << "\nTest Scenario 1: Basic T-Ancestry" << std::endl;
+    
+    // 创建一个基础子句：P(x,a)
+    Clause c1;
+    Literal l1(pred_P, {var_x, const_a}, false);
+    c1.addLiteral(l1);
+    
+    auto nodes1 = tree.add_node(c1, Literal(), false, tree.getRoot());
+    ASSERT_EQ(nodes1.size(), 1);
+    std::cout << "add node P(x,a)" << std::endl;
+    tree.print_tree(kb);
+
+    // 创建子节点：~P(x,a) ∨ Q(b)
+    Clause c2;
+    Literal l2(pred_P, {var_x, const_a}, true);
+    Literal l3(pred_Q, {const_b}, false);
+    c2.addLiteral(l2);
+    c2.addLiteral(l3);
+    
+    std::cout << "result of add_node1 " << std::endl;
+    nodes1[0]->print(kb);
+    auto nodes2 = tree.add_node(c2, l2, false, nodes1[0]);
+    for(const auto& node : nodes2)
+    {
+        node -> print(kb);
+    }
+    ASSERT_EQ(nodes2.size(), 1);
+    std::cout << "add node ~P(x,a) ∨ Q(b)" << std::endl;
+    tree.print_tree(kb);
+
+    // 创建子节点：~Q(b) ∨ ~P(x,a) 
+    Clause c3;
+    Literal l4(pred_Q, {const_b}, true);
+    Literal l5(pred_P, {var_y, var_x}, true);
+    c3.addLiteral(l4);
+    c3.addLiteral(l5);
+
+    auto nodes3 = tree.add_node(c3, l4, false, nodes2[0]);
+    std::cout << "add node ~Q(b) ∨ ~P(y,x)  " << std::endl;
+    tree.print_tree(kb);
+    bool result = tree.t_ancestry(nodes1[0], nodes3[0]);
+    EXPECT_TRUE(result);
+    std::cout << "after t-ancestry" << std::endl;
+    tree.print_tree(kb);
+
+    tree.rollback();
+    std::cout <<"after rollback()"<<std::endl;
+    tree.print_tree(kb);
+
+    // // 测试场景2：非互补文字
+    // std::cout << "\nTest Scenario 2: Non-complementary Literals" << std::endl;
+    
+    // // 创建根节点：P(x,a)
+    // Clause c4;
+    // Literal l6(pred_P, {var_x, const_a}, false);
+    // c4.addLiteral(l6);
+    
+    // auto nodes4 = tree.add_node(c4, Literal(), false, tree.getRoot());
+    // ASSERT_EQ(nodes4.size(), 1);
+    // std::cout << "add node P(x,a)" << std::endl;
+    // tree.print_tree(kb);
+
+    // // 创建子节点：P(b,y) - 注意这里是正文字而非否定文字
+    // Clause c5;
+    // Literal l7(pred_P, {const_b, var_y}, false);
+    // c5.addLiteral(l7);
+    
+    // auto nodes5 = tree.add_node(c5, l7, false, nodes4[0]);
+    // ASSERT_EQ(nodes5.size(), 1);
+    // std::cout << "add node P(b,y)" << std::endl;
+    // tree.print_tree(kb);
+    
+    // result = tree.t_ancestry(nodes4[0], nodes5[0]);
+    // EXPECT_FALSE(result);
+}

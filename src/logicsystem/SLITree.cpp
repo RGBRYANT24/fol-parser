@@ -49,6 +49,12 @@ namespace LogicSystem
         {
             throw std::invalid_argument("Parent node must be specified");
         }
+        
+        // 不能在这里检查是不是互补的，一定要在调用之前检查
+        /*if(parent->literal.isNegated() == resolving_literal.isNegated())
+        {
+            throw std::invalid_argument("Not Complementary in add_node");
+        }**/
 
         if (input_clause.getLiterals().empty())
         {
@@ -159,7 +165,7 @@ namespace LogicSystem
             }
             else
             {
-                std::cout << "Skipping resolving literal: " << lit.toString(this->kb) << std::endl;
+                std::cout << "Skipping add literal: " << lit.toString(this->kb) << std::endl;
             }
         }
 
@@ -252,7 +258,6 @@ namespace LogicSystem
             std::cout << "try factoring a negative and positive literal" << std::endl;
             return false;
         }
-        
 
         // 检查深度是否正确, upper >=lower
         if (upper_node->depth > lower_node->depth)
@@ -262,8 +267,8 @@ namespace LogicSystem
             return false;
         }
 
-        //检查是不是直接祖先关系
-        if(is_ancestor(upper_node, lower_node))
+        // 检查是不是直接祖先关系
+        if (is_ancestor(upper_node, lower_node))
         {
             std::cout << "upper_node is lower_node's ancestor. t-factoring failed" << std::endl;
             return false;
@@ -317,39 +322,77 @@ namespace LogicSystem
         }
     }
 
-    /*bool SLITree::t_ancestry(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2)
+    bool SLITree::t_ancestry(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node)
     {
-        if (!node1 || !node2 || !node1->is_active || !node2->is_active)
+        // 基础检查
+        if (!upper_node || !lower_node || !upper_node->is_active || !lower_node->is_active)
         {
+            std::cout << "basic check failed in t-ancestry" << std::endl;
             return false;
         }
 
-        // 检查祖先关系
-        if (!is_ancestor(node1, node2))
+        // 检查文字是否互补(一个是否定形式，一个是肯定形式)
+        if (upper_node->literal.isNegated() == lower_node->literal.isNegated())
         {
+            std::cout << "literals are not complementary" << std::endl;
             return false;
         }
 
-        // 尝试统一文字
-        auto unified_literal = try_unify(node1->literal, node2->literal);
-        if (!unified_literal)
+        // 检查是否为祖先关系
+        if (!is_ancestor(upper_node, lower_node))
         {
+            std::cout << "nodes are not in ancestor relationship" << std::endl;
+            return false;
+        }      
+
+        // 尝试统一两个节点的文字
+        auto mgu = Unifier::findMGU(upper_node->literal, lower_node->literal, kb);
+        if (!mgu)
+        {
+            std::cout << "Find MGU Failed in t-ancestry" << std::endl;
             return false;
         }
 
-        // 如果统一成功，创建新的节点
-        auto new_node = add_node(*unified_literal, true, node2);
-        new_node->rule_applied = "t_ancestry"; // 添加规则信息
-
-        // 存储substitution
-        auto mgu = Unifier::findMGU(node1->literal, node2->literal, kb);
-        if (mgu)
+        try
         {
-            new_node->substitution = *mgu;
-        }
+            std::cout << "try t-ancestry" << std::endl;
+            // 对upper_node应用替换
+            Literal substituted_lit = Unifier::applySubstitutionToLiteral(upper_node->literal, *mgu, kb);
 
-        return true;
-    }*/
+            // 保存原始状态用于可能的回滚
+            auto previous_lit = upper_node->literal;
+            auto previous_substitution = upper_node->substitution;
+
+            // 更新upper_node
+            upper_node->literal = substituted_lit;
+
+            // 合并替换
+            for (const auto &[var, term] : *mgu)
+            {
+                upper_node->substitution[var] = term;
+            }
+
+            // 创建截断操作用于处理lower_node及其子树
+            truncate(lower_node);
+
+            // 创建操作记录
+            auto op = std::make_unique<AncestryOperation>(
+                upper_node,
+                lower_node,
+                previous_lit,
+                previous_substitution,
+                *mgu);
+            operation_stack.push(std::move(op));
+
+            upper_node->rule_applied = "t_ancestry";
+            return true;
+        }
+        catch (const std::exception &e)
+        {
+            std::cout << "Error in t_ancestry: " << e.what() << std::endl;
+            return false;
+        }
+    }
 
     void SLITree::rollback()
     {

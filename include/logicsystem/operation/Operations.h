@@ -6,6 +6,7 @@
 #include "AddOperation.h"
 #include "TruncateOperation.h"
 #include "FactoringOperation.h"
+#include "AncestryOperation.h"
 // 如果将来添加新的操作类，在这里添加对应的include
 
 #endif // LOGIC_SYSTEM_OPERATIONS_H

@@ -24,9 +24,9 @@ namespace LogicSystem
 
         while (!active_nodes.empty())
         {
-            count ++;
-            std::cout << "round " << count + 1 << std::endl;
-            if(count >= 2)
+            count++;
+            std::cout << "round " << count << std::endl;
+            if (count >= 10)
             {
                 return false;
             }
@@ -60,23 +60,34 @@ namespace LogicSystem
             }
 
             // 获取下一个要尝试的消解对
-            int SLIPairCounts = 0;
             std::vector<std::shared_ptr<SLINode>> new_nodes;
-            while (!strategy.isEmpty() && new_nodes.empty())
+            if (!strategy.isEmpty())
             {
+                std::cout << "Try next resolution pair in strategy" << std::endl;
                 auto next_pair = strategy.getNextSLI();
                 auto resolvent_nodes = tree.add_node(
                     next_pair.kb_clause,
                     next_pair.resolving_literal,
                     true,
                     next_pair.tree_node);
+
+                // 如果新节点为空或parent没有其他孩子，检查并truncate parent
+                std::cout << "resolvent_nodes.size " << resolvent_nodes.size() << " next_pair.tree_node->children.empty " << next_pair.tree_node->children.empty() << std::endl;
+                if (resolvent_nodes.empty() || next_pair.tree_node->children.empty())
+                {
+                    checkAndTruncateNode(next_pair.tree_node, tree);
+                }
                 new_nodes.insert(new_nodes.end(), resolvent_nodes.begin(), resolvent_nodes.end());
+            }
+            else
+            {
+                std::cout << "No more resolution pairs to try" << std::endl;
+                return false;
             }
 
             if (new_nodes.empty())
             {
                 std::cout << "Failed to generate new nodes from resolution" << std::endl;
-                //continue;
             }
 
             std::cout << "After add nodes in SLI Resolution" << std::endl;
@@ -92,6 +103,11 @@ namespace LogicSystem
                     std::cout << "Upper node: " << upper_node->literal.toString(kb) << "\n";
                     std::cout << "Lower node: " << lower_node->literal.toString(kb) << "\n";
                 }
+                // 检查并truncate lower_node的parent
+                if (auto parent = lower_node->parent.lock())
+                {
+                    checkAndTruncateNode(parent, tree);
+                }
             }
 
             // 4. 应用t-ancestry
@@ -102,20 +118,15 @@ namespace LogicSystem
                 {
                     std::cout << "Applied t-ancestry successfully" << std::endl;
                 }
-            }
-
-            // 5. 应用t-truncate
-            // fix: 这里逻辑错误，应该是针对没有孩子的A-lit
-            for (const auto &node : new_nodes)
-            {
-                if (node->is_active)
-                { // 只对仍然活跃的节点应用truncate
-                    tree.truncate(node);
+                // 检查并truncate descendant的parent
+                if (auto parent = descendant->parent.lock())
+                {
+                    checkAndTruncateNode(parent, tree);
                 }
             }
 
-            // 6. 检查是否得到空子句
-            if (checkEmptyClause(new_nodes))
+            // 5. 检查是否得到空子句
+            if (checkEmptyClause(tree))
             {
                 std::cout << "Empty clause found - proof completed" << std::endl;
                 return true;
@@ -124,7 +135,7 @@ namespace LogicSystem
             // 更新启发式信息
             strategy.updateHeuristic(new_nodes);
 
-            // 7. 回溯检查
+            // 6. 回溯检查
             if (strategy.shouldBacktrack())
             {
                 std::cout << "Performing backtrack" << std::endl;
@@ -186,18 +197,32 @@ namespace LogicSystem
         return score;
     }
 
-    // findPotentialFactoringPairs 和 findPotentialAncestryPairs 实现保持不变
-
-    bool SLIResolution::checkEmptyClause(const std::vector<std::shared_ptr<SLINode>> &nodes)
+    bool SLIResolution::checkEmptyClause(const SLITree &tree)
     {
-        for (const auto &node : nodes)
+        // 获取整个树的深度映射
+        auto &depth_map = tree.getDepthMap();
+
+        // 统计所有深度的active节点
+        int active_count = 0;
+
+        for (size_t depth = 0; depth < depth_map.size(); ++depth)
         {
-            if (node->is_active && node->literal.isEmpty())
+            for (const auto &node : depth_map[depth])
             {
-                return true;
+                if (node->is_active)
+                {
+                    active_count++;
+                    // 如果在非根节点层发现active节点，直接返回false
+                    if (depth > 0)
+                    {
+                        return false;
+                    }
+                }
             }
         }
-        return false;
+
+        // 只有根节点是active时返回true
+        return active_count == 1;
     }
 
     std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
@@ -290,5 +315,16 @@ namespace LogicSystem
         }
 
         return pairs;
+    }
+
+    void SLIResolution::checkAndTruncateNode(const std::shared_ptr<SLINode> &node, SLITree &tree)
+    {
+        if (node && node->is_active && node->is_A_literal)
+        { // 是A-lit
+            if (node->children.empty())
+            { // 没有孩子节点
+                tree.truncate(node);
+            }
+        }
     }
 } // namespace LogicSystem

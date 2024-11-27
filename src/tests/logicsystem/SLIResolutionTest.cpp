@@ -38,10 +38,12 @@ protected:
 };
 
 TEST_F(SLIResolutionTest, SimpleOneStepResolution) {
+    // P(x,a)
     Clause kb_clause;
     kb_clause.addLiteral(Literal(pred_P, {var_x, const_a}, false));
     kb.addClause(kb_clause);
 
+    // ¬P(b,a)
     Clause goal;
     goal.addLiteral(Literal(pred_P, {const_b, const_a}, true));
 

@@ -25,11 +25,12 @@ namespace LogicSystem
         findPotentialAncestryPairs(const std::vector<std::shared_ptr<SLINode>> &new_nodes,
                                    const KnowledgeBase &kb);
 
-        static bool checkEmptyClause(const std::vector<std::shared_ptr<SLINode>> &nodes);
+        static bool checkEmptyClause(const SLITree &tree);
 
         static double calculateHeuristic(const Clause &kb_clause,
                                          const std::shared_ptr<SLINode> &tree_node,
                                          const Literal &resolving_literal);
+        static void checkAndTruncateNode(const std::shared_ptr<SLINode> &node, SLITree &tree);
     };
 }
 

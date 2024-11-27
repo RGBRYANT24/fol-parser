@@ -36,6 +36,10 @@ namespace LogicSystem
             // 2. 子句选择和配对
             for (const auto &node : active_nodes)
             {
+                if(node -> is_A_literal)
+                {
+                    continue;
+                }
                 for (const auto &kb_clause : kb.getClauses())
                 {
                     for (size_t i = 0; i < kb_clause.getLiterals().size(); ++i)
@@ -253,6 +257,7 @@ namespace LogicSystem
                               << " at depth " << existing_node->depth << std::endl;
 
                     if (existing_node != new_node &&
+                        std::find(new_nodes.begin(), new_nodes.end(), existing_node) == new_nodes.end()&&
                         existing_node->literal.getPredicateId() == new_node->literal.getPredicateId() &&
                         existing_node->literal.isNegated() == new_node->literal.isNegated() &&
                         existing_node->literal.getArgumentIds().size() == new_node->literal.getArgumentIds().size())

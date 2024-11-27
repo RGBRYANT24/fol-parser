@@ -4,6 +4,8 @@
 
 namespace LogicSystem {
 
+std::atomic<int> SLINode::next_node_id{0};  // 从0开始初始化
+
 SLINode::SLINode(const Literal& lit, bool isALiteral, int nodeId)
     : literal(lit)
     , is_A_literal(isALiteral)

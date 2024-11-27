@@ -5,7 +5,6 @@
 namespace LogicSystem
 {
 
-
     // SLITree.cpp
     void AddOperation::undo()
     {
@@ -88,6 +87,8 @@ namespace LogicSystem
                 parent->is_A_literal = true;
 
                 std::cout << "Parent literal after MGU: " << substituted_parent_lit.toString(this->kb) << std::endl;
+                std::cout << "Parent Node after add " << std::endl;
+                parent->print(kb);
 
                 // 对父节点的所有祖先节点也应用相同的替换
                 /*auto current = parent;
@@ -133,7 +134,9 @@ namespace LogicSystem
 
                     std::cout << "Creating node with substituted literal: " << substituted_lit.toString(this->kb) << std::endl;
 
-                    auto child = std::make_shared<SLINode>(substituted_lit, is_A_literal = false, next_node_id++);
+                    auto child = std::make_shared<SLINode>(substituted_lit,
+                                                           is_A_literal = false,
+                                                           SLINode::next_node_id++); // 使用 SLINode 的静态计数器
                     child->parent = parent;
                     child->depth = parent->depth + 1;
                     child->substitution = *mgu;
@@ -538,23 +541,85 @@ namespace LogicSystem
         std::cout << "\n";
     }
 
-    std::vector<std::shared_ptr<SLINode>> SLITree::get_active_nodes_at_depth(int depth) const {
-    std::vector<std::shared_ptr<SLINode>> active_nodes;
-    
-    // 检查深度是否有效
-    if (depth < 0 || depth >= depth_map.size()) {
+    std::vector<std::shared_ptr<SLINode>> SLITree::get_active_nodes_at_depth(int depth) const
+    {
+        std::vector<std::shared_ptr<SLINode>> active_nodes;
+
+        // 检查深度是否有效
+        if (depth < 0 || depth >= depth_map.size())
+        {
+            return active_nodes;
+        }
+
+        // 遍历指定深度的所有节点
+        for (const auto &node : depth_map[depth])
+        {
+            // 检查节点是否为活跃的且未参与过消解
+            if (node && node->is_active && !node->is_A_literal)
+            {
+                active_nodes.push_back(node);
+            }
+        }
+
         return active_nodes;
     }
-    
-    // 遍历指定深度的所有节点
-    for (const auto& node : depth_map[depth]) {
-        // 检查节点是否为活跃的且未参与过消解
-        if (node && node->is_active && !node->is_A_literal) {
-            active_nodes.push_back(node);
+
+    SLITree::SLITree(const SLITree &other, std::shared_ptr<SLINode> startNode)
+        : kb(other.kb)
+    {
+        // 构建从根到目标节点的路径
+        std::vector<std::shared_ptr<SLINode>> path;
+        auto current = startNode;
+        while (current)
+        {
+            path.push_back(current);
+            if (auto parent = current->parent.lock())
+            {
+                current = parent;
+            }
+            else
+            {
+                break;
+            }
+        }
+        std::reverse(path.begin(), path.end());
+
+        // 复制路径上的节点，保持原始ID
+        std::unordered_map<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>> nodeMap;
+        root = copyNode(path[0]);
+        nodeMap[path[0]] = root;
+
+        // 复制路径上的其他节点
+        std::shared_ptr<SLINode> lastNode = root;
+        for (size_t i = 1; i < path.size(); ++i)
+        {
+            auto newNode = copyNode(path[i]);
+            newNode->parent = lastNode;
+            lastNode->children.push_back(newNode);
+            nodeMap[path[i]] = newNode;
+            lastNode = newNode;
+        }
+
+        // 更新深度图和文字映射
+        depth_map.resize(other.depth_map.size());
+        for (const auto &[oldNode, newNode] : nodeMap)
+        {
+            depth_map[newNode->depth].push_back(newNode);
+            literal_map[newNode->literal.hash()] = newNode;
         }
     }
-    
-    return active_nodes;
-}
+
+    std::shared_ptr<SLINode> SLITree::copyNode(const std::shared_ptr<SLINode> &node)
+    {
+        // 复制时保持原始nodeId
+        auto new_node = std::make_shared<SLINode>(node->literal,
+                                                  node->is_A_literal,
+                                                  node->node_id); // 使用原始节点ID
+        new_node->depth = node->depth;
+        new_node->is_active = node->is_active;
+        new_node->substitution = node->substitution;
+        new_node->rule_applied = node->rule_applied;
+        return new_node;
+    }
 
 } // namespace LogicSystem

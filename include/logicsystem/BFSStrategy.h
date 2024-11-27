@@ -24,7 +24,7 @@ public:
 
     void addSLIPair(const SLIResolutionPair& pair) override {
         // 检查深度限制
-        if (max_depth != -1 && pair.tree_node->depth > max_depth) {
+        if (max_depth != -1 && pair.depth > max_depth) {  // 使用存储的深度而不是节点指针
             return;
         }
 
@@ -105,7 +105,10 @@ public:
         std::cout << "Queue size: " << sli_queue.size() << std::endl;
         std::cout << "Searched states: " << searched_states << std::endl;
         if (!sli_queue.empty()) {
-            std::cout << "Next pair score: " << sli_queue.front().score << std::endl;
+            const auto& front = sli_queue.front();
+            std::cout << "Next pair - Node ID: " << front.node_id 
+                     << ", Depth: " << front.depth
+                     << ", Score: " << front.score << std::endl;
         }
     }
 

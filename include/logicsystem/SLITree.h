@@ -16,9 +16,9 @@ namespace LogicSystem
     class SLITree
     {
     public:
-        SLITree(const KnowledgeBase &kb) : kb(kb), next_node_id(0)
-        { // 创建空的根节点
-            root = std::make_shared<SLINode>(Literal(), false, next_node_id++);
+        SLITree(const KnowledgeBase &kb) : kb(kb)
+        {
+            root = std::make_shared<SLINode>(Literal(), false, SLINode::next_node_id++);
             root->depth = 0;
             if (depth_map.empty())
             {
@@ -31,10 +31,11 @@ namespace LogicSystem
         {
             return root;
         }
-
+        // 添加拷贝构造函数声明
+        SLITree(const SLITree &other, std::shared_ptr<SLINode> startNode);
         // 核心操作
         std::vector<std::shared_ptr<SLINode>> add_node(const Clause &input_clause, const Literal &resolving_literal,
-                                                            bool is_A_literal, std::shared_ptr<SLINode> parent);
+                                                       bool is_A_literal, std::shared_ptr<SLINode> parent);
         bool is_ancestor(std::shared_ptr<SLINode> potential_ancestor,
                          std::shared_ptr<SLINode> potential_descendant);
         void truncate(std::shared_ptr<SLINode> node);
@@ -57,8 +58,24 @@ namespace LogicSystem
             return Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
         }
 
-        const std::vector<std::vector<std::shared_ptr<SLINode>>>& getDepthMap() const {return this->depth_map;};
-        std::unordered_map<size_t, std::shared_ptr<SLINode>> getLitMap() {return this->literal_map;};
+        // 添加通过ID查找节点的方法
+        std::shared_ptr<SLINode> findNodeById(int id) const
+        {
+            for (const auto &level : depth_map)
+            {
+                for (const auto &node : level)
+                {
+                    if (node && node->node_id == id)
+                    {
+                        return node;
+                    }
+                }
+            }
+            return nullptr;
+        }
+
+        const std::vector<std::vector<std::shared_ptr<SLINode>>> &getDepthMap() const { return this->depth_map; };
+        std::unordered_map<size_t, std::shared_ptr<SLINode>> getLitMap() { return this->literal_map; };
 
         void print_tree(const KnowledgeBase &kb) const;
 
@@ -68,7 +85,7 @@ namespace LogicSystem
         std::vector<std::vector<std::shared_ptr<SLINode>>> depth_map;
         std::stack<std::unique_ptr<Operation>> operation_stack;
         std::shared_ptr<SLINode> root;
-        int next_node_id;
+        // 删除静态 next_node_id，因为现在在 SLINode 中维护
 
         void print_node(std::shared_ptr<SLINode> node, const KnowledgeBase &kb,
                         std::string prefix, bool is_last) const;
@@ -80,6 +97,14 @@ namespace LogicSystem
         {
             return is_last ? "\\-" : "|-";
         }
+
+        // 添加用于拷贝的辅助函数
+        std::shared_ptr<SLINode> copySubtree(std::shared_ptr<SLINode> node,
+                                             std::shared_ptr<SLINode> parent,
+                                             std::unordered_map<std::shared_ptr<SLINode>,
+                                                                std::shared_ptr<SLINode>> &nodeMap);
+        // 用于树复制的辅助函数
+        std::shared_ptr<SLINode> copyNode(const std::shared_ptr<SLINode> &node);
 
         // 将 join 函数作为私有成员函数
         std::string join(const std::vector<std::string> &elements,
@@ -95,7 +120,6 @@ namespace LogicSystem
             return result;
         }
     };
-
 }
 
 #endif // LOGIC_SYSTEM_SLI_TREE_H

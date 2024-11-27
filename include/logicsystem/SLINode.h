@@ -9,6 +9,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <atomic>
 
 namespace LogicSystem
 {
@@ -16,6 +17,8 @@ namespace LogicSystem
     class SLINode
     {
     public:
+
+        static std::atomic<int> next_node_id;  // 使用原子计数器确保唯一ID
         SLINode(const Literal &lit, bool isALiteral, int nodeId);
 
         Literal literal;
@@ -36,6 +39,7 @@ namespace LogicSystem
     private:
         static std::string join(const std::vector<std::string> &elements, const std::string &delimiter);
     };
+    
 }
 
 #endif // LOGIC_SYSTEM_SLI_NODE_H

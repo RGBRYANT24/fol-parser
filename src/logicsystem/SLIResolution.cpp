@@ -6,163 +6,178 @@ namespace LogicSystem
 {
 
     bool SLIResolution::prove(const KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
-{
-    // 创建初始树
-    std::unique_ptr<SLITree> currentTree = std::make_unique<SLITree>(kb);
-    auto initial_nodes = currentTree->add_node(goal, Literal(), false, currentTree->getRoot());
-
-    if (initial_nodes.empty())
     {
-        return false;
-    }
+        // 创建初始树
+        std::unique_ptr<SLITree> currentTree = std::make_unique<SLITree>(kb);
+        auto initial_nodes = currentTree->add_node(goal, Literal(), false, currentTree->getRoot());
 
-    // 队列中存储<消解对, 树状态>对
-    struct SearchState
-    {
-        SLIResolutionPair pair;
-        std::unique_ptr<SLITree> tree;
-        SearchState(const SLIResolutionPair &p, std::unique_ptr<SLITree> t)
-            : pair(p), tree(std::move(t)) {}
-    };
-    std::queue<SearchState> stateQueue;
-
-    // 初始化第一批消解对
-    for (const auto &node : initial_nodes)
-    {
-        for (const auto &kb_clause : kb.getClauses())
+        if (initial_nodes.empty())
         {
-            for (const auto &lit : kb_clause.getLiterals())
+            return false;
+        }
+
+        // 队列中存储<消解对, 树状态>对
+        struct SearchState
+        {
+            SLIResolutionPair pair;
+            std::unique_ptr<SLITree> tree;
+            SearchState(const SLIResolutionPair &p, std::unique_ptr<SLITree> t)
+                : pair(p), tree(std::move(t)) {}
+        };
+        std::queue<SearchState> stateQueue;
+
+        // 初始化第一批消解对
+        for (const auto &node : initial_nodes)
+        {
+            for (const auto &kb_clause : kb.getClauses())
             {
-                if (Resolution::isComplementary(node->literal, lit))
+                for (const auto &lit : kb_clause.getLiterals())
                 {
-                    double score = calculateHeuristic(kb_clause, node, lit);
-                    if (strategy.shouldTryResolution(score))
+                    if (Resolution::isComplementary(node->literal, lit))
                     {
-                        auto newTree = std::make_unique<SLITree>(*currentTree, node);
-                        stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
-                                           std::move(newTree));
+                        double score = calculateHeuristic(kb_clause, node, lit);
+                        if (strategy.shouldTryResolution(score))
+                        {
+                            auto newTree = std::make_unique<SLITree>(*currentTree, node);
+                            stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
+                                               std::move(newTree));
+                        }
                     }
                 }
             }
         }
-    }
 
-    int count = 0;
-    while (!stateQueue.empty())
-    {
-        count++;
-        std::cout << "round " << count << std::endl;
-        if (count >= 10)
-            return false;
-
-        // 获取下一个状态
-        auto current_state = std::move(stateQueue.front());
-        stateQueue.pop();
-
-        // 在新树中找到对应的节点
-        auto corresponding_node = current_state.tree->findNodeById(current_state.pair.node_id);
-        if (!corresponding_node) {
-            std::cout << "Cannot find corresponding node, skipping..." << std::endl;
-            continue;
-        }
-
-        std::cout << "Parent Node before add" << std::endl;
-        corresponding_node->print(kb);
-
-        // 在当前树状态上执行消解
-        auto resolvent_nodes = current_state.tree->add_node(
-            current_state.pair.kb_clause,
-            current_state.pair.resolving_literal,
-            true,
-            corresponding_node);
-
-        std::cout << "Parent Node after add" << std::endl;
-        corresponding_node->print(kb);
-
-        std::cout << "Tree After add nodes " << std::endl;
-        current_state.tree->print_tree(kb);
-
-        // 检查add_node后是否需要truncate
-        std::cout << "resolvent_nodes.size " << resolvent_nodes.size() 
-                 << " corresponding_node->children.empty " 
-                 << corresponding_node->children.empty() << std::endl;
-        if (resolvent_nodes.empty() || corresponding_node->children.empty())
+        int count = 0;
+        while (!stateQueue.empty())
         {
-            checkAndTruncateNode(corresponding_node, *current_state.tree);
-        }
+            count++;
+            std::cout << "round " << count << std::endl;
+            if (count >= 5000)
+                return false;
 
-        std::cout << "Tree After add nodes and truncate " << std::endl;
-        current_state.tree->print_tree(kb);
+            // 获取下一个状态
+            auto current_state = std::move(stateQueue.front());
+            stateQueue.pop();
 
-        // 应用归约规则
-        auto factoring_pairs = findPotentialFactoringPairs(resolvent_nodes,
-                                                           current_state.tree->getDepthMap(),
-                                                           kb);
-        for (const auto &[upper_node, lower_node] : factoring_pairs)
-        {
-            if (current_state.tree->t_factoring(upper_node, lower_node))
+            // 在新树中找到对应的节点
+            auto corresponding_node = current_state.tree->findNodeById(current_state.pair.node_id);
+            if (!corresponding_node)
             {
-                std::cout << "Applied t-factoring successfully between nodes:\n";
-                std::cout << "Upper node: " << upper_node->literal.toString(kb) << "\n";
-                std::cout << "Lower node: " << lower_node->literal.toString(kb) << "\n";
-
-                if (auto parent = lower_node->parent.lock())
-                {
-                    checkAndTruncateNode(parent, *current_state.tree);
-                }
+                std::cout << "Cannot find corresponding node, skipping..." << std::endl;
+                continue;
             }
-        }
 
-        auto ancestry_pairs = findPotentialAncestryPairs(resolvent_nodes, kb);
-        for (const auto &[ancestor, descendant] : ancestry_pairs)
-        {
-            if (current_state.tree->t_ancestry(ancestor, descendant))
+            std::cout << "Tree After before nodes " << std::endl;
+            current_state.tree->print_tree(kb);
+
+            std::cout << "Parent Node before add" << std::endl;
+            corresponding_node->print(kb);
+
+            // 在当前树状态上执行消解
+            auto resolvent_nodes = current_state.tree->add_node(
+                current_state.pair.kb_clause,
+                current_state.pair.resolving_literal,
+                true,
+                corresponding_node);
+
+            std::cout << "Parent Node after add" << std::endl;
+            corresponding_node->print(kb);
+
+            std::cout << "Tree After add nodes " << std::endl;
+            current_state.tree->print_tree(kb);
+
+            // 检查add_node后是否需要truncate
+            std::cout << "resolvent_nodes.size " << resolvent_nodes.size()
+                      << " corresponding_node->children.empty "
+                      << corresponding_node->children.empty() << std::endl;
+            if (resolvent_nodes.empty() || corresponding_node->children.empty())
             {
-                std::cout << "Applied t-ancestry successfully" << std::endl;
-
-                if (auto parent = descendant->parent.lock())
-                {
-                    checkAndTruncateNode(parent, *current_state.tree);
-                }
+                checkAndTruncateNode(corresponding_node, *current_state.tree);
             }
-        }
 
-        // 检查是否找到证明
-        if (checkEmptyClause(*current_state.tree))
-        {
-            return true;
-        }
+            std::cout << "Tree After add nodes and truncate " << std::endl;
+            current_state.tree->print_tree(kb);
 
-        // 为新节点生成新的状态
-        for (const auto &node : resolvent_nodes)
-        {
-            if (!node->is_A_literal)
+            // 应用归约规则
+            auto factoring_pairs = findPotentialFactoringPairs(resolvent_nodes,
+                                                               current_state.tree->getDepthMap(),
+                                                               kb);
+            for (const auto &[upper_node, lower_node] : factoring_pairs)
             {
-                for (const auto &kb_clause : kb.getClauses())
+                if (current_state.tree->t_factoring(upper_node, lower_node))
                 {
-                    for (const auto &lit : kb_clause.getLiterals())
+                    std::cout << "Applied t-factoring successfully between nodes:\n";
+                    std::cout << "Upper node: " << upper_node->literal.toString(kb) << "\n";
+                    std::cout << "Lower node: " << lower_node->literal.toString(kb) << "\n";
+
+                    if (auto parent = lower_node->parent.lock())
                     {
-                        if (Resolution::isComplementary(node->literal, lit))
+                        checkAndTruncateNode(parent, *current_state.tree);
+                    }
+                }
+            }
+
+            std::cout << "Tree After factoring and truncate " << std::endl;
+            current_state.tree->print_tree(kb);
+
+            auto ancestry_pairs = findPotentialAncestryPairs(resolvent_nodes, kb);
+            for (const auto &[ancestor, descendant] : ancestry_pairs)
+            {
+                if (current_state.tree->t_ancestry(ancestor, descendant))
+                {
+                    std::cout << "Applied t-ancestry successfully" << std::endl;
+
+                    if (auto parent = descendant->parent.lock())
+                    {
+                        checkAndTruncateNode(parent, *current_state.tree);
+                    }
+                }
+            }
+
+            std::cout << "Tree After ancestry and truncate " << std::endl;
+            current_state.tree->print_tree(kb);
+            // 检查是否找到证明
+            if (checkEmptyClause(*current_state.tree))
+            {
+                return true;
+            }
+            // 为新节点生成新的状态
+            for (const auto &node : resolvent_nodes)
+            {
+                if (!node->is_A_literal)
+                {
+                    for (const auto &kb_clause : kb.getClauses())
+                    {
+                        for (const auto &lit : kb_clause.getLiterals())
                         {
-                            std::cout << "Found Complementary Literal " << std::endl;
-                            std::cout << "Lit1 " << node->literal.toString(kb) 
-                                     << " Lit2 " << lit.toString(kb) << std::endl;
-                            double score = calculateHeuristic(kb_clause, node, lit);
-                            if (strategy.shouldTryResolution(score))
+                            if (Resolution::isComplementary(node->literal, lit))
                             {
-                                auto newTree = std::make_unique<SLITree>(*current_state.tree, node);
-                                stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
-                                                   std::move(newTree));
+                                std::cout << "Found Complementary Literal " << std::endl;
+                                std::cout << "Lit1 " << node->literal.toString(kb)
+                                          << " Lit2 " << lit.toString(kb) << std::endl;
+                                double score = calculateHeuristic(kb_clause, node, lit);
+                                if (strategy.shouldTryResolution(score))
+                                {
+                                    auto newTree = std::make_unique<SLITree>(*current_state.tree, node);
+                                    std::cout << "Old Tree after construction: " << std::endl;
+                                    current_state.tree->print_tree(kb);
+                                    std::cout << "New Tree after construction:" << std::endl;
+                                    newTree->print_tree(kb);
+                                    std::cout << "KB Clause: " << kb_clause.toString(kb) << std::endl;
+
+                                    stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
+                                                       std::move(newTree));
+                                    std::cout << "Successfully emplaced new resolution pair" << std::endl;
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
 
-    return false;
-}
+        return false;
+    }
 
     double SLIResolution::calculateHeuristic(const Clause &kb_clause,
                                              const std::shared_ptr<SLINode> &tree_node,

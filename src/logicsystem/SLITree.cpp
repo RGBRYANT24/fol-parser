@@ -78,29 +78,46 @@ namespace LogicSystem
 
             try
             {
-                // 对父节点应用替换
-                substituted_parent_lit = Unifier::applySubstitutionToLiteral(parent->literal, *mgu, kb);
+                // 从root开始，对整棵树应用MGU替换
+                std::function<void(std::shared_ptr<SLINode>)> applyMGUToTree;
+                applyMGUToTree = [this, &mgu, &applyMGUToTree](std::shared_ptr<SLINode> node)
+                {
+                    if (node != this->root)
+                    { // 跳过root节点，因为它不包含实际的文字
+                        // 保存旧的hash用于更新literal_map
+                        size_t old_hash = node->literal.hash();
 
-                // 更新父节点的字面量
-                parent->literal = substituted_parent_lit;
-                // 标记父节点为A-literal（因为它参与了消解）
+                        // 应用替换
+                        node->literal = Unifier::applySubstitutionToLiteral(
+                            node->literal, *mgu, this->kb);
+
+                        // 更新literal_map
+                        if (old_hash != node->literal.hash())
+                        {
+                            literal_map.erase(old_hash);
+                            literal_map[node->literal.hash()] = node;
+                        }
+                    }
+
+                    // 递归处理所有子节点
+                    for (auto &child : node->children)
+                    {
+                        applyMGUToTree(child);
+                    }
+                };
+
+                // 从root开始应用MGU
+                applyMGUToTree(root);
+
+                // 标记参与消解的节点为A-literal
                 parent->is_A_literal = true;
 
-                std::cout << "Parent literal after MGU: " << substituted_parent_lit.toString(this->kb) << std::endl;
-                std::cout << "Parent Node after add " << std::endl;
-                parent->print(kb);
-
-                // 对父节点的所有祖先节点也应用相同的替换
-                /*auto current = parent;
-                while (current->parent && current->parent != root)
-                {
-                    current->parent->literal = Unifier::applySubstitutionToLiteral(current->parent->literal, *mgu, kb);
-                    current = current->parent;
-                }*/
+                std::cout << "Tree after MGU application:" << std::endl;
+                print_tree(kb);
             }
             catch (const std::exception &e)
             {
-                std::cout << "Error applying substitution to parent: " << e.what() << std::endl;
+                std::cout << "Error applying substitution: " << e.what() << std::endl;
                 return {};
             }
         }
@@ -564,48 +581,76 @@ namespace LogicSystem
         return active_nodes;
     }
 
+    // 在SLITree.cpp中
     SLITree::SLITree(const SLITree &other, std::shared_ptr<SLINode> startNode)
         : kb(other.kb)
     {
-        // 构建从根到目标节点的路径
-        std::vector<std::shared_ptr<SLINode>> path;
-        auto current = startNode;
-        while (current)
-        {
-            path.push_back(current);
-            if (auto parent = current->parent.lock())
-            {
-                current = parent;
-            }
-            else
-            {
-                break;
-            }
-        }
-        std::reverse(path.begin(), path.end());
-
-        // 复制路径上的节点，保持原始ID
+        // 创建节点映射表，用于维护新旧节点的对应关系
         std::unordered_map<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>> nodeMap;
-        root = copyNode(path[0]);
-        nodeMap[path[0]] = root;
 
-        // 复制路径上的其他节点
-        std::shared_ptr<SLINode> lastNode = root;
-        for (size_t i = 1; i < path.size(); ++i)
+        // 复制根节点
+        root = std::make_shared<SLINode>(other.root->literal,
+                                         other.root->is_active,
+                                         other.root->node_id);
+        root->depth = 0;
+        root->is_active = other.root->is_active;
+        nodeMap[other.root] = root;
+
+        // 从根节点开始，按层复制整棵树
+        for (size_t depth = 0; depth < other.depth_map.size(); ++depth)
         {
-            auto newNode = copyNode(path[i]);
-            newNode->parent = lastNode;
-            lastNode->children.push_back(newNode);
-            nodeMap[path[i]] = newNode;
-            lastNode = newNode;
+            for (const auto &oldNode : other.depth_map[depth])
+            {
+                if (oldNode == other.root)
+                    continue; // 根节点已经复制过了
+
+                // 创建新节点
+                auto newNode = std::make_shared<SLINode>(oldNode->literal,
+                                                         oldNode->is_A_literal,
+                                                         oldNode->node_id);
+                newNode->depth = oldNode->depth;
+                newNode->is_active = oldNode->is_active;
+                newNode->substitution = oldNode->substitution;
+                newNode->rule_applied = oldNode->rule_applied;
+
+                // 找到并设置父节点
+                if (auto oldParent = oldNode->parent.lock())
+                {
+                    auto it = nodeMap.find(oldParent);
+                    if (it != nodeMap.end())
+                    {
+                        newNode->parent = it->second;
+                        it->second->children.push_back(newNode);
+                    }
+                }
+
+                // 将新节点加入映射表
+                nodeMap[oldNode] = newNode;
+            }
         }
 
-        // 更新深度图和文字映射
-        depth_map.resize(other.depth_map.size());
-        for (const auto &[oldNode, newNode] : nodeMap)
+        // 复制深度图和文字映射
+        depth_map = other.depth_map;
+        for (auto &level : depth_map)
         {
-            depth_map[newNode->depth].push_back(newNode);
-            literal_map[newNode->literal.hash()] = newNode;
+            for (auto &node : level)
+            {
+                auto it = nodeMap.find(node);
+                if (it != nodeMap.end())
+                {
+                    node = it->second;
+                }
+            }
+        }
+
+        // 复制文字映射
+        for (const auto &[hash, oldNode] : other.literal_map)
+        {
+            auto it = nodeMap.find(oldNode);
+            if (it != nodeMap.end())
+            {
+                literal_map[hash] = it->second;
+            }
         }
     }
 

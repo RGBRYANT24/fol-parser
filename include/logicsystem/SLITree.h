@@ -49,6 +49,12 @@ namespace LogicSystem
         bool t_factoring(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node);
         bool t_ancestry(std::shared_ptr<SLINode> node1, std::shared_ptr<SLINode> node2);
 
+        // 计算树状态的哈希值
+        size_t computeStateHash() const;
+
+        // 比较两个树状态是否等价
+        bool isEquivalentTo(const SLITree &other) const;
+
         // 返回统一后的新文字，如果无法统一则返回nullopt
         std::optional<Literal> try_unify(const Literal &lit1, const Literal &lit2)
         {
@@ -77,6 +83,8 @@ namespace LogicSystem
         const std::vector<std::vector<std::shared_ptr<SLINode>>> &getDepthMap() const { return this->depth_map; };
         std::unordered_map<size_t, std::shared_ptr<SLINode>> getLitMap() { return this->literal_map; };
 
+        bool hasSelfLoop() const { return has_self_loop; }
+
         void print_tree(const KnowledgeBase &kb) const;
 
     private:
@@ -85,7 +93,15 @@ namespace LogicSystem
         std::vector<std::vector<std::shared_ptr<SLINode>>> depth_map;
         std::stack<std::unique_ptr<Operation>> operation_stack;
         std::shared_ptr<SLINode> root;
+        bool has_self_loop = false; // 判定是否产生E(x,x)这样的自环
         // 删除静态 next_node_id，因为现在在 SLINode 中维护
+
+        // 用于计算单个节点状态的哈希值
+        size_t computeNodeHash(const std::shared_ptr<SLINode> &node) const;
+
+        // 检查两个节点是否等价
+        bool areNodesEquivalent(const std::shared_ptr<SLINode> &node1,
+                                const std::shared_ptr<SLINode> &node2) const;
 
         void print_node(std::shared_ptr<SLINode> node, const KnowledgeBase &kb,
                         std::string prefix, bool is_last) const;
@@ -118,6 +134,21 @@ namespace LogicSystem
                 result += elements[i];
             }
             return result;
+        }
+
+        bool isValidLiteral(const Literal &lit) const
+        {
+            // 检查是否为边关系谓词
+            if (lit.getPredicateId() == kb.getPredicateId("E"))
+            {
+                const auto &args = lit.getArgumentIds();
+                // 检查是否有两个参数且参数相同（自环）
+                if (args.size() == 2 && args[0] == args[1])
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     };
 }

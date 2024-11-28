@@ -142,6 +142,15 @@ namespace LogicSystem
                     Literal substituted_lit = (parent == this->root)
                                                   ? lit
                                                   : Unifier::applySubstitutionToLiteral(lit, *mgu, kb);
+                    if (substituted_lit.getPredicateId() == kb.getPredicateId("E"))
+                    {
+                        const auto &args = substituted_lit.getArgumentIds();
+                        if (args.size() == 2 && args[0] == args[1])
+                        {
+                            has_self_loop = true; // 设置标志
+                            return {};
+                        }
+                    }
 
                     if (substituted_lit.isEmpty())
                     {
@@ -665,6 +674,113 @@ namespace LogicSystem
         new_node->substitution = node->substitution;
         new_node->rule_applied = node->rule_applied;
         return new_node;
+    }
+
+    // 在SLITree.cpp中实现
+    size_t SLITree::computeNodeHash(const std::shared_ptr<SLINode> &node) const
+    {
+        if (!node)
+            return 0;
+
+        size_t hash = 0;
+
+        // 合并文字的哈希值
+        hash ^= node->literal.hash();
+
+        // 合并节点属性的哈希值
+        hash ^= std::hash<bool>{}(node->is_A_literal);
+        hash ^= std::hash<bool>{}(node->is_active);
+        hash ^= std::hash<int>{}(node->depth);
+
+        // 合并替换的哈希值
+        for (const auto &[var, term] : node->substitution)
+        {
+            hash ^= std::hash<SymbolId>{}(var);
+            hash ^= std::hash<SymbolId>{}(term);
+        }
+
+        return hash;
+    }
+
+    size_t SLITree::computeStateHash() const
+    {
+        size_t hash = 0;
+
+        // 按层遍历所有活跃节点
+        for (const auto &level : depth_map)
+        {
+            for (const auto &node : level)
+            {
+                if (node && node->is_active)
+                {
+                    hash ^= computeNodeHash(node);
+                    // 考虑节点间的关系
+                    if (auto parent = node->parent.lock())
+                    {
+                        hash ^= std::hash<int>{}(parent->node_id);
+                    }
+                }
+            }
+        }
+
+        return hash;
+    }
+
+    bool SLITree::areNodesEquivalent(const std::shared_ptr<SLINode> &node1,
+                                     const std::shared_ptr<SLINode> &node2) const
+    {
+        if (!node1 || !node2)
+            return node1 == node2;
+
+        // 检查基本属性
+        if (node1->literal != node2->literal ||
+            node1->is_A_literal != node2->is_A_literal ||
+            node1->is_active != node2->is_active ||
+            node1->depth != node2->depth ||
+            node1->substitution != node2->substitution)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool SLITree::isEquivalentTo(const SLITree &other) const
+    {
+        if (depth_map.size() != other.depth_map.size())
+            return false;
+
+        // 按层比较活跃节点
+        for (size_t i = 0; i < depth_map.size(); ++i)
+        {
+            std::vector<std::shared_ptr<SLINode>> active1, active2;
+
+            // 收集当前层的活跃节点
+            for (const auto &node : depth_map[i])
+            {
+                if (node && node->is_active)
+                    active1.push_back(node);
+            }
+            for (const auto &node : other.depth_map[i])
+            {
+                if (node && node->is_active)
+                    active2.push_back(node);
+            }
+
+            if (active1.size() != active2.size())
+                return false;
+
+            // 比较节点属性和结构
+            for (size_t j = 0; j < active1.size(); ++j)
+            {
+                if (!areNodesEquivalent(active1[j], active2[j]))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
 } // namespace LogicSystem

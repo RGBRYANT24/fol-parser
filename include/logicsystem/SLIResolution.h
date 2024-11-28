@@ -31,6 +31,9 @@ namespace LogicSystem
                                          const std::shared_ptr<SLINode> &tree_node,
                                          const Literal &resolving_literal);
         static void checkAndTruncateNode(const std::shared_ptr<SLINode> &node, SLITree &tree);
+        
+        // 用于存储已访问状态的哈希值
+        static std::unordered_set<size_t> visited_states;
     };
 }
 

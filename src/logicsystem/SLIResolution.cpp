@@ -7,8 +7,14 @@ namespace LogicSystem
 
     bool SLIResolution::prove(const KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
     {
+        // 添加visited集合
+        std::unordered_set<size_t> visited_states;
         // 创建初始树
         std::unique_ptr<SLITree> currentTree = std::make_unique<SLITree>(kb);
+
+        // 记录初始状态
+        visited_states.insert(currentTree->computeStateHash());
+
         auto initial_nodes = currentTree->add_node(goal, Literal(), false, currentTree->getRoot());
 
         if (initial_nodes.empty())
@@ -39,8 +45,22 @@ namespace LogicSystem
                         if (strategy.shouldTryResolution(score))
                         {
                             auto newTree = std::make_unique<SLITree>(*currentTree, node);
+
+                            // 计算新状态的哈希值并检查是否访问过
+                            size_t new_state_hash = newTree->computeStateHash();
+                            if (visited_states.find(new_state_hash) != visited_states.end())
+                            {
+                                std::cout << "Initial state already visited, skipping..." << std::endl;
+                                continue;
+                            }
+
+                            // 记录新状态
+                            visited_states.insert(new_state_hash);
+
                             stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
                                                std::move(newTree));
+
+                            std::cout << "Successfully emplaced initial resolution pair" << std::endl;
                         }
                     }
                 }
@@ -58,6 +78,18 @@ namespace LogicSystem
             // 获取下一个状态
             auto current_state = std::move(stateQueue.front());
             stateQueue.pop();
+
+            // // 计算当前状态的哈希值
+            // size_t current_hash = current_state.tree->computeStateHash();
+
+            // // 检查是否已访问过该状态
+            // if (visited_states.find(current_hash) != visited_states.end())
+            // {
+            //     continue;
+            // }
+
+            // // 记录当前状态
+            // visited_states.insert(current_hash);
 
             // 在新树中找到对应的节点
             auto corresponding_node = current_state.tree->findNodeById(current_state.pair.node_id);
@@ -79,6 +111,24 @@ namespace LogicSystem
                 current_state.pair.resolving_literal,
                 true,
                 corresponding_node);
+
+            // 使用hasSelfLoop()来判断
+            if (current_state.tree->hasSelfLoop())
+            {
+                std::cout << "Skipping state due to self-loop detection" << std::endl;
+                continue;
+            }
+
+            // 在此处检查状态是否已访问过
+            size_t current_state_hash = current_state.tree->computeStateHash();
+            if (visited_states.find(current_state_hash) != visited_states.end())
+            {
+                std::cout << "State already visited, skipping..." << std::endl;
+                continue;
+            }
+
+            // 记录新状态
+            visited_states.insert(current_state_hash);
 
             std::cout << "Parent Node after add" << std::endl;
             corresponding_node->print(kb);
@@ -159,6 +209,18 @@ namespace LogicSystem
                                 if (strategy.shouldTryResolution(score))
                                 {
                                     auto newTree = std::make_unique<SLITree>(*current_state.tree, node);
+
+                                    /*// 计算新状态的哈希值并检查是否访问过
+                                    size_t new_state_hash = newTree->computeStateHash();
+                                    if (visited_states.find(new_state_hash) != visited_states.end())
+                                    {
+                                        std::cout << "State already visited, skipping..." << std::endl;
+                                        continue;
+                                    }
+
+                                    // 记录新状态
+                                    visited_states.insert(new_state_hash);*/
+
                                     std::cout << "Old Tree after construction: " << std::endl;
                                     current_state.tree->print_tree(kb);
                                     std::cout << "New Tree after construction:" << std::endl;

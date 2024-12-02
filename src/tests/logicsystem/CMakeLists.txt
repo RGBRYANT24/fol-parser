@@ -9,6 +9,7 @@ add_executable(logicsystem_tests
     UnifierTest.cpp
     SLIResolutionTest.cpp
     ColoringSLIResolutionTest
+    MGURenameTest.cpp
     # KnowledgeBaseBuilderTest.cpp
 )
 # 对于测试可执行文件

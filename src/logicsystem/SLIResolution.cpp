@@ -5,7 +5,7 @@
 namespace LogicSystem
 {
 
-    bool SLIResolution::prove(const KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
+    bool SLIResolution::prove(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
     {
         // 添加visited集合
         std::unordered_set<size_t> visited_states;
@@ -72,7 +72,7 @@ namespace LogicSystem
         {
             count++;
             std::cout << "round " << count << std::endl;
-            if (count >= 5000)
+            if (count >= 5)
                 return false;
 
             // 获取下一个状态
@@ -300,7 +300,7 @@ namespace LogicSystem
     SLIResolution::findPotentialFactoringPairs(
         const std::vector<std::shared_ptr<SLINode>> &new_nodes,
         const std::vector<std::vector<std::shared_ptr<SLINode>>> &depth_map,
-        const KnowledgeBase &kb)
+        KnowledgeBase &kb)
     {
         std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>> factoring_pairs;
 
@@ -358,7 +358,7 @@ namespace LogicSystem
     }
 
     std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
-    SLIResolution::findPotentialAncestryPairs(const std::vector<std::shared_ptr<SLINode>> &new_nodes, const KnowledgeBase &kb)
+    SLIResolution::findPotentialAncestryPairs(const std::vector<std::shared_ptr<SLINode>> &new_nodes, KnowledgeBase &kb)
     {
         std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>> pairs;
         std::cout << "Searching for potential ancestry pairs..." << std::endl;

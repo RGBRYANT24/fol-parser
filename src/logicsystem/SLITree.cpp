@@ -342,6 +342,7 @@ namespace LogicSystem
         try
         {
             std::cout << "try t-factoring " << std::endl;
+            std::cout << "Factoring uppper lit1 " << upper_node->literal.toString(kb) << "Factoring lower lit2 " << lower_node->literal.toString(kb) << std::endl;
             // 对upper_node应用替换
             Literal substituted_lit = Unifier::applySubstitutionToLiteral(upper_node->literal, *mgu, kb);
 

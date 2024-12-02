@@ -72,7 +72,7 @@ namespace LogicSystem
         {
             count++;
             std::cout << "round " << count << std::endl;
-            if (count >= 5)
+            if (count >= 70)
                 return false;
 
             // 获取下一个状态

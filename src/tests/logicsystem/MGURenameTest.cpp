@@ -65,14 +65,35 @@ namespace LogicSystem
             // 统一化成功
             Unifier::printSubstitution(*mgu, kb);
             std::cout << "After Unify " << std::endl;
-            std::cout << Unifier::applySubstitutionToLiteral(lit1, *mgu, kb).toString(kb) << std::endl;
-            std::cout << Unifier::applySubstitutionToLiteral(lit2, *mgu, kb).toString(kb) << std::endl;
+            lit1 =  Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
+            lit2 = Unifier::applySubstitutionToLiteral(lit2, *mgu, kb);
+            std::cout << lit1.toString(kb) << std::endl;
+            std::cout << lit2.toString(kb) << std::endl;
         }
         else
         {
             // 统一化失败
             std::cout << "Unification failed" << std::endl;
         }
+        
+        //二次配对进行MGU搜索，检测会不会因为变量重命名导致变量不断变长
+        mgu = Unifier::findMGU(lit1, lit2, kb);
+        if (mgu)
+        {
+            // 统一化成功
+            Unifier::printSubstitution(*mgu, kb);
+            std::cout << "After Unify " << std::endl;
+            lit1 =  Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
+            lit2 = Unifier::applySubstitutionToLiteral(lit2, *mgu, kb);
+            std::cout << lit1.toString(kb) << std::endl;
+            std::cout << lit2.toString(kb) << std::endl;
+        }
+        else
+        {
+            // 统一化失败
+            std::cout << "Unification failed" << std::endl;
+        }
+
     }
 
     // 可以添加更多测试用例，比如K4的三染色问题等

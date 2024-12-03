@@ -250,9 +250,11 @@ namespace LogicSystem
         std::shared_ptr<SLINode> current = node;
         while (current && current->is_active)
         {
-            // Case 1: Node is a leaf and is an A-literal
-            if (current->children.empty() && current->is_A_literal)
+            // Case 1: Node is a leaf and dont need it is an A-literal
+            // if (current->children.empty() && current->is_A_literal)
+            if (current->children.empty())
             {
+                std::cout << "truncate node " << current->literal.toString(kb) << std::endl;
                 dynamic_cast<TruncateOperation *>(op.get())->save_state(current);
                 current->is_active = false;
                 current->rule_applied = "t-truncate";

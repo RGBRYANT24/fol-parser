@@ -1,17 +1,36 @@
 #include "Unifier.h"
 #include <iostream>
+#include <set>
 
 namespace LogicSystem
 {
+    // 在cpp文件中定义静态成员
+    int Unifier::globalRenamingCounter = 0;
     std::optional<Unifier::Substitution> Unifier::findMGU(const Literal &lit1, const Literal &lit2, KnowledgeBase &kb)
     {
         if (lit1.getPredicateId() != lit2.getPredicateId())
             return std::nullopt;
 
-        // 保存原始变量到重命名变量的映射
+        // 创建变量重命名映射
         std::unordered_map<SymbolId, SymbolId> renamingMap1, renamingMap2;
 
-        // 对两个文字进行变量标准化，使用不同的后缀
+        // 查找已存在的变量名，避免冲突
+        std::set<std::string> existingVarNames;
+        for (const auto &arg : lit1.getArgumentIds())
+        {
+            if (kb.isVariable(arg))
+            {
+                existingVarNames.insert(kb.getSymbolName(arg));
+            }
+        }
+        for (const auto &arg : lit2.getArgumentIds())
+        {
+            if (kb.isVariable(arg))
+            {
+                existingVarNames.insert(kb.getSymbolName(arg));
+            }
+        }
+
         Literal standardizedLit1 = standardizeVariables(lit1, kb, 1, renamingMap1);
         Literal standardizedLit2 = standardizeVariables(lit2, kb, 2, renamingMap2);
 
@@ -19,15 +38,15 @@ namespace LogicSystem
         if (!unify(standardizedLit1.getArgumentIds(), standardizedLit2.getArgumentIds(), subst, kb))
             return std::nullopt;
 
-        // 转换substitution，将重命名的变量映射回原始变量
+        // 构建最终替换
         Substitution finalSubst;
         for (const auto &[var, term] : subst)
         {
-            // 查找var对应的原始变量
-            SymbolId originalVar;
+            // 查找原始变量
+            SymbolId originalVar = var;
             bool found = false;
 
-            // 检查renamingMap1
+            // 在renamingMap1中查找
             for (const auto &[orig, renamed] : renamingMap1)
             {
                 if (renamed == var)
@@ -38,7 +57,7 @@ namespace LogicSystem
                 }
             }
 
-            // 检查renamingMap2
+            // 在renamingMap2中查找
             if (!found)
             {
                 for (const auto &[orig, renamed] : renamingMap2)
@@ -52,15 +71,10 @@ namespace LogicSystem
                 }
             }
 
-            // 如果找到原始变量，添加到最终替换中
-            if (found)
+            // 添加到最终替换中，避免自反替换
+            if (originalVar != term)
             {
                 finalSubst[originalVar] = term;
-            }
-            else
-            {
-                // 如果不是重命名的变量，直接添加
-                finalSubst[var] = term;
             }
         }
 
@@ -96,20 +110,27 @@ namespace LogicSystem
         }
 
         std::string originalName = kb.getSymbolName(varId);
-        std::string newName = originalName + "_" + std::to_string(suffix);
+        std::string baseName = normalizeVariableName(originalName);
 
-        // 检查变量是否已存在
-        auto existingId = kb.getVariableId(newName);
-        if (existingId)
+        // 使用全局计数器生成唯一的变量名
+        std::string newName;
+        SymbolId newVarId;
+        bool nameExists;
+
+        do
         {
-            SymbolId newVarId = {SymbolType::VARIABLE, *existingId};
-            renamingMap[varId] = newVarId;
-            return newVarId;
-        }
+            globalRenamingCounter++;
+            newName = baseName + "_" + std::to_string(globalRenamingCounter);
+            auto existingId = kb.getVariableId(newName);
+            nameExists = existingId.has_value();
 
-        // 插入新变量
-        int newId = kb.insertVariable(newName);
-        SymbolId newVarId = {SymbolType::VARIABLE, newId};
+            if (!nameExists)
+            {
+                int newId = kb.insertVariable(newName);
+                newVarId = {SymbolType::VARIABLE, newId};
+            }
+        } while (nameExists);
+
         renamingMap[varId] = newVarId;
         return newVarId;
     }

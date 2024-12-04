@@ -705,6 +705,27 @@ namespace LogicSystem
         return hash;
     }
 
+    std::vector<std::shared_ptr<SLINode>> SLITree::get_all_active_nodes() const
+    {
+        std::vector<std::shared_ptr<SLINode>> active_nodes;
+
+        // 遍历所有深度层级
+        for (const auto &level : depth_map)
+        {
+            // 遍历当前深度的所有节点
+            for (const auto &node : level)
+            {
+                // 如果节点存在且是active的，加入结果列表
+                if (node && node->is_active)
+                {
+                    active_nodes.push_back(node);
+                }
+            }
+        }
+
+        return active_nodes;
+    }
+
     size_t SLITree::computeStateHash() const
     {
         size_t hash = 0;

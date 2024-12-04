@@ -83,6 +83,9 @@ namespace LogicSystem
         const std::vector<std::vector<std::shared_ptr<SLINode>>> &getDepthMap() const { return this->depth_map; };
         std::unordered_map<size_t, std::shared_ptr<SLINode>> getLitMap() { return this->literal_map; };
 
+        // 获取所有活动节点
+        std::vector<std::shared_ptr<SLINode>> get_all_active_nodes() const;
+
         bool hasSelfLoop() const { return has_self_loop; }
 
         void print_tree(const KnowledgeBase &kb) const;

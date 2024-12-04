@@ -72,7 +72,7 @@ namespace LogicSystem
         {
             count++;
             std::cout << "round " << count << std::endl;
-            if (count >= 1500)
+            if (count >= 10000)
                 return false;
 
             // 获取下一个状态
@@ -99,11 +99,11 @@ namespace LogicSystem
                 continue;
             }
 
-            std::cout << "Tree before nodes " << std::endl;
-            current_state.tree->print_tree(kb);
+            // std::cout << "Tree before add nodes " << std::endl;
+            // current_state.tree->print_tree(kb);
 
-            std::cout << "Parent Node before add" << std::endl;
-            corresponding_node->print(kb);
+            // std::cout << "Parent Node before add" << std::endl;
+            // corresponding_node->print(kb);
 
             // 在当前树状态上执行消解
             auto resolvent_nodes = current_state.tree->add_node(
@@ -118,7 +118,6 @@ namespace LogicSystem
             //     std::cout << "Skipping state due to self-loop detection" << std::endl;
             //     continue;
             // }
-
             // 在此处检查状态是否已访问过
             size_t current_state_hash = current_state.tree->computeStateHash();
             if (visited_states.find(current_state_hash) != visited_states.end())
@@ -133,25 +132,26 @@ namespace LogicSystem
             // std::cout << "Parent Node after add" << std::endl;
             // corresponding_node->print(kb);
 
-            std::cout << "Tree After add nodes " << std::endl;
-            current_state.tree->print_tree(kb);
+            // std::cout << "Tree After add nodes " << std::endl;
+            // current_state.tree->print_tree(kb);
 
             // 检查add_node后是否需要truncate
-            std::cout << "resolvent_nodes.size " << resolvent_nodes.size()
-                      << " corresponding_node->children.empty "
-                      << corresponding_node->children.empty() << std::endl;
+            // std::cout << "resolvent_nodes.size " << resolvent_nodes.size()
+            //           << " corresponding_node->children.empty "
+            //           << corresponding_node->children.empty() << std::endl;
+            
             if (resolvent_nodes.empty() || corresponding_node->children.empty())
             {
                 checkAndTruncateNode(corresponding_node, *current_state.tree);
             }
-
-            std::cout << "Tree After add nodes and truncate " << std::endl;
-            current_state.tree->print_tree(kb);
-            std::cout << "New Resolvent Nodes with size: " << resolvent_nodes.size() << std::endl;
-            for (const auto &node : resolvent_nodes)
-            {
-                std::cout << node->literal.toString(kb) << std::endl;
-            }
+            
+            // std::cout << "Tree After add nodes and truncate " << std::endl;
+            // current_state.tree->print_tree(kb);
+            // std::cout << "New Resolvent Nodes with size: " << resolvent_nodes.size() << std::endl;
+            // for (const auto &node : resolvent_nodes)
+            // {
+            //     std::cout << node->literal.toString(kb) << std::endl;
+            // }
 
             // 应用归约规则
             auto factoring_pairs = findPotentialFactoringPairs(resolvent_nodes,
@@ -161,9 +161,9 @@ namespace LogicSystem
             {
                 if (current_state.tree->t_factoring(upper_node, lower_node))
                 {
-                    std::cout << "Applied t-factoring successfully between nodes:\n";
-                    std::cout << "Upper node: " << upper_node->literal.toString(kb) << "\n";
-                    std::cout << "Lower node: " << lower_node->literal.toString(kb) << "\n";
+                    // std::cout << "Applied t-factoring successfully between nodes:\n";
+                    // std::cout << "Upper node: " << upper_node->literal.toString(kb) << "\n";
+                    // std::cout << "Lower node: " << lower_node->literal.toString(kb) << "\n";
 
                     if (auto parent = lower_node->parent.lock())
                     {
@@ -172,8 +172,8 @@ namespace LogicSystem
                 }
             }
 
-            std::cout << "Tree After factoring " << std::endl;
-            current_state.tree->print_tree(kb);
+            // std::cout << "Tree After factoring " << std::endl;
+            // current_state.tree->print_tree(kb);
 
             auto ancestry_pairs = findPotentialAncestryPairs(resolvent_nodes, kb);
             for (const auto &[ancestor, descendant] : ancestry_pairs)
@@ -235,11 +235,11 @@ namespace LogicSystem
                                     // current_state.tree->print_tree(kb);
                                     // std::cout << "New Tree after construction:" << std::endl;
                                     // newTree->print_tree(kb);
-                                    std::cout << "KB Clause: " << kb_clause.toString(kb) << " Active Node " << node->literal.toString(kb) << std::endl;
+                                    // std::cout << "KB Clause: " << kb_clause.toString(kb) << " Active Node " << node->literal.toString(kb) << std::endl;
 
                                     stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
                                                        std::move(newTree));
-                                    std::cout << "Successfully emplaced new resolution pair" << std::endl;
+                                    // std::cout << "Successfully emplaced new resolution pair" << std::endl;
                                 }
                             }
                         }
@@ -316,12 +316,12 @@ namespace LogicSystem
     {
         std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>> factoring_pairs;
 
-        std::cout << "Searching for potential factoring pairs... new_node.size(): " << new_nodes.size() << std::endl;
+        // std::cout << "Searching for potential factoring pairs... new_node.size(): " << new_nodes.size() << std::endl;
 
         for (const auto &new_node : new_nodes)
         {
-            std::cout << "Checking new node: " << new_node->literal.toString(kb)
-                      << " at depth " << new_node->depth << std::endl;
+            // std::cout << "Checking new node: " << new_node->literal.toString(kb)
+            //           << " at depth " << new_node->depth << std::endl;
 
             for (size_t d = 0; d <= new_node->depth; ++d)
             {
@@ -332,8 +332,8 @@ namespace LogicSystem
                     if (!existing_node->is_active)
                         continue;
 
-                    std::cout << "Comparing with existing node: " << existing_node->literal.toString(kb)
-                              << " at depth " << existing_node->depth << std::endl;
+                    // std::cout << "Comparing with existing node: " << existing_node->literal.toString(kb)
+                    //           << " at depth " << existing_node->depth << std::endl;
 
                     if (existing_node != new_node &&
                         std::find(new_nodes.begin(), new_nodes.end(), existing_node) == new_nodes.end() &&
@@ -341,20 +341,20 @@ namespace LogicSystem
                         existing_node->literal.isNegated() == new_node->literal.isNegated() &&
                         existing_node->literal.getArgumentIds().size() == new_node->literal.getArgumentIds().size())
                     {
-                        std::cout << "Found potential match, attempting MGU..." << std::endl;
+                        // std::cout << "Found potential match, attempting MGU..." << std::endl;
                         auto mgu = Unifier::findMGU(existing_node->literal, new_node->literal, kb);
                         if (mgu)
                         {
-                            std::cout << "MGU found! Adding to factoring pairs" << std::endl;
+                            // std::cout << "MGU found! Adding to factoring pairs" << std::endl;
                             factoring_pairs.emplace_back(existing_node, new_node);
 
                             // 打印MGU信息
-                            std::cout << "MGU details:" << std::endl;
-                            for (const auto &[var, term] : *mgu)
-                            {
-                                std::cout << "  " << kb.getSymbolName(var)
-                                          << " -> " << kb.getSymbolName(term) << std::endl;
-                            }
+                            // std::cout << "MGU details:" << std::endl;
+                            // for (const auto &[var, term] : *mgu)
+                            // {
+                            //     std::cout << "  " << kb.getSymbolName(var)
+                            //               << " -> " << kb.getSymbolName(term) << std::endl;
+                            // }
                         }
                         else
                         {
@@ -365,7 +365,7 @@ namespace LogicSystem
             }
         }
 
-        std::cout << "Found " << factoring_pairs.size() << " potential factoring pairs" << std::endl;
+        // std::cout << "Found " << factoring_pairs.size() << " potential factoring pairs" << std::endl;
         return factoring_pairs;
     }
 
@@ -373,7 +373,7 @@ namespace LogicSystem
     SLIResolution::findPotentialAncestryPairs(const std::vector<std::shared_ptr<SLINode>> &new_nodes, KnowledgeBase &kb)
     {
         std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>> pairs;
-        std::cout << "Searching for potential ancestry pairs..." << std::endl;
+        // std::cout << "Searching for potential ancestry pairs..." << std::endl;
         // 对于每个新节点
         for (const auto &new_node : new_nodes)
         {
@@ -397,7 +397,7 @@ namespace LogicSystem
                 current = current->parent.lock();
             }
         }
-        std::cout << "Found " << pairs.size() << " potential ancestry pairs" << std::endl;
+        // std::cout << "Found " << pairs.size() << " potential ancestry pairs" << std::endl;
         return pairs;
     }
 

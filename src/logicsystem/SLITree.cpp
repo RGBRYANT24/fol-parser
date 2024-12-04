@@ -57,24 +57,24 @@ namespace LogicSystem
         std::optional<Substitution> mgu;
         Literal substituted_parent_lit = parent->literal;
 
-        std::cout << "Processing clause: " << input_clause.toString(this->kb) << std::endl;
-        std::cout << "Resolving literal: " << resolving_literal.toString(this->kb) << std::endl;
-        std::cout << "Parent literal: " << parent->literal.toString(this->kb) << std::endl;
+        // std::cout << "Processing clause: " << input_clause.toString(this->kb) << std::endl;
+        // std::cout << "Resolving literal: " << resolving_literal.toString(this->kb) << std::endl;
+        // std::cout << "Parent literal: " << parent->literal.toString(this->kb) << std::endl;
 
         // MGU计算和应用
         if (parent != this->root && !resolving_literal.isEmpty())
         {
             mgu = Unifier::findMGU(resolving_literal, parent->literal, kb);
-            if (!mgu)
-            {
-                std::cout << "MGU unification failed" << std::endl;
-                return {};
-            }
-            else
-            {
-                std::cout << "print MGU " << std::endl;
-                Unifier::printSubstitution(mgu.value(), this->kb);
-            }
+            // if (!mgu)
+            // {
+            //     std::cout << "MGU unification failed" << std::endl;
+            //     return {};
+            // }
+            // else
+            // {
+            //     std::cout << "print MGU " << std::endl;
+            //     Unifier::printSubstitution(mgu.value(), this->kb);
+            // }
 
             try
             {
@@ -112,19 +112,19 @@ namespace LogicSystem
                 // 标记参与消解的节点为A-literal
                 parent->is_A_literal = true;
 
-                std::cout << "Tree after MGU application:" << std::endl;
-                print_tree(kb);
+                // std::cout << "Tree after MGU application:" << std::endl;
+                // print_tree(kb);
             }
             catch (const std::exception &e)
             {
-                std::cout << "Error applying substitution: " << e.what() << std::endl;
+                // std::cout << "Error applying substitution: " << e.what() << std::endl;
                 return {};
             }
         }
         else
         {
             mgu = Substitution();
-            std::cout << "Using empty substitution (root node or empty resolving literal)" << std::endl;
+            // std::cout << "Using empty substitution (root node or empty resolving literal)" << std::endl;
         }
 
         std::vector<std::shared_ptr<SLINode>> added_nodes;
@@ -134,31 +134,29 @@ namespace LogicSystem
         {
             if (lit != resolving_literal)
             {
-                std::cout << "Processing literal for addition: " << lit.toString(this->kb) << std::endl;
-
+                // std::cout << "Processing literal for addition: " << lit.toString(this->kb) << std::endl;
                 try
                 {
                     // 应用替换到新的文字
                     Literal substituted_lit = (parent == this->root)
                                                   ? lit
                                                   : Unifier::applySubstitutionToLiteral(lit, *mgu, kb);
-                    if (substituted_lit.getPredicateId() == kb.getPredicateId("E"))
-                    {
-                        const auto &args = substituted_lit.getArgumentIds();
-                        if (args.size() == 2 && args[0] == args[1])
-                        {
-                            has_self_loop = true; // 设置标志
-                            return {};
-                        }
-                    }
+                    // if (substituted_lit.getPredicateId() == kb.getPredicateId("E"))
+                    // {
+                    //     const auto &args = substituted_lit.getArgumentIds();
+                    //     if (args.size() == 2 && args[0] == args[1])
+                    //     {
+                    //         has_self_loop = true; // 设置标志
+                    //         return {};
+                    //     }
+                    // }
 
                     if (substituted_lit.isEmpty())
                     {
                         std::cout << "Warning: Substitution resulted in empty literal, skipping" << std::endl;
                         continue;
                     }
-
-                    std::cout << "Creating node with substituted literal: " << substituted_lit.toString(this->kb) << std::endl;
+                    // std::cout << "Creating node with substituted literal: " << substituted_lit.toString(this->kb) << std::endl;
 
                     auto child = std::make_shared<SLINode>(substituted_lit,
                                                            is_A_literal = false,
@@ -177,7 +175,7 @@ namespace LogicSystem
                     parent->children.push_back(child);
                     added_nodes.push_back(child);
 
-                    std::cout << "Successfully added node at depth " << child->depth << std::endl;
+                    // std::cout << "Successfully added node at depth " << child->depth << std::endl;
                 }
                 catch (const std::exception &e)
                 {
@@ -187,7 +185,7 @@ namespace LogicSystem
             }
             else
             {
-                std::cout << "Skipping add literal: " << lit.toString(this->kb) << std::endl;
+                // std::cout << "Skipping add literal: " << lit.toString(this->kb) << std::endl;
             }
         }
 
@@ -201,7 +199,7 @@ namespace LogicSystem
         {
             auto op = std::make_unique<AddOperation>(added_nodes, literal_map, depth_map);
             operation_stack.push(std::move(op));
-            std::cout << "Successfully created and stored operation for " << added_nodes.size() << " nodes" << std::endl;
+            // std::cout << "Successfully created and stored operation for " << added_nodes.size() << " nodes" << std::endl;
         }
         catch (const std::exception &e)
         {
@@ -254,7 +252,7 @@ namespace LogicSystem
             // if (current->children.empty() && current->is_A_literal)
             if (current->children.empty())
             {
-                std::cout << "truncate node " << current->literal.toString(kb) << std::endl;
+                // std::cout << "truncate node " << current->literal.toString(kb) << std::endl;
                 dynamic_cast<TruncateOperation *>(op.get())->save_state(current);
                 current->is_active = false;
                 current->rule_applied = "t-truncate";
@@ -299,7 +297,7 @@ namespace LogicSystem
         if (truncation_performed)
         {
             operation_stack.push(std::move(op));
-             cleanup_empty_depths();  // 清理空层
+            cleanup_empty_depths(); // 清理空层
         }
     }
 
@@ -344,8 +342,8 @@ namespace LogicSystem
 
         try
         {
-            std::cout << "try t-factoring " << std::endl;
-            std::cout << "Factoring uppper lit1 " << upper_node->literal.toString(kb) << "Factoring lower lit2 " << lower_node->literal.toString(kb) << std::endl;
+            // std::cout << "try t-factoring " << std::endl;
+            // std::cout << "Factoring uppper lit1 " << upper_node->literal.toString(kb) << "Factoring lower lit2 " << lower_node->literal.toString(kb) << std::endl;
             // 对upper_node应用替换
             Literal substituted_lit = Unifier::applySubstitutionToLiteral(upper_node->literal, *mgu, kb);
 
@@ -416,7 +414,7 @@ namespace LogicSystem
 
         try
         {
-            std::cout << "try t-ancestry" << std::endl;
+            // std::cout << "try t-ancestry" << std::endl;
             // 对upper_node应用替换
             Literal substituted_lit = Unifier::applySubstitutionToLiteral(upper_node->literal, *mgu, kb);
 

@@ -242,6 +242,9 @@ namespace LogicSystem
 
     bool Resolution::isComplementary(const Literal &lit1, const Literal &lit2)
     {
+        // std::cout << "PredicateId1 " << lit1.getPredicateId() << " PredicateId2 " << lit2.getPredicateId() << std::endl;
+        // std::cout << "ArgumentId Size1 " << lit1.getArgumentIds().size() << " ArgumentId Size1 " << lit2.getArgumentIds().size() << std::endl;
+        // std::cout << "IsNegated1 " << lit1.isNegated() << " IsNegated2 " << lit2.isNegated() << std::endl;
         return lit1.getPredicateId() == lit2.getPredicateId() &&
                lit1.getArgumentIds().size() == lit2.getArgumentIds().size() && // 不检查参数完全一致 就会越界
                lit1.isNegated() != lit2.isNegated();

@@ -99,6 +99,9 @@ namespace LogicSystem
         bool has_self_loop = false; // 判定是否产生E(x,x)这样的自环
         // 删除静态 next_node_id，因为现在在 SLINode 中维护
 
+        // 清理depth_map中的空层
+        void cleanup_empty_depths();
+
         // 用于计算单个节点状态的哈希值
         size_t computeNodeHash(const std::shared_ptr<SLINode> &node) const;
 

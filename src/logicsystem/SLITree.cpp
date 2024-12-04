@@ -299,6 +299,7 @@ namespace LogicSystem
         if (truncation_performed)
         {
             operation_stack.push(std::move(op));
+             cleanup_empty_depths();  // 清理空层
         }
     }
 
@@ -591,6 +592,41 @@ namespace LogicSystem
         }
 
         return active_nodes;
+    }
+
+    void SLITree::cleanup_empty_depths()
+    {
+        // 从后向前遍历，找到第一个非空层
+        int last_non_empty = -1;
+        for (int i = static_cast<int>(depth_map.size()) - 1; i >= 0; --i)
+        {
+            bool has_active_nodes = false;
+            for (const auto &node : depth_map[i])
+            {
+                if (node && node->is_active)
+                {
+                    has_active_nodes = true;
+                    break;
+                }
+            }
+            if (has_active_nodes)
+            {
+                last_non_empty = i;
+                break;
+            }
+        }
+
+        // 如果找到了最后一个非空层，将depth_map调整为该大小
+        // 保留根节点所在的层（深度0）
+        if (last_non_empty >= 0)
+        {
+            depth_map.resize(last_non_empty + 1);
+        }
+        else
+        {
+            // 如果所有层都是空的，至少保留深度0
+            depth_map.resize(1);
+        }
     }
 
     // 在SLITree.cpp中

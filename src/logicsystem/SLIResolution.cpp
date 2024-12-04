@@ -72,7 +72,7 @@ namespace LogicSystem
         {
             count++;
             std::cout << "round " << count << std::endl;
-            if (count >= 70)
+            if (count >= 10)
                 return false;
 
             // 获取下一个状态
@@ -99,7 +99,7 @@ namespace LogicSystem
                 continue;
             }
 
-            std::cout << "Tree After before nodes " << std::endl;
+            std::cout << "Tree before nodes " << std::endl;
             current_state.tree->print_tree(kb);
 
             std::cout << "Parent Node before add" << std::endl;
@@ -130,8 +130,8 @@ namespace LogicSystem
             // 记录新状态
             visited_states.insert(current_state_hash);
 
-            std::cout << "Parent Node after add" << std::endl;
-            corresponding_node->print(kb);
+            // std::cout << "Parent Node after add" << std::endl;
+            // corresponding_node->print(kb);
 
             std::cout << "Tree After add nodes " << std::endl;
             current_state.tree->print_tree(kb);
@@ -147,6 +147,11 @@ namespace LogicSystem
 
             std::cout << "Tree After add nodes and truncate " << std::endl;
             current_state.tree->print_tree(kb);
+            std::cout << "New Resolvent Nodes with size: " << resolvent_nodes.size() << std::endl;
+            for (const auto &node : resolvent_nodes)
+            {
+                std::cout << node->literal.toString(kb) << std::endl;
+            }
 
             // 应用归约规则
             auto factoring_pairs = findPotentialFactoringPairs(resolvent_nodes,
@@ -167,7 +172,7 @@ namespace LogicSystem
                 }
             }
 
-            std::cout << "Tree After factoring and truncate " << std::endl;
+            std::cout << "Tree After factoring " << std::endl;
             current_state.tree->print_tree(kb);
 
             auto ancestry_pairs = findPotentialAncestryPairs(resolvent_nodes, kb);
@@ -175,7 +180,7 @@ namespace LogicSystem
             {
                 if (current_state.tree->t_ancestry(ancestor, descendant))
                 {
-                    std::cout << "Applied t-ancestry successfully" << std::endl;
+                    // std::cout << "Applied t-ancestry successfully" << std::endl;
 
                     if (auto parent = descendant->parent.lock())
                     {
@@ -194,13 +199,17 @@ namespace LogicSystem
             // 为新节点生成新的状态
             for (const auto &node : resolvent_nodes)
             {
-                if (!node->is_A_literal)
+                if (!node->is_A_literal && node->is_active)
                 {
                     for (const auto &kb_clause : kb.getClauses())
                     {
                         for (const auto &lit : kb_clause.getLiterals())
                         {
-                            if (Resolution::isComplementary(node->literal, lit))
+                            bool checkComplementaryResult = Resolution::isComplementary(node->literal, lit);
+                            std::cout << "Checking is Complementary Current Node lit " << node->literal.toString(kb) << " KB lit " << lit.toString(kb) << std::endl;
+                            std::cout << " Result " << checkComplementaryResult << std::endl;
+
+                            if (checkComplementaryResult)
                             {
                                 std::cout << "Found Complementary Literal " << std::endl;
                                 std::cout << "Lit1 " << node->literal.toString(kb)
@@ -221,10 +230,10 @@ namespace LogicSystem
                                     // 记录新状态
                                     visited_states.insert(new_state_hash);*/
 
-                                    std::cout << "Old Tree after construction: " << std::endl;
-                                    current_state.tree->print_tree(kb);
-                                    std::cout << "New Tree after construction:" << std::endl;
-                                    newTree->print_tree(kb);
+                                    // std::cout << "Old Tree after construction: " << std::endl;
+                                    // current_state.tree->print_tree(kb);
+                                    // std::cout << "New Tree after construction:" << std::endl;
+                                    // newTree->print_tree(kb);
                                     std::cout << "KB Clause: " << kb_clause.toString(kb) << std::endl;
 
                                     stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
@@ -304,7 +313,7 @@ namespace LogicSystem
     {
         std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>> factoring_pairs;
 
-        std::cout << "Searching for potential factoring pairs..." << std::endl;
+        std::cout << "Searching for potential factoring pairs... new_node.size(): " << new_nodes.size() << std::endl;
 
         for (const auto &new_node : new_nodes)
         {

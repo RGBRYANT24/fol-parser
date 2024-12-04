@@ -72,7 +72,7 @@ namespace LogicSystem
         {
             count++;
             std::cout << "round " << count << std::endl;
-            if (count >= 10)
+            if (count >= 1500)
                 return false;
 
             // 获取下一个状态
@@ -113,11 +113,11 @@ namespace LogicSystem
                 corresponding_node);
 
             // 使用hasSelfLoop()来判断
-            if (current_state.tree->hasSelfLoop())
-            {
-                std::cout << "Skipping state due to self-loop detection" << std::endl;
-                continue;
-            }
+            // if (current_state.tree->hasSelfLoop())
+            // {
+            //     std::cout << "Skipping state due to self-loop detection" << std::endl;
+            //     continue;
+            // }
 
             // 在此处检查状态是否已访问过
             size_t current_state_hash = current_state.tree->computeStateHash();
@@ -196,8 +196,9 @@ namespace LogicSystem
             {
                 return true;
             }
-            // 为新节点生成新的状态
-            for (const auto &node : resolvent_nodes)
+            // 生成新的状态从当前树种所有活跃节点进行生成
+            auto acticve_nodes = current_state.tree->get_all_active_nodes();
+            for (const auto &node : acticve_nodes)
             {
                 if (!node->is_A_literal && node->is_active)
                 {
@@ -206,14 +207,14 @@ namespace LogicSystem
                         for (const auto &lit : kb_clause.getLiterals())
                         {
                             bool checkComplementaryResult = Resolution::isComplementary(node->literal, lit);
-                            std::cout << "Checking is Complementary Current Node lit " << node->literal.toString(kb) << " KB lit " << lit.toString(kb) << std::endl;
-                            std::cout << " Result " << checkComplementaryResult << std::endl;
+                            // std::cout << "Checking is Complementary Current Node lit " << node->literal.toString(kb) << " KB lit " << lit.toString(kb) << std::endl;
+                            // std::cout << " Result " << checkComplementaryResult << std::endl;
 
                             if (checkComplementaryResult)
                             {
-                                std::cout << "Found Complementary Literal " << std::endl;
-                                std::cout << "Lit1 " << node->literal.toString(kb)
-                                          << " Lit2 " << lit.toString(kb) << std::endl;
+                                // std::cout << "Found Complementary Literal " << std::endl;
+                                // std::cout << "Lit1 " << node->literal.toString(kb)
+                                //           << " Lit2 " << lit.toString(kb) << std::endl;
                                 double score = calculateHeuristic(kb_clause, node, lit);
                                 if (strategy.shouldTryResolution(score))
                                 {
@@ -234,7 +235,7 @@ namespace LogicSystem
                                     // current_state.tree->print_tree(kb);
                                     // std::cout << "New Tree after construction:" << std::endl;
                                     // newTree->print_tree(kb);
-                                    std::cout << "KB Clause: " << kb_clause.toString(kb) << std::endl;
+                                    std::cout << "KB Clause: " << kb_clause.toString(kb) << " Active Node " << node->literal.toString(kb) << std::endl;
 
                                     stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
                                                        std::move(newTree));
@@ -282,27 +283,29 @@ namespace LogicSystem
         // 获取整个树的深度映射
         auto &depth_map = tree.getDepthMap();
 
-        // 统计所有深度的active节点
-        int active_count = 0;
+        return tree.get_all_active_nodes().size() == 0 ? true : false;
 
-        for (size_t depth = 0; depth < depth_map.size(); ++depth)
-        {
-            for (const auto &node : depth_map[depth])
-            {
-                if (node->is_active)
-                {
-                    active_count++;
-                    // 如果在非根节点层发现active节点，直接返回false
-                    if (depth > 0)
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
+        // // 统计所有深度的active节点
+        // int active_count = 0;
 
-        // 只有根节点是active时返回true
-        return active_count == 1;
+        // for (size_t depth = 0; depth < depth_map.size(); ++depth)
+        // {
+        //     for (const auto &node : depth_map[depth])
+        //     {
+        //         if (node->is_active)
+        //         {
+        //             active_count++;
+        //             // 如果在非根节点层发现active节点，直接返回false
+        //             if (depth > 0)
+        //             {
+        //                 return false;
+        //             }
+        //         }
+        //     }
+        // }
+
+        // // 只有根节点是active时返回true
+        // return active_count == 1;
     }
 
     std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>

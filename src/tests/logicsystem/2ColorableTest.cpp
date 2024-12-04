@@ -3,6 +3,7 @@
 #include "Literal.h"
 #include "Resolution.h"
 #include "KnowledgeBase.h"
+#include "BFSStrategy.h"
 
 namespace LogicSystem
 {
@@ -82,8 +83,8 @@ namespace LogicSystem
         Resolution resolver;
         // std::vector<Clause> clauses = {adjacentNotSameColorR, adjacentNotSameColorG, adjacentNotSameColorB, vertexMustBeColored, edgeAB, edgeAC, edgeBC, goal};
         std::vector<Clause> clauses = {adjacentNotSameColorR, adjacentNotSameColorG, vertexMustBeColored, edgeAB, edgeAC, edgeBC, goal};
-
-        bool proved = LogicSystem::Resolution::proveBFS(kb, goal);
+        BFSStrategy bfsStrategy;
+        bool proved = LogicSystem::Resolution::prove(kb, goal,bfsStrategy);
         // 验证结果
         ASSERT_TRUE(proved);
         std::cout << "Resolution proves that K3 graph cannot be three-colored." << std::endl;
@@ -147,7 +148,8 @@ namespace LogicSystem
         goal.addLiteral(Literal(kb.getPredicateId("uncol").value(), std::vector<SymbolId>{}, true));
 
         // // 执行消解
-        bool proved = LogicSystem::Resolution::proveBFS(kb, goal);
+        BFSStrategy bfsStrategy;
+        bool proved = LogicSystem::Resolution::prove(kb, goal,bfsStrategy);
 
         // 验证结果
         ASSERT_TRUE(proved);

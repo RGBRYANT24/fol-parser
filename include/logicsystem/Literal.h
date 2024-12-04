@@ -14,6 +14,12 @@ namespace LogicSystem
     public:
         Literal(int predId, const std::vector<SymbolId> &argIds, bool negated);
 
+        // 添加默认构造函数，创建一个特殊的"空"文字
+        Literal() : predicateId(-1), argumentIds(), negated(false) {} // 使用 -1 表示特殊的空谓词
+
+        // 添加一个方法来检查是否是空文字
+        bool isEmpty() const { return predicateId == -1; }
+
         std::string toString(const KnowledgeBase &kb) const;
 
         int getPredicateId() const;

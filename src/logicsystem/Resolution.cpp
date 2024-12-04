@@ -102,327 +102,83 @@ namespace LogicSystem
         std::cout << "End of Priority Queue Contents" << std::endl;
     }
 
-    bool Resolution::prove(const KnowledgeBase &kb, const Clause &goal)
+    bool Resolution::prove(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy, int addClauseSize)
     {
-        return false;
-        // std::vector<Clause> clauses = kb.getClauses();
-        // clauses.push_back(goal);
-
-        // std::priority_queue<ResolutionPair> pq;
-
-        // // 初始化优先队列
-        // for (size_t i = 0; i < clauses.size(); ++i)
-        // {
-        //     for (size_t j = i + 1; j < clauses.size(); ++j)
-        //     {
-        //         const Clause &c1 = clauses[i];
-        //         const Clause &c2 = clauses[j];
-
-        //         for (size_t l1 = 0; l1 < c1.getLiterals().size(); ++l1)
-        //         {
-        //             for (size_t l2 = 0; l2 < c2.getLiterals().size(); ++l2)
-        //             {
-        //                 if (isComplementary(c1.getLiterals()[l1], c2.getLiterals()[l2]))
-        //                 {
-        //                     std::cout << "c1 " << c1.toString(kb) << " c2 " << c2.toString(kb) << std::endl;
-        //                     double score = calculateHeuristic(c1, c2, l1, l2);
-        //                     pq.emplace(&c1, &c2, l1, l2, score);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-        // int count = 0;
-        // while (!pq.empty())
-        // {
-        //     std::cout << "Round " << count + 1 << std::endl;
-
-        //     ResolutionPair pair = pq.top();
-        //     pq.pop();
-
-        //     /*if (pair.clause1->isEmpty() && pair.clause2->isEmpty())
-        //         return true;*/
-        //     // std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
-        //     auto resolvant = resolve(*pair.clause1, *pair.clause2, pair.literal1Index, pair.literal2Index, kb);
-
-        //     if (!resolvant)
-        //     {
-        //         // std::cout << "unresolvant with " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
-        //         continue;
-        //     }
-        //     else
-        //     {
-        //         std::cout << "resolvant " << resolvant->toString(kb) << std::endl;
-        //     }
-        //     // break;
-        //     if (resolvant->isEmpty())
-        //     {
-        //         return true; // 找到空子句，证明成功
-        //     }
-
-        //     // 添加新的子句到 clauses
-        //     clauses.push_back(*resolvant);
-
-        //     // 将新子句与现有子句进行比较
-        //     for (const auto &clause : clauses)
-        //     {
-        //         for (size_t i = 0; i < resolvant->getLiterals().size(); ++i)
-        //         {
-        //             for (size_t j = 0; j < clause.getLiterals().size(); ++j)
-        //             {
-        //                 // if (resolvant->isEmpty())
-        //                 //     std::cout << "add resolvant but empty" << std::endl;
-        //                 // if (clause.isEmpty())
-        //                 //     std::cout << "add clause but empty" << std::endl;
-        //                 if (isComplementary(resolvant->getLiterals()[i], clause.getLiterals()[j]))
-        //                 {
-        //                     double score = calculateHeuristic(*resolvant, clause, i, j);
-        //                     // std::cout << "score " << score << std::endl;
-        //                     // std::cout << "new Complementary Pair " << resolvant->toString(kb) << " clause " << clause.toString(kb) << std::endl;
-        //                     pq.emplace(&clauses.back(), &clause, static_cast<int>(i), static_cast<int>(j), score);
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     // std::cout << pq.size() << " " << std::endl;
-        //     // printPriorityQueue(pq, kb);
-        //     if (count >= 4)
-        //         break;
-        //     count++;
-        // }
-
-        // return false; // 无法证明
-    }
-
-    bool Resolution::proveDFS(const KnowledgeBase &kb, const Clause &goal)
-    {
-        return false;
-        // std::vector<Clause> clauses = kb.getClauses();
-        // clauses.push_back(goal);
-
-        // std::stack<ResolutionPair> stk;
-        // std::cout << "DFS" << std::endl;
-        // // 初始化优先队列
-        // for (size_t i = 0; i < clauses.size(); ++i)
-        // {
-        //     for (size_t j = i + 1; j < clauses.size(); ++j)
-        //     {
-        //         const Clause &c1 = clauses[i];
-        //         const Clause &c2 = clauses[j];
-
-        //         for (size_t l1 = 0; l1 < c1.getLiterals().size(); ++l1)
-        //         {
-        //             for (size_t l2 = 0; l2 < c2.getLiterals().size(); ++l2)
-        //             {
-        //                 if (isComplementary(c1.getLiterals()[l1], c2.getLiterals()[l2]))
-        //                 {
-        //                     std::cout << "c1 " << c1.toString(kb) << " c2 " << c2.toString(kb) << std::endl;
-        //                     double score = calculateHeuristic(c1, c2, l1, l2);
-        //                     stk.emplace(&c1, &c2, l1, l2, score);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-        // int count = 0;
-        // while (!stk.empty())
-        // {
-        //     std::cout << "Round " << count + 1 << std::endl;
-
-        //     ResolutionPair pair = stk.top();
-        //     stk.pop();
-
-        //     /*if (pair.clause1->isEmpty() && pair.clause2->isEmpty())
-        //         return true;*/
-        //     // std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
-        //     auto resolvant = resolve(*pair.clause1, *pair.clause2, pair.literal1Index, pair.literal2Index, kb);
-
-        //     if (!resolvant)
-        //     {
-        //         // std::cout << "unresolvant with " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
-        //         continue;
-        //     }
-        //     else
-        //     {
-        //         std::cout << "resolvant " << resolvant->toString(kb) << std::endl;
-        //     }
-        //     // break;
-        //     if (resolvant->isEmpty())
-        //     {
-        //         return true; // 找到空子句，证明成功
-        //     }
-
-        //     // 添加新的子句到 clauses
-        //     clauses.push_back(*resolvant);
-
-        //     // 将新子句与现有子句进行比较
-        //     for (const auto &clause : clauses)
-        //     {
-        //         for (size_t i = 0; i < resolvant->getLiterals().size(); ++i)
-        //         {
-        //             for (size_t j = 0; j < clause.getLiterals().size(); ++j)
-        //             {
-        //                 // if (resolvant->isEmpty())
-        //                 //     std::cout << "add resolvant but empty" << std::endl;
-        //                 // if (clause.isEmpty())
-        //                 //     std::cout << "add clause but empty" << std::endl;
-        //                 if (isComplementary(resolvant->getLiterals()[i], clause.getLiterals()[j]))
-        //                 {
-        //                     double score = calculateHeuristic(*resolvant, clause, i, j);
-        //                     // std::cout << "score " << score << std::endl;
-        //                     // std::cout << "new Complementary Pair " << resolvant->toString(kb) << " clause " << clause.toString(kb) << std::endl;
-        //                     stk.emplace(&clauses.back(), &clause, static_cast<int>(i), static_cast<int>(j), score);
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     // std::cout << pq.size() << " " << std::endl;
-        //     // printPriorityQueue(pq, kb);
-        //     if (count >= 4)
-        //         break;
-        //     count++;
-        // }
-
-        // return false; // 无法证明
-    }
-
-    bool Resolution::proveBFS(const KnowledgeBase &kb, const Clause &goal)
-    {
-
-        std::vector<Clause> originclauses = kb.getClauses();
-        std::vector<std::shared_ptr<Clause>> clauses = convertToSharedPtr(originclauses);
+        std::vector<std::shared_ptr<Clause>> clauses = convertToSharedPtr(kb.getClauses());
         clauses.push_back(std::make_shared<Clause>(goal));
-        std::queue<ResolutionPair> q;
-        std::cout << "BFS" << std::endl;
         std::unordered_set<std::shared_ptr<Clause>, ClauseHash, ClauseEqual> visitedClauses;
-        // 初始化优先队列 这里初始化只和goal配对
+
+        // 初始化搜索策略
         for (size_t i = 0; i < clauses.size(); ++i)
         {
-            const auto &c1 = clauses[i];
-            auto c2 = std::make_shared<Clause>(goal);
-            for (size_t l1 = 0; l1 < c1->getLiterals().size(); ++l1)
+            for (size_t j = i + 1; j < clauses.size(); ++j)
             {
-                for (size_t l2 = 0; l2 < c2->getLiterals().size(); ++l2)
+                const auto &c1 = clauses[i];
+                const auto &c2 = clauses[j];
+                for (size_t l1 = 0; l1 < c1->getLiterals().size(); ++l1)
                 {
-                    if (isComplementary(c1->getLiterals()[l1], c2->getLiterals()[l2]))
+                    for (size_t l2 = 0; l2 < c2->getLiterals().size(); ++l2)
                     {
-                        std::cout << "c1 " << c1->toString(kb) << " c2 " << c2->toString(kb) << std::endl;
-                        // double score = calculateHeuristic(c1, c2, l1, l2);
-                        double score = 1; // BFS放的是在搜索树的层数， 1为起点
-                        q.emplace(c1, c2, l1, l2, score);
+                        if (isComplementary(c1->getLiterals()[l1], c2->getLiterals()[l2]))
+                        {
+                            double score = calculateHeuristic(*c1, *c2, l1, l2);
+                            strategy.addPair(ResolutionPair(c1, c2, l1, l2, score));
+                        }
                     }
                 }
             }
         }
 
         int count = 0;
-        int SingleLiteralCount = 0;
-        std::vector<std::shared_ptr<Clause>> SingleLiteralClauses;
-        while (!q.empty())
+        while (!strategy.isEmpty())
         {
             count++;
-            if(count % 10000 == 1)
+            if (count % 10000 == 1)
             {
                 std::cout << "Round " << count << std::endl;
             }
-            
-            // std::cout << "queue before resolve " << std::endl;
-            // printQueue(q, kb);
 
-            ResolutionPair pair = q.front();
-            q.pop();
-
-            /*if (pair.clause1->isEmpty() && pair.clause2->isEmpty())
-                return true;*/
-            // std::cout << "To resovle: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
+            ResolutionPair pair = strategy.getNext();
             auto resolvant = resolve(*pair.clause1, *pair.clause2, pair.literal1Index, pair.literal2Index, kb);
 
             if (!resolvant)
-            {
-                // std::cout << "unresolvant with " << pair.clause1->toString(kb) << " index " << pair.literal1Index << " " << pair.clause2->toString(kb) << " index " << pair.literal2Index << std::endl;
                 continue;
-            }
-            if (resolvant)
+            if (resolvant->isEmpty())
+                return true;
+            if (resolvant->isTautology() || resolvant->containsSelfLoop(kb))
+                continue;
+
+            auto newClause = std::make_shared<Clause>(*resolvant);
+            if (visitedClauses.find(newClause) != visitedClauses.end())
+                continue;
+
+            visitedClauses.insert(newClause);
+
+            if (resolvant->getLiterals().size() <= addClauseSize)
             {
-                // break;
-                if (resolvant->isEmpty())
-                {
-                    return true; // 找到空子句，证明成功
-                }
-                else if (resolvant->isTautology())
-                {
-                    //std::cout << "Is Tautology " << resolvant->toString(kb) << std::endl;
-                    continue;
-                }
-                else if (resolvant->containsSelfLoop(kb))
-                {
-                    //std::cout << "Contains self-loop E(x, x), skipping " << resolvant->toString(kb) << std::endl;
-                    continue; // 剪枝，不再继续处理该子句
-                }
-                else
-                {
-                    // std::cout << "resolvant " << resolvant->toString(kb) << std::endl;
-                    // std::cout << "Original Clauses: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
-                }
-                auto newClause = std::make_shared<Clause>(*resolvant);
+                clauses.push_back(newClause);
+            }
 
-                // 检查这个子句是否已经被处理过
-                if (visitedClauses.find(newClause) != visitedClauses.end())
+            for (const auto &clause : clauses)
+            {
+                for (size_t i = 0; i < newClause->getLiterals().size(); ++i)
                 {
-                    //std::cout << "Skipping already visited clause: " << newClause->toString(kb) << std::endl;
-                    continue;
-                }
-
-                // 将新子句标记为已访问
-                visitedClauses.insert(newClause);
-
-                // 只在特定条件下添加到 clauses
-                if (resolvant->getLiterals().size() <= 2)
-                {
-                    std::cout << "add new clause " << resolvant.value().toString(kb) << std::endl;
-                    SingleLiteralClauses.push_back(newClause);
-                    clauses.push_back(newClause);
-                    SingleLiteralCount++;
-                    if (SingleLiteralCount % 100 == 1)
+                    for (size_t j = 0; j < clause->getLiterals().size(); ++j)
                     {
-                        std::cout << "Found " << SingleLiteralCount << " single literal " << std::endl;
-                        for (const auto &slc : SingleLiteralClauses)
+                        if (isComplementary(newClause->getLiterals()[i], clause->getLiterals()[j]))
                         {
-                            std::cout << slc->toString(kb) << std::endl;
-                        }
-                        //return false;
-                    }
-                }
-
-                // std::cout << "Original Clauses after push_back: " << (*pair.clause1).toString(kb) << " index " << pair.literal1Index << " " << (*pair.clause2).toString(kb) << " index " << pair.literal2Index << std::endl;
-                // std::cout << "queue after push back resolve before emplace new" << std::endl;
-                // printQueue(q, kb);
-                // 将新子句与现有子句进行比较
-                for (const auto &clause : clauses)
-                {
-                    for (size_t i = 0; i < newClause->getLiterals().size(); ++i)
-                    {
-                        for (size_t j = 0; j < clause->getLiterals().size(); ++j)
-                        {
-                            if (isComplementary(newClause->getLiterals()[i], clause->getLiterals()[j]))
-                            {
-                                double score = pair.heuristicScore + 1;
-                                q.emplace(newClause, clause, static_cast<int>(i), static_cast<int>(j), score);
-                            }
+                            double score = calculateHeuristic(*newClause, *clause, i, j);
+                            strategy.addPair(ResolutionPair(newClause, clause, i, j, score));
                         }
                     }
                 }
             }
-            // std::cout << "queue after emplace " << std::endl;
-            // printQueue(q, kb);
+
             if (count >= 1e11)
                 break;
-            
         }
 
-        return false; // 无法证明
+        return false;
     }
 
     double Resolution::calculateHeuristic(const Clause &c1, const Clause &c2, int l1, int l2)
@@ -431,7 +187,7 @@ namespace LogicSystem
         return c1.getLiterals().size() + c2.getLiterals().size() - 1;
     }
 
-    std::optional<Clause> Resolution::resolve(const Clause &c1, const Clause &c2, int l1, int l2, const KnowledgeBase &kb)
+    std::optional<Clause> Resolution::resolve(const Clause &c1, const Clause &c2, int l1, int l2, KnowledgeBase &kb)
     {
         if (l1 < 0 || l1 >= c1.getLiterals().size() || l2 < 0 || l2 >= c2.getLiterals().size())
         {
@@ -486,6 +242,9 @@ namespace LogicSystem
 
     bool Resolution::isComplementary(const Literal &lit1, const Literal &lit2)
     {
+        // std::cout << "PredicateId1 " << lit1.getPredicateId() << " PredicateId2 " << lit2.getPredicateId() << std::endl;
+        // std::cout << "ArgumentId Size1 " << lit1.getArgumentIds().size() << " ArgumentId Size1 " << lit2.getArgumentIds().size() << std::endl;
+        // std::cout << "IsNegated1 " << lit1.isNegated() << " IsNegated2 " << lit2.isNegated() << std::endl;
         return lit1.getPredicateId() == lit2.getPredicateId() &&
                lit1.getArgumentIds().size() == lit2.getArgumentIds().size() && // 不检查参数完全一致 就会越界
                lit1.isNegated() != lit2.isNegated();

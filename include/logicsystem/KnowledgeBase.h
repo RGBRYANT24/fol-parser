@@ -17,23 +17,39 @@ namespace LogicSystem
     class KnowledgeBase
     {
     public:
-        int addPredicate(const std::string& predicate);
-        SymbolId  addVariable(const std::string& variable);
-        SymbolId  addConstant(const std::string& constant);
-        void addClause(const Clause& clause);
-        void addFact(const Fact& fact);
+        int addPredicate(const std::string &predicate);
+        SymbolId addVariable(const std::string &variable);
+        SymbolId addConstant(const std::string &constant);
+        void addClause(const Clause &clause);
+        void addFact(const Fact &fact);
 
-        const std::vector<Clause>& getClauses() const;
-        const std::vector<Fact>& getFacts() const;
+        const std::vector<Clause> &getClauses() const;
+        const std::vector<Fact> &getFacts() const;
 
         std::string getPredicateName(int id) const;
-        std::string getSymbolName(const SymbolId& symbolId) const;
+        std::string getSymbolName(const SymbolId &symbolId) const;
 
-        bool isVariable(const SymbolId& symbolId) const;
-        bool hasFact(const Fact& fact) const;
+        bool isVariable(const SymbolId &symbolId) const;
+        bool hasFact(const Fact &fact) const;
 
-        std::optional<int> getPredicateId(const std::string& predicateName) const;
-        std::optional<SymbolId> getSymbolId(const std::string& symbolName) const;
+        std::optional<int> getPredicateId(const std::string &predicateName) const;
+        std::optional<SymbolId> getSymbolId(const std::string &symbolName) const;
+
+        std::optional<int> getVariableId(const std::string &varName) const
+        {
+            auto id = variableTable.getId(varName);
+            if (id != -1)
+                return id;
+            return std::nullopt;
+        }
+
+        int insertVariable(const std::string &varName)
+        {
+            auto id = variableTable.getId(varName);
+            if (id != -1)
+                return id;
+            return variableTable.insert(varName);
+        }
 
         void print() const;
 

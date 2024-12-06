@@ -9,14 +9,15 @@ namespace LogicSystem
     {
         // 添加visited集合
         std::unordered_set<size_t> visited_states;
+
         // 创建初始树
-        std::unique_ptr<SLITree> currentTree = std::make_unique<SLITree>(kb);
+        std::unique_ptr<SLITree> initialTree = std::make_unique<SLITree>(kb);
 
         // 记录初始状态
-        visited_states.insert(currentTree->computeStateHash());
+        visited_states.insert(initialTree->computeStateHash());
 
-        auto initial_nodes = currentTree->add_node(goal, Literal(), false, currentTree->getRoot());
-
+        // 创建初始状态
+        auto initial_nodes = initialTree->add_node(goal, Literal(), false, initialTree->getRoot());
         if (initial_nodes.empty())
         {
             return false;
@@ -30,9 +31,11 @@ namespace LogicSystem
             SearchState(const SLIResolutionPair &p, std::unique_ptr<SLITree> t)
                 : pair(p), tree(std::move(t)) {}
         };
-        std::queue<SearchState> stateQueue;
+        // std::queue<SearchState> stateQueue;
+        // 使用queue存储ProofState而不是SearchState
+        std::queue<std::shared_ptr<ProofState>> stateQueue;
 
-        // 初始化第一批消解对
+        // 初始化第一批状态
         for (const auto &node : initial_nodes)
         {
             for (const auto &kb_clause : kb.getClauses())
@@ -44,39 +47,44 @@ namespace LogicSystem
                         double score = calculateHeuristic(kb_clause, node, lit);
                         if (strategy.shouldTryResolution(score))
                         {
-                            auto newTree = std::make_unique<SLITree>(*currentTree, node);
-
-                            // 计算新状态的哈希值并检查是否访问过
+                            std::cout << "should try resolution " << kb_clause.toString(kb) << " with score " << std::endl;
+                            auto newTree = std::make_unique<SLITree>(*initialTree, node);
+                            // hash有问题
                             size_t new_state_hash = newTree->computeStateHash();
-                            if (visited_states.find(new_state_hash) != visited_states.end())
-                            {
-                                std::cout << "Initial state already visited, skipping..." << std::endl;
-                                continue;
-                            }
+                            std::cout << "new_state_hash " << new_state_hash << std::endl;
 
-                            // 记录新状态
                             visited_states.insert(new_state_hash);
+                            auto newState = std::make_shared<ProofState>(
+                                SLIResolutionPair(node, kb_clause, lit, score),
+                                std::move(newTree));
+                            stateQueue.push(newState);
 
-                            stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
-                                               std::move(newTree));
-
-                            std::cout << "Successfully emplaced initial resolution pair" << std::endl;
+                            // if (visited_states.find(new_state_hash) == visited_states.end())
+                            // {
+                            //     visited_states.insert(new_state_hash);
+                            //     auto newState = std::make_shared<ProofState>(
+                            //         SLIResolutionPair(node, kb_clause, lit, score),
+                            //         std::move(newTree));
+                            //     stateQueue.push(newState);
+                            // }
                         }
                     }
                 }
             }
         }
 
+        std::shared_ptr<ProofState> successful_state = nullptr;
         int count = 0;
         while (!stateQueue.empty())
         {
             count++;
             std::cout << "round " << count << std::endl;
-            if (count >= 10000)
+            std::cout << "stateQueue size: " << stateQueue.size() << std::endl;
+            if (count >= 10)
                 return false;
 
             // 获取下一个状态
-            auto current_state = std::move(stateQueue.front());
+            auto current_state = stateQueue.front();
             stateQueue.pop();
 
             // // 计算当前状态的哈希值
@@ -92,23 +100,18 @@ namespace LogicSystem
             // visited_states.insert(current_hash);
 
             // 在新树中找到对应的节点
-            auto corresponding_node = current_state.tree->findNodeById(current_state.pair.node_id);
+            auto corresponding_node = current_state->tree->findNodeById(current_state->resolution_pair.node_id);
             if (!corresponding_node)
             {
-                std::cout << "Cannot find corresponding node, skipping..." << std::endl;
                 continue;
             }
 
-            // std::cout << "Tree before add nodes " << std::endl;
-            // current_state.tree->print_tree(kb);
+            std::cout << "\nProcessing State " << current_state->state_id << ":\n";
+            current_state->tree->print_tree(kb);
 
-            // std::cout << "Parent Node before add" << std::endl;
-            // corresponding_node->print(kb);
-
-            // 在当前树状态上执行消解
-            auto resolvent_nodes = current_state.tree->add_node(
-                current_state.pair.kb_clause,
-                current_state.pair.resolving_literal,
+            auto resolvent_nodes = current_state->tree->add_node(
+                current_state->resolution_pair.kb_clause,
+                current_state->resolution_pair.resolving_literal,
                 true,
                 corresponding_node);
 
@@ -119,15 +122,6 @@ namespace LogicSystem
             //     continue;
             // }
             // 在此处检查状态是否已访问过
-            size_t current_state_hash = current_state.tree->computeStateHash();
-            if (visited_states.find(current_state_hash) != visited_states.end())
-            {
-                std::cout << "State already visited, skipping..." << std::endl;
-                continue;
-            }
-
-            // 记录新状态
-            visited_states.insert(current_state_hash);
 
             // std::cout << "Parent Node after add" << std::endl;
             // corresponding_node->print(kb);
@@ -139,12 +133,12 @@ namespace LogicSystem
             // std::cout << "resolvent_nodes.size " << resolvent_nodes.size()
             //           << " corresponding_node->children.empty "
             //           << corresponding_node->children.empty() << std::endl;
-            
+
             if (resolvent_nodes.empty() || corresponding_node->children.empty())
             {
-                checkAndTruncateNode(corresponding_node, *current_state.tree);
+                checkAndTruncateNode(corresponding_node, *current_state->tree);
             }
-            
+
             // std::cout << "Tree After add nodes and truncate " << std::endl;
             // current_state.tree->print_tree(kb);
             // std::cout << "New Resolvent Nodes with size: " << resolvent_nodes.size() << std::endl;
@@ -155,11 +149,11 @@ namespace LogicSystem
 
             // 应用归约规则
             auto factoring_pairs = findPotentialFactoringPairs(resolvent_nodes,
-                                                               current_state.tree->getDepthMap(),
+                                                               current_state->tree->getDepthMap(),
                                                                kb);
             for (const auto &[upper_node, lower_node] : factoring_pairs)
             {
-                if (current_state.tree->t_factoring(upper_node, lower_node))
+                if (current_state->tree->t_factoring(upper_node, lower_node))
                 {
                     // std::cout << "Applied t-factoring successfully between nodes:\n";
                     // std::cout << "Upper node: " << upper_node->literal.toString(kb) << "\n";
@@ -167,7 +161,7 @@ namespace LogicSystem
 
                     if (auto parent = lower_node->parent.lock())
                     {
-                        checkAndTruncateNode(parent, *current_state.tree);
+                        checkAndTruncateNode(parent, *current_state->tree);
                     }
                 }
             }
@@ -178,27 +172,44 @@ namespace LogicSystem
             auto ancestry_pairs = findPotentialAncestryPairs(resolvent_nodes, kb);
             for (const auto &[ancestor, descendant] : ancestry_pairs)
             {
-                if (current_state.tree->t_ancestry(ancestor, descendant))
+                if (current_state->tree->t_ancestry(ancestor, descendant))
                 {
                     // std::cout << "Applied t-ancestry successfully" << std::endl;
 
                     if (auto parent = descendant->parent.lock())
                     {
-                        checkAndTruncateNode(parent, *current_state.tree);
+                        checkAndTruncateNode(parent, *current_state->tree);
                     }
                 }
             }
 
             std::cout << "Tree After ancestry and truncate " << std::endl;
-            current_state.tree->print_tree(kb);
+            current_state->tree->print_tree(kb);
             // 检查是否找到证明
-            if (checkEmptyClause(*current_state.tree))
+            if (checkEmptyClause(*current_state->tree))
             {
+                successful_state = current_state;
+                std::cout << "\nFound proof! Printing path...\n";
+                printProofPath(successful_state, kb);
                 return true;
             }
+
+            // 记录hash结果
+            size_t current_state_hash = current_state->tree->computeStateHash();
+            std::cout << "compute_hash " << current_state_hash << std::endl;
+            if (visited_states.find(current_state_hash) != visited_states.end())
+            {
+                std::cout << "State already visited, skipping..." << std::endl;
+                continue;
+            }
+
+            // 记录新状态
+            visited_states.insert(current_state_hash);
             // 生成新的状态从当前树种所有活跃节点进行生成
-            auto acticve_nodes = current_state.tree->get_all_active_nodes();
-            for (const auto &node : acticve_nodes)
+            auto acticve_nodes = current_state->tree->get_all_active_nodes();
+            // 生成新的状态
+            auto active_nodes = current_state->tree->get_all_active_nodes();
+            for (const auto &node : active_nodes)
             {
                 if (!node->is_A_literal && node->is_active)
                 {
@@ -206,40 +217,24 @@ namespace LogicSystem
                     {
                         for (const auto &lit : kb_clause.getLiterals())
                         {
-                            bool checkComplementaryResult = Resolution::isComplementary(node->literal, lit);
-                            // std::cout << "Checking is Complementary Current Node lit " << node->literal.toString(kb) << " KB lit " << lit.toString(kb) << std::endl;
-                            // std::cout << " Result " << checkComplementaryResult << std::endl;
-
-                            if (checkComplementaryResult)
+                            if (Resolution::isComplementary(node->literal, lit))
                             {
-                                // std::cout << "Found Complementary Literal " << std::endl;
-                                // std::cout << "Lit1 " << node->literal.toString(kb)
-                                //           << " Lit2 " << lit.toString(kb) << std::endl;
                                 double score = calculateHeuristic(kb_clause, node, lit);
                                 if (strategy.shouldTryResolution(score))
                                 {
-                                    auto newTree = std::make_unique<SLITree>(*current_state.tree, node);
-
-                                    /*// 计算新状态的哈希值并检查是否访问过
+                                    auto newTree = std::make_unique<SLITree>(*current_state->tree, node);
                                     size_t new_state_hash = newTree->computeStateHash();
-                                    if (visited_states.find(new_state_hash) != visited_states.end())
+
+                                    if (visited_states.find(new_state_hash) == visited_states.end())
                                     {
-                                        std::cout << "State already visited, skipping..." << std::endl;
-                                        continue;
+                                        visited_states.insert(new_state_hash);
+                                        auto newState = std::make_shared<ProofState>(
+                                            SLIResolutionPair(node, kb_clause, lit, score),
+                                            std::move(newTree),
+                                            current_state // 保存父状态指针
+                                        );
+                                        stateQueue.push(newState);
                                     }
-
-                                    // 记录新状态
-                                    visited_states.insert(new_state_hash);*/
-
-                                    // std::cout << "Old Tree after construction: " << std::endl;
-                                    // current_state.tree->print_tree(kb);
-                                    // std::cout << "New Tree after construction:" << std::endl;
-                                    // newTree->print_tree(kb);
-                                    // std::cout << "KB Clause: " << kb_clause.toString(kb) << " Active Node " << node->literal.toString(kb) << std::endl;
-
-                                    stateQueue.emplace(SLIResolutionPair(node, kb_clause, lit, score),
-                                                       std::move(newTree));
-                                    // std::cout << "Successfully emplaced new resolution pair" << std::endl;
                                 }
                             }
                         }
@@ -410,5 +405,36 @@ namespace LogicSystem
                 tree.truncate(node);
             }
         }
+    }
+
+    void SLIResolution::printProofPath(std::shared_ptr<ProofState> state, KnowledgeBase &kb)
+    {
+        std::vector<std::shared_ptr<ProofState>> path;
+        auto current = state;
+
+        while (current)
+        {
+            path.push_back(current);
+            current = current->parent;
+        }
+
+        std::reverse(path.begin(), path.end());
+
+        std::cout << "\n====== Proof Path ======\n";
+        for (size_t i = 0; i < path.size(); ++i)
+        {
+            std::cout << "\nStep " << i << " (State ID: " << path[i]->state_id << "):\n";
+            if (i > 0)
+            {
+                std::cout << "Applied resolution:\n";
+                std::cout << "- Node ID: " << path[i]->resolution_pair.node_id << "\n";
+                std::cout << "- KB Clause: " << path[i]->resolution_pair.kb_clause.toString(kb) << "\n";
+                std::cout << "- Resolving literal: " << path[i]->resolution_pair.resolving_literal.toString(kb) << "\n";
+            }
+            std::cout << "\nResulting Tree:\n";
+            path[i]->tree->print_tree(kb);
+            std::cout << "\n----------------------\n";
+        }
+        std::cout << "====== End of Proof ======\n";
     }
 } // namespace LogicSystem

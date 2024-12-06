@@ -762,6 +762,9 @@ namespace LogicSystem
 
     size_t SLITree::computeStateHash() const
     {
+        std::cout << "in computStateHash function \n tree " << std::endl;
+        this->print_tree(kb);
+
         size_t hash = 0;
 
         // 按层遍历所有活跃节点

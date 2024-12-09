@@ -13,6 +13,8 @@ protected:
         pred_P = kb.addPredicate("P"); // 二元谓词 P
         pred_Q = kb.addPredicate("Q"); // 一元谓词 Q
         pred_R = kb.addPredicate("R");
+        pred_E = kb.addPredicate("E"); // 二元谓词 E
+        pred_G = kb.addPredicate("G"); // 一元谓词 G
         const_a = kb.addConstant("a");
         const_b = kb.addConstant("b");
         const_c = kb.addConstant("c");
@@ -24,12 +26,49 @@ protected:
     int pred_P;
     int pred_Q;
     int pred_R;
+    int pred_E;
+    int pred_G;
     SymbolId const_a;
     SymbolId const_b;
     SymbolId const_c;
     SymbolId var_x;
     SymbolId var_y;
 };
+
+TEST_F(SLITreeTest, AddNodeWith2SamePredicate)
+{
+    SLITree tree(kb);
+    
+
+    // 创建文字
+    // ~E(x,y)
+    Literal l1(pred_E, {var_x, var_y}, true);
+    // ~G(x)
+    Literal l2(pred_G, {var_x}, true);
+    // ~G(y)
+    Literal l3(pred_G, {var_y}, true);
+
+    // 创建子句并添加文字
+    std::cout << "\nTest Scenario: Adding clause with same predicate" << std::endl;
+    Clause c1;
+    c1.addLiteral(l1);
+    c1.addLiteral(l2);
+    c1.addLiteral(l3);
+
+    Literal l4(pred_G, {var_x}, false);
+    Clause c2;
+    c2.addLiteral(l4);
+    auto new_nodes = tree.add_node(c2, Literal(), false, tree.getRoot());
+    std::cout << "Print Empty Tree with a single node" << std::endl;
+    tree.print_tree(kb);
+
+    // 添加到树中并验证
+    std::vector<std::shared_ptr<SLINode>> active_nodes = tree.add_node(c1, l2, false, new_nodes[0]);
+    std::cout << "After Resolvent with ~E(x,y) ~G(x) ~G(y)"<<std::endl;
+    tree.print_tree(kb);
+    ASSERT_EQ(active_nodes.size(), 2);
+
+}
 
 TEST_F(SLITreeTest, AddNode)
 {

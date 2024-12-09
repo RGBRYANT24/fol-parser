@@ -80,7 +80,7 @@ namespace LogicSystem
             count++;
             std::cout << "round " << count << std::endl;
             std::cout << "stateQueue size: " << stateQueue.size() << std::endl;
-            if (count >= 10)
+            if (count >= 900000)
                 return false;
 
             // 获取下一个状态
@@ -106,8 +106,8 @@ namespace LogicSystem
                 continue;
             }
 
-            std::cout << "\nProcessing State " << current_state->state_id << ":\n";
-            current_state->tree->print_tree(kb);
+            //std::cout << "\nProcessing State " << current_state->state_id << ":\n";
+            // current_state->tree->print_tree(kb);
 
             auto resolvent_nodes = current_state->tree->add_node(
                 current_state->resolution_pair.kb_clause,
@@ -183,8 +183,8 @@ namespace LogicSystem
                 }
             }
 
-            std::cout << "Tree After ancestry and truncate " << std::endl;
-            current_state->tree->print_tree(kb);
+            // std::cout << "Tree After ancestry and truncate " << std::endl;
+            // current_state->tree->print_tree(kb);
             // 检查是否找到证明
             if (checkEmptyClause(*current_state->tree))
             {
@@ -223,18 +223,17 @@ namespace LogicSystem
                                 if (strategy.shouldTryResolution(score))
                                 {
                                     auto newTree = std::make_unique<SLITree>(*current_state->tree, node);
-                                    size_t new_state_hash = newTree->computeStateHash();
-
-                                    if (visited_states.find(new_state_hash) == visited_states.end())
-                                    {
-                                        visited_states.insert(new_state_hash);
-                                        auto newState = std::make_shared<ProofState>(
-                                            SLIResolutionPair(node, kb_clause, lit, score),
-                                            std::move(newTree),
-                                            current_state // 保存父状态指针
-                                        );
-                                        stateQueue.push(newState);
-                                    }
+                                    // size_t new_state_hash = newTree->computeStateHash();
+                                    auto newState = std::make_shared<ProofState>(
+                                        SLIResolutionPair(node, kb_clause, lit, score),
+                                        std::move(newTree),
+                                        current_state // 保存父状态指针
+                                    );
+                                    stateQueue.push(newState);
+                                    // if (visited_states.find(new_state_hash) == visited_states.end())
+                                    // {
+                                    //     visited_states.insert(new_state_hash);
+                                    // }
                                 }
                             }
                         }

@@ -760,32 +760,61 @@ namespace LogicSystem
         return active_nodes;
     }
 
-    size_t SLITree::computeStateHash() const
-    {
-        std::cout << "in computStateHash function \n tree " << std::endl;
-        this->print_tree(kb);
+    size_t SLITree::computeStateHash() const {
+    size_t hash = 0;
+    const size_t PRIME = 31;
 
-        size_t hash = 0;
+    // std::cout << "\nStarting hash computation..." << std::endl;
 
-        // 按层遍历所有活跃节点
-        for (const auto &level : depth_map)
-        {
-            for (const auto &node : level)
-            {
-                if (node && node->is_active)
-                {
-                    hash ^= computeNodeHash(node);
-                    // 考虑节点间的关系
-                    if (auto parent = node->parent.lock())
-                    {
-                        hash ^= std::hash<int>{}(parent->node_id);
-                    }
+    for (const auto &level : depth_map) {
+        size_t level_hash = 1;
+        int current_depth = level.front()->depth;
+        
+        // std::cout << "\nProcessing Level " << current_depth << ":" << std::endl;
+
+        for (const auto &node : level) {
+            if (node && node->is_active) {
+                // std::cout << "  Processing node: " << node->literal.toString(kb) << std::endl;
+                
+                size_t node_hash = computeNodeHash(node);
+                // std::cout << "    Initial node_hash: " << node_hash << std::endl;
+                
+                if (auto parent = node->parent.lock()) {
+                    size_t parent_literal_hash = parent->literal.hash();
+                    size_t parent_depth_hash = std::hash<int>{}(parent->depth);
+                    size_t parent_info = parent_literal_hash + parent_depth_hash;
+                    
+                    // std::cout << "    Parent info:" << std::endl;
+                    // std::cout << "      Parent predicate: " << parent->literal.toString(kb) << std::endl;
+                    // std::cout << "      Parent literal hash: " << parent_literal_hash << std::endl;
+                    // std::cout << "      Parent depth hash: " << parent_depth_hash << std::endl;
+                    // std::cout << "      Combined parent_info: " << parent_info << std::endl;
+                    
+                    node_hash = node_hash * PRIME + parent_info;
+                    // std::cout << "    Node hash after parent info: " << node_hash << std::endl;
                 }
+                
+                size_t prev_level_hash = level_hash;
+                level_hash = level_hash * PRIME + node_hash;
+                // std::cout << "    Level hash update: " << prev_level_hash 
+                //          << " -> " << level_hash << std::endl;
             }
         }
-
-        return hash;
+        
+        size_t depth_hash = std::hash<int>{}(current_depth);
+        size_t prev_hash = hash;
+        hash = hash * PRIME + (level_hash + depth_hash);
+        
+        // std::cout << "  Level " << current_depth << " final computation:" << std::endl;
+        // std::cout << "    Level hash: " << level_hash << std::endl;
+        // std::cout << "    Depth hash: " << depth_hash << std::endl;
+        // std::cout << "    Previous total hash: " << prev_hash << std::endl;
+        // std::cout << "    New total hash: " << hash << std::endl;
     }
+
+    // std::cout << "\nFinal hash value: " << hash << std::endl;
+    return hash;
+}
 
     bool SLITree::areNodesEquivalent(const std::shared_ptr<SLINode> &node1,
                                      const std::shared_ptr<SLINode> &node2) const

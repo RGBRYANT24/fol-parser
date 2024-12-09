@@ -11,6 +11,7 @@ add_executable(logicsystem_tests
     ColoringSLIResolutionTest
     MGURenameTest.cpp
     LiteralHashTest.cpp
+    SLITreeHashTest.cpp
     # KnowledgeBaseBuilderTest.cpp
 )
 # 对于测试可执行文件

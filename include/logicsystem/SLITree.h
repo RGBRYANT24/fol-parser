@@ -51,6 +51,8 @@ namespace LogicSystem
 
         // 计算树状态的哈希值
         size_t computeStateHash() const;
+        // 用于计算单个节点状态的哈希值
+        size_t computeNodeHash(const std::shared_ptr<SLINode> &node) const;
 
         // 比较两个树状态是否等价
         bool isEquivalentTo(const SLITree &other) const;
@@ -102,8 +104,7 @@ namespace LogicSystem
         // 清理depth_map中的空层
         void cleanup_empty_depths();
 
-        // 用于计算单个节点状态的哈希值
-        size_t computeNodeHash(const std::shared_ptr<SLINode> &node) const;
+        
 
         // 检查两个节点是否等价
         bool areNodesEquivalent(const std::shared_ptr<SLINode> &node1,

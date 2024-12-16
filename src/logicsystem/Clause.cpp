@@ -174,4 +174,11 @@ namespace LogicSystem
 
         return thisLiterals == otherLiterals;
     }
+
+    int Clause::findLiteralIndex(const Literal &lit) const
+    {
+        const auto &lits = getLiterals();
+        auto it = std::find(lits.begin(), lits.end(), lit);
+        return (it != lits.end()) ? static_cast<int>(std::distance(lits.begin(), it)) : -1;
+    }
 }

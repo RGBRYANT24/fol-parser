@@ -35,9 +35,12 @@ namespace LogicSystem
         // 移动赋值运算符
         Clause &operator=(Clause &&other) noexcept;
 
-        //hash计算函数
+        // hash计算函数
         size_t hash() const;
         bool operator==(const Clause &other) const;
+
+        // 返回指定literal的下标,如果不存在返回-1
+        int findLiteralIndex(const Literal &lit) const;
 
     private:
         std::unordered_map<int, int> literalMap; // PredicateId -> 下标

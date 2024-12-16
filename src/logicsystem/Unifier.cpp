@@ -138,33 +138,33 @@ namespace LogicSystem
     Literal Unifier::applySubstitutionToLiteral(const Literal &lit, const Substitution &substitution, const KnowledgeBase &kb)
     {
         std::vector<SymbolId> newArgs;
-        std::cout << "Try apply Subsitution to " << lit.toString(kb) << std::endl;
-        if (substitution.empty())
-        {
-            std::cout << " applySubstitutionToLiteral Found subsitution empty " << std::endl;
-        }
-        else
-        {
-            std::cout << "Subsitution size " << substitution.size() << std::endl;
-            std::cout << "Subsitution:" << std::endl;
-            printSubstitution(substitution, kb);
-        }
+        // std::cout << "Try apply Subsitution to " << lit.toString(kb) << std::endl;
+        // if (substitution.empty())
+        // {
+        //     std::cout << " applySubstitutionToLiteral Found subsitution empty " << std::endl;
+        // }
+        // else
+        // {
+        //     std::cout << "Subsitution size " << substitution.size() << std::endl;
+        //     std::cout << "Subsitution:" << std::endl;
+        //     printSubstitution(substitution, kb);
+        // }
         for (const SymbolId &argId : lit.getArgumentIds())
         {
             auto it = substitution.find(argId);
-            if (it != substitution.end())
-            {
-                std::cout << "apply Subsitution " << kb.getSymbolName(argId) << " subsitution: "
-                          << kb.getSymbolName(it->second) << std::endl;
-            }
-            else
-            {
-                std::cout << "Found No Subsitution of " << kb.getSymbolName(argId) << std::endl;
-            }
+            // if (it != substitution.end())
+            // {
+            //     std::cout << "apply Subsitution " << kb.getSymbolName(argId) << " subsitution: "
+            //               << kb.getSymbolName(it->second) << std::endl;
+            // }
+            // else
+            // {
+            //     std::cout << "Found No Subsitution of " << kb.getSymbolName(argId) << std::endl;
+            // }
             newArgs.push_back(applySubstitution(argId, substitution));
-            std::cout << newArgs.back().id << " ";
+            // std::cout << newArgs.back().id << " ";
         }
-        std::cout << std::endl;
+        //std::cout << std::endl;
         return Literal(lit.getPredicateId(), newArgs, lit.isNegated());
     }
 

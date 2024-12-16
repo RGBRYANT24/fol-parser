@@ -4,135 +4,18 @@
 
 namespace LogicSystem
 {
-    // 在cpp文件中定义静态成员
-    int Unifier::globalRenamingCounter = 0;
     std::optional<Unifier::Substitution> Unifier::findMGU(const Literal &lit1, const Literal &lit2, KnowledgeBase &kb)
     {
+        // 检查谓词是否相同
         if (lit1.getPredicateId() != lit2.getPredicateId())
             return std::nullopt;
 
-        // 创建变量重命名映射
-        std::unordered_map<SymbolId, SymbolId> renamingMap1, renamingMap2;
-
-        // 查找已存在的变量名，避免冲突
-        std::set<std::string> existingVarNames;
-        for (const auto &arg : lit1.getArgumentIds())
-        {
-            if (kb.isVariable(arg))
-            {
-                existingVarNames.insert(kb.getSymbolName(arg));
-            }
-        }
-        for (const auto &arg : lit2.getArgumentIds())
-        {
-            if (kb.isVariable(arg))
-            {
-                existingVarNames.insert(kb.getSymbolName(arg));
-            }
-        }
-
-        Literal standardizedLit1 = standardizeVariables(lit1, kb, 1, renamingMap1);
-        Literal standardizedLit2 = standardizeVariables(lit2, kb, 2, renamingMap2);
-
         Substitution subst;
-        if (!unify(standardizedLit1.getArgumentIds(), standardizedLit2.getArgumentIds(), subst, kb))
+        // 直接对原始文字进行统一化
+        if (!unify(lit1.getArgumentIds(), lit2.getArgumentIds(), subst, kb))
             return std::nullopt;
 
-        // 构建最终替换
-        Substitution finalSubst;
-        for (const auto &[var, term] : subst)
-        {
-            // 查找原始变量
-            SymbolId originalVar = var;
-            bool found = false;
-
-            // 在renamingMap1中查找
-            for (const auto &[orig, renamed] : renamingMap1)
-            {
-                if (renamed == var)
-                {
-                    originalVar = orig;
-                    found = true;
-                    break;
-                }
-            }
-
-            // 在renamingMap2中查找
-            if (!found)
-            {
-                for (const auto &[orig, renamed] : renamingMap2)
-                {
-                    if (renamed == var)
-                    {
-                        originalVar = orig;
-                        found = true;
-                        break;
-                    }
-                }
-            }
-
-            // 添加到最终替换中，避免自反替换
-            if (originalVar != term)
-            {
-                finalSubst[originalVar] = term;
-            }
-        }
-
-        return finalSubst;
-    }
-
-    Literal Unifier::standardizeVariables(const Literal &lit, KnowledgeBase &kb, int suffix,
-                                          std::unordered_map<SymbolId, SymbolId> &renamingMap)
-    {
-        std::vector<SymbolId> newArgs;
-
-        for (const SymbolId &argId : lit.getArgumentIds())
-        {
-            if (kb.isVariable(argId))
-            {
-                newArgs.push_back(renameVariable(argId, kb, suffix, renamingMap));
-            }
-            else
-            {
-                newArgs.push_back(argId);
-            }
-        }
-        return Literal(lit.getPredicateId(), newArgs, lit.isNegated());
-    }
-
-    SymbolId Unifier::renameVariable(const SymbolId &varId, KnowledgeBase &kb, int suffix,
-                                     std::unordered_map<SymbolId, SymbolId> &renamingMap)
-    {
-        auto it = renamingMap.find(varId);
-        if (it != renamingMap.end())
-        {
-            return it->second;
-        }
-
-        std::string originalName = kb.getSymbolName(varId);
-        std::string baseName = normalizeVariableName(originalName);
-
-        // 使用全局计数器生成唯一的变量名
-        std::string newName;
-        SymbolId newVarId;
-        bool nameExists;
-
-        do
-        {
-            globalRenamingCounter++;
-            newName = baseName + "_" + std::to_string(globalRenamingCounter);
-            auto existingId = kb.getVariableId(newName);
-            nameExists = existingId.has_value();
-
-            if (!nameExists)
-            {
-                int newId = kb.insertVariable(newName);
-                newVarId = {SymbolType::VARIABLE, newId};
-            }
-        } while (nameExists);
-
-        renamingMap[varId] = newVarId;
-        return newVarId;
+        return subst;
     }
 
     Literal Unifier::applySubstitutionToLiteral(const Literal &lit, const Substitution &substitution, const KnowledgeBase &kb)

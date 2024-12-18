@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 namespace LogicSystem {
+class SLITree;  // 前向声明
 
 class VariableRenamer {
 public:

@@ -65,25 +65,7 @@ namespace LogicSystem
             // 统一化成功
             Unifier::printSubstitution(*mgu, kb);
             std::cout << "After Unify " << std::endl;
-            lit1 =  Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
-            lit2 = Unifier::applySubstitutionToLiteral(lit2, *mgu, kb);
-            std::cout << lit1.toString(kb) << std::endl;
-            std::cout << lit2.toString(kb) << std::endl;
-        }
-        else
-        {
-            // 统一化失败
-            std::cout << "Unification failed" << std::endl;
-        }
-        
-        //二次配对进行MGU搜索，检测会不会因为变量重命名导致变量不断变长
-        mgu = Unifier::findMGU(lit1, lit2, kb);
-        if (mgu)
-        {
-            // 统一化成功
-            Unifier::printSubstitution(*mgu, kb);
-            std::cout << "After Unify " << std::endl;
-            lit1 =  Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
+            lit1 = Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
             lit2 = Unifier::applySubstitutionToLiteral(lit2, *mgu, kb);
             std::cout << lit1.toString(kb) << std::endl;
             std::cout << lit2.toString(kb) << std::endl;
@@ -94,6 +76,78 @@ namespace LogicSystem
             std::cout << "Unification failed" << std::endl;
         }
 
+        // 二次配对进行MGU搜索，检测会不会因为变量重命名导致变量不断变长
+        mgu = Unifier::findMGU(lit1, lit2, kb);
+        if (mgu)
+        {
+            // 统一化成功
+            Unifier::printSubstitution(*mgu, kb);
+            std::cout << "After Unify " << std::endl;
+            lit1 = Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
+            lit2 = Unifier::applySubstitutionToLiteral(lit2, *mgu, kb);
+            std::cout << lit1.toString(kb) << std::endl;
+            std::cout << lit2.toString(kb) << std::endl;
+        }
+        else
+        {
+            // 统一化失败
+            std::cout << "Unification failed" << std::endl;
+        }
+    }
+    TEST_F(MGURenameTest, colorTest)
+    {
+        // ¬R(y)
+        Clause clause1;
+        Literal lit1 = Literal(pred_R, {var_y}, true);
+        clause1.addLiteral(lit1);
+        kb.addClause(clause1);
+
+        // R(x)
+        Clause clause2;
+        Literal lit2 = Literal(pred_R, {var_x}, false);
+        Literal lit3 = Literal(pred_G, {var_x}, false);
+        clause2.addLiteral(lit2);
+        clause2.addLiteral(lit3);
+        kb.addClause(clause2);
+
+        auto mgu = Unifier::findMGU(lit1, lit2, kb);
+        if (mgu)
+        {
+            // 统一化成功
+            Unifier::printSubstitution(*mgu, kb);
+            std::cout << "After First Unify " << std::endl;
+            lit1 = Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
+            lit2 = Unifier::applySubstitutionToLiteral(lit2, *mgu, kb);
+            lit3 = Unifier::applySubstitutionToLiteral(lit3, *mgu, kb);
+            std::cout << lit1.toString(kb) << std::endl;
+            std::cout << lit2.toString(kb) << std::endl;
+            std::cout << lit3.toString(kb) << std::endl;
+        }
+        else
+        {
+            // 统一化失败
+            std::cout << "First unification failed" << std::endl;
+        }
+
+        // 二次配对进行MGU搜索
+        mgu = Unifier::findMGU(lit1, lit2, kb);
+        if (mgu)
+        {
+            // 统一化成功
+            Unifier::printSubstitution(*mgu, kb);
+            std::cout << "After Second Unify " << std::endl;
+            lit1 = Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
+            lit2 = Unifier::applySubstitutionToLiteral(lit2, *mgu, kb);
+            lit3 = Unifier::applySubstitutionToLiteral(lit3, *mgu, kb);
+            std::cout << lit1.toString(kb) << std::endl;
+            std::cout << lit2.toString(kb) << std::endl;
+            std::cout << lit3.toString(kb) << std::endl;
+        }
+        else
+        {
+            // 统一化失败
+            std::cout << "Second unification failed" << std::endl;
+        }
     }
 
     // 可以添加更多测试用例，比如K4的三染色问题等

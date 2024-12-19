@@ -12,6 +12,7 @@ add_library(logicsystem
     SLITree.cpp
     SLINode.cpp
     SLIResolution.cpp
+    VariableRenamer.cpp
     # KnowledgeBaseBuilder.cpp
 )
 

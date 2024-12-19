@@ -74,18 +74,15 @@ namespace LogicSystem
         }
 
         std::shared_ptr<ProofState> successful_state = nullptr;
-        int count = 0;
         while (!stateQueue.empty())
         {
-            count++;
-            std::cout << "round " << count << std::endl;
-            std::cout << "stateQueue size: " << stateQueue.size() << std::endl;
-            if (count >= 900000)
-                return false;
 
             // 获取下一个状态
             auto current_state = stateQueue.front();
             stateQueue.pop();
+
+            std::cout << "state id " << current_state->state_id << std::endl;
+            std::cout << "stateQueue size: " << stateQueue.size() << std::endl;
 
             // // 计算当前状态的哈希值
             // size_t current_hash = current_state.tree->computeStateHash();
@@ -106,8 +103,9 @@ namespace LogicSystem
                 continue;
             }
 
-            //std::cout << "\nProcessing State " << current_state->state_id << ":\n";
-            // current_state->tree->print_tree(kb);
+            std::cout << "\nProcessing State " << current_state->state_id << ":\n";
+            std::cout << "Resolvent By Node in SLITree " << corresponding_node->literal.toString(kb) << " with Input Clause " << current_state->resolution_pair.kb_clause.toString(kb) << std::endl;
+            current_state->tree->print_tree(kb);
 
             auto resolvent_nodes = current_state->tree->add_node(
                 current_state->resolution_pair.kb_clause,
@@ -140,7 +138,8 @@ namespace LogicSystem
             }
 
             // std::cout << "Tree After add nodes and truncate " << std::endl;
-            // current_state.tree->print_tree(kb);
+            // current_state->tree->print_tree(kb);
+
             // std::cout << "New Resolvent Nodes with size: " << resolvent_nodes.size() << std::endl;
             // for (const auto &node : resolvent_nodes)
             // {
@@ -155,9 +154,9 @@ namespace LogicSystem
             {
                 if (current_state->tree->t_factoring(upper_node, lower_node))
                 {
-                    // std::cout << "Applied t-factoring successfully between nodes:\n";
-                    // std::cout << "Upper node: " << upper_node->literal.toString(kb) << "\n";
-                    // std::cout << "Lower node: " << lower_node->literal.toString(kb) << "\n";
+                    std::cout << "Applied t-factoring successfully between nodes:\n";
+                    std::cout << "Upper node: " << upper_node->literal.toString(kb) << " node id " << upper_node->node_id << " is active " << upper_node -> is_active << "\n";
+                    std::cout << "Lower node: " << lower_node->literal.toString(kb) << " node id " << lower_node->node_id << " is active " << upper_node -> is_active << "\n";
 
                     if (auto parent = lower_node->parent.lock())
                     {
@@ -167,8 +166,13 @@ namespace LogicSystem
             }
 
             // std::cout << "Tree After factoring " << std::endl;
-            // current_state.tree->print_tree(kb);
-
+            // current_state->tree->print_tree(kb);
+            // if (current_state->state_id == 3605)
+            // {
+            //     std::cout << "Tree After factoring " << std::endl;
+            //     current_state->tree->print_tree(kb);
+            //     return false;
+            // }
             auto ancestry_pairs = findPotentialAncestryPairs(resolvent_nodes, kb);
             for (const auto &[ancestor, descendant] : ancestry_pairs)
             {
@@ -194,12 +198,19 @@ namespace LogicSystem
                 return true;
             }
 
+            if (current_state->state_id >= 90000)
+            {
+                std::cout << "Round Approach to Limit, Final State and Search Tree " << std::endl;
+                printProofPath(current_state, kb);
+                return false;
+            }
+
             // 记录hash结果
             size_t current_state_hash = current_state->tree->computeStateHash();
-            std::cout << "compute_hash " << current_state_hash << std::endl;
+            // std::cout << "compute_hash " << current_state_hash << std::endl;
             if (visited_states.find(current_state_hash) != visited_states.end())
             {
-                std::cout << "State already visited, skipping..." << std::endl;
+                // std::cout << "State already visited, skipping..." << std::endl;
                 continue;
             }
 
@@ -321,8 +332,9 @@ namespace LogicSystem
             {
                 for (const auto &existing_node : depth_map[d])
                 {
-                    if (existing_node->depth > new_node->depth)
+                    if (existing_node->depth >= new_node->depth)
                         continue;
+                    // exisiting_node 应该是一个B-literal
                     if (!existing_node->is_active)
                         continue;
 
@@ -376,7 +388,7 @@ namespace LogicSystem
             while (current)
             {
                 // 检查ancestry的基本条件
-                if (current->is_active &&
+                if (new_node->parent.lock() != current &&
                     current->literal.getPredicateId() == new_node->literal.getPredicateId() &&
                     current->literal.isNegated() != new_node->literal.isNegated() &&
                     current->literal.getArgumentIds().size() == new_node->literal.getArgumentIds().size())

@@ -6,6 +6,7 @@
 #include "KnowledgeBase.h"
 #include "operation/Operations.h"
 #include "Unifier.h"
+#include "VariableRenamer.h"
 #include "Resolution.h"
 #include <unordered_map>
 #include <stack>

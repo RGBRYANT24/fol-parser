@@ -54,66 +54,88 @@ namespace LogicSystem
             return {};
         }
 
+        // 获取要参与消解的litreal index 防止rename之后丢失
+        int resolbing_literal_index = input_clause.findLiteralIndex(resolving_literal);
+
+        // 对输入子句进行变量重命名
+        Clause renamed_clause = VariableRenamer::renameClauseVariables(input_clause, *this, kb);
+
+        // 根据保存的index获取重命名后的resolving literal
+        Literal renamed_resolving_literal;
+        if (resolbing_literal_index >= 0)
+        {
+            renamed_resolving_literal = renamed_clause.getLiterals()[resolbing_literal_index];
+        }
+
         std::optional<Substitution> mgu;
         Literal substituted_parent_lit = parent->literal;
 
-        // std::cout << "Processing clause: " << input_clause.toString(this->kb) << std::endl;
-        // std::cout << "Resolving literal: " << resolving_literal.toString(this->kb) << std::endl;
-        // std::cout << "Parent literal: " << parent->literal.toString(this->kb) << std::endl;
-
+        std::cout << "Original clause: " << input_clause.toString(this->kb) << std::endl;
+        std::cout << "Renamed clause: " << renamed_clause.toString(this->kb) << std::endl;
+        std::cout << "Resolving literal: " << renamed_resolving_literal.toString(this->kb) << std::endl;
+        std::cout << "Parent literal: " << parent->literal.toString(this->kb) << std::endl;
+        // std::cout << "Tree before add nodes " <<std::endl;
+        // this->print_tree(kb);
         // MGU计算和应用
-        if (parent != this->root && !resolving_literal.isEmpty())
+        if (!resolving_literal.isEmpty())
         {
-            mgu = Unifier::findMGU(resolving_literal, parent->literal, kb);
-            // if (!mgu)
-            // {
-            //     std::cout << "MGU unification failed" << std::endl;
-            //     return {};
-            // }
-            // else
-            // {
-            //     std::cout << "print MGU " << std::endl;
-            //     Unifier::printSubstitution(mgu.value(), this->kb);
-            // }
+            mgu = Unifier::findMGU(renamed_resolving_literal, parent->literal, kb);
+            if (!mgu)
+            {
+                std::cout << "MGU unification failed" << std::endl;
+                return {};
+            }
+            else
+            {
+                std::cout << "print MGU " << std::endl;
+                Unifier::printSubstitution(mgu.value(), this->kb);
+            }
 
             try
             {
-                // 从root开始，对整棵树应用MGU替换
-                std::function<void(std::shared_ptr<SLINode>)> applyMGUToTree;
-                applyMGUToTree = [this, &mgu, &applyMGUToTree](std::shared_ptr<SLINode> node)
+                // 保存替换前的状态用于可能的回滚
+                std::vector<std::pair<std::shared_ptr<SLINode>, Literal>> previous_literals;
+                std::vector<std::pair<std::shared_ptr<SLINode>, Substitution>> previous_substitutions;
+                // 对整棵树应用MGU替换
+                for (size_t depth = 0; depth < depth_map.size(); ++depth)
                 {
-                    if (node != this->root)
-                    { // 跳过root节点，因为它不包含实际的文字
-                        // 保存旧的hash用于更新literal_map
-                        size_t old_hash = node->literal.hash();
-
-                        // 应用替换
-                        node->literal = Unifier::applySubstitutionToLiteral(
-                            node->literal, *mgu, this->kb);
-
-                        // 更新literal_map
-                        if (old_hash != node->literal.hash())
+                    for (auto &node : depth_map[depth])
+                    {
+                        if (node && node != root)
                         {
-                            literal_map.erase(old_hash);
+                            // 保存原始状态
+                            previous_literals.emplace_back(node, node->literal);
+                            previous_substitutions.emplace_back(node, node->substitution);
+
+                            // 从literal_map中移除旧的hash
+                            literal_map.erase(node->literal.hash());
+
+                            // 应用替换
+                            node->literal = Unifier::applySubstitutionToLiteral(node->literal, *mgu, kb);
+
+                            // 更新substitution
+                            for (const auto &[var, term] : *mgu)
+                            {
+                                node->substitution[var] = term;
+                            }
+
+                            // 更新literal_map
                             literal_map[node->literal.hash()] = node;
                         }
                     }
-
-                    // 递归处理所有子节点
-                    for (auto &child : node->children)
-                    {
-                        applyMGUToTree(child);
-                    }
-                };
-
-                // 从root开始应用MGU
-                applyMGUToTree(root);
+                }
 
                 // 标记参与消解的节点为A-literal
                 parent->is_A_literal = true;
+                // parent->is_active = false;
 
                 // std::cout << "Tree after MGU application:" << std::endl;
                 // print_tree(kb);
+                // 创建操作记录用于可能的回滚 目前暂时不回滚
+                // auto op = std::make_unique<SubstitutionOperation>(
+                //     previous_literals,
+                //     previous_substitutions);
+                // operation_stack.push(std::move(op));
             }
             catch (const std::exception &e)
             {
@@ -130,9 +152,10 @@ namespace LogicSystem
         std::vector<std::shared_ptr<SLINode>> added_nodes;
 
         // 添加节点，但跳过消解文字
-        for (const Literal &lit : input_clause.getLiterals())
+        for (const Literal &lit : renamed_clause.getLiterals())
         {
-            if (lit != resolving_literal)
+            // 消解文字是经过rename的renamed_resolving_literal
+            if (lit != renamed_resolving_literal)
             {
                 // std::cout << "Processing literal for addition: " << lit.toString(this->kb) << std::endl;
                 try
@@ -304,7 +327,8 @@ namespace LogicSystem
     bool SLITree::t_factoring(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node)
     {
         // 基础检查
-        if (!upper_node || !lower_node || !upper_node->is_active || !lower_node->is_active)
+        // is_active表示内存还存在的节点 is_A_literal表示是否是A-lit
+        if (!upper_node || !lower_node || !upper_node->is_active || !lower_node->is_active || upper_node->is_A_literal || lower_node->is_A_literal)
         {
             std::cout << "basic check failed in t-factoring " << std::endl;
             return false;
@@ -317,8 +341,8 @@ namespace LogicSystem
             return false;
         }
 
-        // 检查深度是否正确, upper >=lower
-        if (upper_node->depth > lower_node->depth)
+        // 检查深度是否正确, upper > lower
+        if (upper_node->depth >= lower_node->depth)
         {
             std::cout << "deepth wrong in t-factoring" << std::endl;
             std::cout << "upper_node depth " << upper_node->depth << " lower_node_deepth " << lower_node->depth << std::endl;
@@ -342,32 +366,41 @@ namespace LogicSystem
 
         try
         {
-            // std::cout << "try t-factoring " << std::endl;
-            // std::cout << "Factoring uppper lit1 " << upper_node->literal.toString(kb) << "Factoring lower lit2 " << lower_node->literal.toString(kb) << std::endl;
-            // 对upper_node应用替换
-            Literal substituted_lit = Unifier::applySubstitutionToLiteral(upper_node->literal, *mgu, kb);
+            // 保存整棵树当前状态用于可能的回滚
+            std::vector<std::pair<std::shared_ptr<SLINode>, Literal>> previous_literals;
+            std::vector<std::pair<std::shared_ptr<SLINode>, Substitution>> previous_substitutions;
 
-            // 保存原始状态用于可能的回滚
-            auto previous_lit = upper_node->literal;
-            auto previous_substitution = upper_node->substitution;
-
-            // 更新upper_node
-            upper_node->literal = substituted_lit;
-            // 合并替换
-            for (const auto &[var, term] : *mgu)
+            // 对整棵树应用MGU替换
+            for (auto &level : depth_map)
             {
-                upper_node->substitution[var] = term;
+                for (auto &node : level)
+                {
+                    if (node && node != this->root)
+                    {
+                        // 保存原始状态
+                        previous_literals.emplace_back(node, node->literal);
+                        previous_substitutions.emplace_back(node, node->substitution);
+
+                        // 应用替换到节点的文字
+                        node->literal = Unifier::applySubstitutionToLiteral(node->literal, *mgu, kb);
+                        // 合并替换
+                        for (const auto &[var, term] : *mgu)
+                        {
+                            node->substitution[var] = term;
+                        }
+                    }
+                }
             }
 
             // 创建截断操作用于处理lower_node
             truncate(lower_node);
 
-            // 创建操作记录
+            // 创建操作记录（需要修改FactoringOperation类以支持全局替换）
             auto op = std::make_unique<FactoringOperation>(
                 upper_node,
                 lower_node,
-                previous_lit,
-                previous_substitution,
+                previous_literals,
+                previous_substitutions,
                 *mgu);
             operation_stack.push(std::move(op));
 
@@ -383,14 +416,21 @@ namespace LogicSystem
 
     bool SLITree::t_ancestry(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node)
     {
+        if (lower_node->parent.lock() == upper_node || lower_node->depth - upper_node->depth == 1)
+        {
+            std::cout << "basic check in t_ancestry failed, cannot ancestry with direct parent" << std::endl;
+            return false;
+        }
+
         // 基础检查
-        if (!upper_node || !lower_node || !upper_node->is_active || !lower_node->is_active)
+        // is_active表示内存还存在的节点 is_A_literal表示是否是A-lit
+        if (!upper_node || !lower_node || !upper_node->is_active || !lower_node->is_active || !upper_node->is_A_literal || lower_node->is_A_literal)
         {
             std::cout << "basic check failed in t-ancestry" << std::endl;
             return false;
         }
 
-        // 检查文字是否互补(一个是否定形式，一个是肯定形式)
+        // 检查文字是否互补
         if (upper_node->literal.isNegated() == lower_node->literal.isNegated())
         {
             std::cout << "literals are not complementary" << std::endl;
@@ -414,32 +454,41 @@ namespace LogicSystem
 
         try
         {
-            // std::cout << "try t-ancestry" << std::endl;
-            // 对upper_node应用替换
-            Literal substituted_lit = Unifier::applySubstitutionToLiteral(upper_node->literal, *mgu, kb);
+            // 保存整棵树当前状态用于可能的回滚
+            std::vector<std::pair<std::shared_ptr<SLINode>, Literal>> previous_literals;
+            std::vector<std::pair<std::shared_ptr<SLINode>, Substitution>> previous_substitutions;
 
-            // 保存原始状态用于可能的回滚
-            auto previous_lit = upper_node->literal;
-            auto previous_substitution = upper_node->substitution;
-
-            // 更新upper_node
-            upper_node->literal = substituted_lit;
-
-            // 合并替换
-            for (const auto &[var, term] : *mgu)
+            // 对整棵树应用MGU替换
+            for (auto &level : depth_map)
             {
-                upper_node->substitution[var] = term;
+                for (auto &node : level)
+                {
+                    if (node && node != this->root)
+                    {
+                        // 保存原始状态
+                        previous_literals.emplace_back(node, node->literal);
+                        previous_substitutions.emplace_back(node, node->substitution);
+
+                        // 应用替换到节点的文字
+                        node->literal = Unifier::applySubstitutionToLiteral(node->literal, *mgu, kb);
+                        // 合并替换
+                        for (const auto &[var, term] : *mgu)
+                        {
+                            node->substitution[var] = term;
+                        }
+                    }
+                }
             }
 
             // 创建截断操作用于处理lower_node及其子树
             truncate(lower_node);
 
-            // 创建操作记录
+            // 创建操作记录（需要修改AncestryOperation类以支持全局替换）
             auto op = std::make_unique<AncestryOperation>(
                 upper_node,
                 lower_node,
-                previous_lit,
-                previous_substitution,
+                previous_literals,
+                previous_substitutions,
                 *mgu);
             operation_stack.push(std::move(op));
 
@@ -760,61 +809,66 @@ namespace LogicSystem
         return active_nodes;
     }
 
-    size_t SLITree::computeStateHash() const {
-    size_t hash = 0;
-    const size_t PRIME = 31;
+    size_t SLITree::computeStateHash() const
+    {
+        size_t hash = 0;
+        const size_t PRIME = 31;
 
-    // std::cout << "\nStarting hash computation..." << std::endl;
+        // std::cout << "\nStarting hash computation..." << std::endl;
 
-    for (const auto &level : depth_map) {
-        size_t level_hash = 1;
-        int current_depth = level.front()->depth;
-        
-        // std::cout << "\nProcessing Level " << current_depth << ":" << std::endl;
+        for (const auto &level : depth_map)
+        {
+            size_t level_hash = 1;
+            int current_depth = level.front()->depth;
 
-        for (const auto &node : level) {
-            if (node && node->is_active) {
-                // std::cout << "  Processing node: " << node->literal.toString(kb) << std::endl;
-                
-                size_t node_hash = computeNodeHash(node);
-                // std::cout << "    Initial node_hash: " << node_hash << std::endl;
-                
-                if (auto parent = node->parent.lock()) {
-                    size_t parent_literal_hash = parent->literal.hash();
-                    size_t parent_depth_hash = std::hash<int>{}(parent->depth);
-                    size_t parent_info = parent_literal_hash + parent_depth_hash;
-                    
-                    // std::cout << "    Parent info:" << std::endl;
-                    // std::cout << "      Parent predicate: " << parent->literal.toString(kb) << std::endl;
-                    // std::cout << "      Parent literal hash: " << parent_literal_hash << std::endl;
-                    // std::cout << "      Parent depth hash: " << parent_depth_hash << std::endl;
-                    // std::cout << "      Combined parent_info: " << parent_info << std::endl;
-                    
-                    node_hash = node_hash * PRIME + parent_info;
-                    // std::cout << "    Node hash after parent info: " << node_hash << std::endl;
+            // std::cout << "\nProcessing Level " << current_depth << ":" << std::endl;
+
+            for (const auto &node : level)
+            {
+                if (node && node->is_active)
+                {
+                    // std::cout << "  Processing node: " << node->literal.toString(kb) << std::endl;
+
+                    size_t node_hash = computeNodeHash(node);
+                    // std::cout << "    Initial node_hash: " << node_hash << std::endl;
+
+                    if (auto parent = node->parent.lock())
+                    {
+                        size_t parent_literal_hash = parent->literal.hash();
+                        size_t parent_depth_hash = std::hash<int>{}(parent->depth);
+                        size_t parent_info = parent_literal_hash + parent_depth_hash;
+
+                        // std::cout << "    Parent info:" << std::endl;
+                        // std::cout << "      Parent predicate: " << parent->literal.toString(kb) << std::endl;
+                        // std::cout << "      Parent literal hash: " << parent_literal_hash << std::endl;
+                        // std::cout << "      Parent depth hash: " << parent_depth_hash << std::endl;
+                        // std::cout << "      Combined parent_info: " << parent_info << std::endl;
+
+                        node_hash = node_hash * PRIME + parent_info;
+                        // std::cout << "    Node hash after parent info: " << node_hash << std::endl;
+                    }
+
+                    size_t prev_level_hash = level_hash;
+                    level_hash = level_hash * PRIME + node_hash;
+                    // std::cout << "    Level hash update: " << prev_level_hash
+                    //          << " -> " << level_hash << std::endl;
                 }
-                
-                size_t prev_level_hash = level_hash;
-                level_hash = level_hash * PRIME + node_hash;
-                // std::cout << "    Level hash update: " << prev_level_hash 
-                //          << " -> " << level_hash << std::endl;
             }
-        }
-        
-        size_t depth_hash = std::hash<int>{}(current_depth);
-        size_t prev_hash = hash;
-        hash = hash * PRIME + (level_hash + depth_hash);
-        
-        // std::cout << "  Level " << current_depth << " final computation:" << std::endl;
-        // std::cout << "    Level hash: " << level_hash << std::endl;
-        // std::cout << "    Depth hash: " << depth_hash << std::endl;
-        // std::cout << "    Previous total hash: " << prev_hash << std::endl;
-        // std::cout << "    New total hash: " << hash << std::endl;
-    }
 
-    // std::cout << "\nFinal hash value: " << hash << std::endl;
-    return hash;
-}
+            size_t depth_hash = std::hash<int>{}(current_depth);
+            size_t prev_hash = hash;
+            hash = hash * PRIME + (level_hash + depth_hash);
+
+            // std::cout << "  Level " << current_depth << " final computation:" << std::endl;
+            // std::cout << "    Level hash: " << level_hash << std::endl;
+            // std::cout << "    Depth hash: " << depth_hash << std::endl;
+            // std::cout << "    Previous total hash: " << prev_hash << std::endl;
+            // std::cout << "    New total hash: " << hash << std::endl;
+        }
+
+        // std::cout << "\nFinal hash value: " << hash << std::endl;
+        return hash;
+    }
 
     bool SLITree::areNodesEquivalent(const std::shared_ptr<SLINode> &node1,
                                      const std::shared_ptr<SLINode> &node2) const

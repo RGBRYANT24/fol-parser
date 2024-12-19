@@ -539,6 +539,150 @@ namespace LogicSystem
         }
     }
 
+    // 获取γL集合
+    std::vector<Literal> SLITree::get_gamma_L(std::shared_ptr<SLINode> L_node) const
+    {
+        std::vector<Literal> gamma_L;
+
+        // 从L节点向上遍历到根节点
+        auto current = L_node;
+        while (auto parent = current->parent.lock())
+        {
+            // 对路径上的每个节点,收集其B-literal子节点
+            for (const auto &sibling : parent->children)
+            {
+                // 排除L节点本身
+                if (!sibling->is_A_literal && sibling != L_node)
+                {
+                    gamma_L.push_back(sibling->literal);
+                }
+            }
+            current = parent;
+        }
+        return gamma_L;
+    }
+
+    // 获取δL集合
+    std::vector<Literal> SLITree::get_delta_L(std::shared_ptr<SLINode> L_node) const
+    {
+        std::vector<Literal> delta_L;
+
+        // 从L节点向上遍历到根节点
+        auto current = L_node;
+        while (auto parent = current->parent.lock())
+        {
+            // 收集路径上的所有A-literal
+            if (parent->is_A_literal)
+            {
+                delta_L.push_back(parent->literal);
+            }
+            current = parent;
+        }
+        return delta_L;
+    }
+
+    bool SLITree::check_AC(std::shared_ptr<SLINode> L_node) const
+    {
+
+        // 获取γL和δL集合
+        auto gamma_L = get_gamma_L(L_node);
+        auto delta_L = get_delta_L(L_node);
+
+        // 检查条件(i): γL ∪ {L}中不能有相同atom的literals
+        // 这一步只检查B-lit
+        if (!L_node->is_A_literal)
+        {
+            gamma_L.push_back(L_node->literal);
+            for (size_t i = 0; i < gamma_L.size(); i++)
+            {
+                for (size_t j = i + 1; j < gamma_L.size(); j++)
+                {
+                    if (have_same_atom(gamma_L[i], gamma_L[j]))
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // 检查条件(ii): δL ∪ {L}中不能有相同atom的literals
+        delta_L.push_back(L_node->literal);
+        for (size_t i = 0; i < delta_L.size(); i++)
+        {
+            for (size_t j = i + 1; j < delta_L.size(); j++)
+            {
+                if (have_same_atom(delta_L[i], delta_L[j]))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    bool SLITree::check_MC(const std::shared_ptr<SLINode> &node) const
+    {
+        // 如果是叶子节点且是A-literal，则违反MC条件
+        if (node->children.empty() && node->is_A_literal)
+        {
+            return false;
+        }
+
+        // 递归检查所有子节点
+        for (const auto &child : node->children)
+        {
+            if (!check_MC(child))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool SLITree::check_all_nodes_AC() const
+    {
+        // Get all active nodes
+        auto all_nodes = get_all_active_nodes();
+
+        // Check AC condition for each node
+        for (const auto &node : all_nodes)
+        {
+            if (!check_AC(node))
+            {
+                return false; // If any node fails AC check, return false
+            }
+        }
+
+        return true; // All nodes passed AC check
+    }
+
+    bool SLITree::check_all_nodes_MC() const
+    {
+        // Get all active nodes
+        auto all_nodes = get_all_active_nodes();
+
+        // Check MC condition for each node
+        for (const auto &node : all_nodes)
+        {
+            if (!check_MC(node))
+            {
+                return false; // If any node fails MC check, return false
+            }
+        }
+
+        return true; // All nodes passed MC check
+    }
+
+    // 辅助函数：检查两个literal是否有相同的atom
+    bool SLITree::have_same_atom(const Literal &lit1, const Literal &lit2) const
+    {
+        // 如果谓词ID相同且参数相同（忽略否定符号），则认为是相同的atom
+        return (lit1.getPredicateId() == lit2.getPredicateId() &&
+                lit1.getArgumentIds() == lit2.getArgumentIds());
+    }
+
     void SLITree::print_node(std::shared_ptr<SLINode> node, const KnowledgeBase &kb,
                              std::string prefix, bool is_last) const
     {

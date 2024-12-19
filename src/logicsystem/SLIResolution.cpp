@@ -83,6 +83,11 @@ namespace LogicSystem
 
             std::cout << "state id " << current_state->state_id << std::endl;
             std::cout << "stateQueue size: " << stateQueue.size() << std::endl;
+            // 在进行四个操作之前，检查AC和MC条件，如果不满足，就放弃这个状态
+            if (!current_state->tree->check_all_nodes_AC() || !current_state->tree->check_all_nodes_MC())
+            {
+                continue;
+            }
 
             // // 计算当前状态的哈希值
             // size_t current_hash = current_state.tree->computeStateHash();
@@ -107,11 +112,21 @@ namespace LogicSystem
             std::cout << "Resolvent By Node in SLITree " << corresponding_node->literal.toString(kb) << " with Input Clause " << current_state->resolution_pair.kb_clause.toString(kb) << std::endl;
             current_state->tree->print_tree(kb);
 
+            // 1. 执行t-extension (添加新节点)
             auto resolvent_nodes = current_state->tree->add_node(
                 current_state->resolution_pair.kb_clause,
                 current_state->resolution_pair.resolving_literal,
                 true,
                 corresponding_node);
+
+            // 在t-extension之后，检查AC和MC条件
+            if (!current_state->tree->check_all_nodes_AC() || !current_state->tree->check_all_nodes_MC())
+            {
+                std::cout << "can not satisfy AC OR MC " << std::endl;
+                current_state->tree->print_tree(kb);
+                return false;
+                continue;
+            }
 
             // 使用hasSelfLoop()来判断
             // if (current_state.tree->hasSelfLoop())
@@ -137,6 +152,12 @@ namespace LogicSystem
                 checkAndTruncateNode(corresponding_node, *current_state->tree);
             }
 
+            // 在t-truncation之后，只需要检查AC条件
+            if (!current_state->tree->check_all_nodes_AC())
+            {
+                continue;
+            }
+
             // std::cout << "Tree After add nodes and truncate " << std::endl;
             // current_state->tree->print_tree(kb);
 
@@ -147,22 +168,46 @@ namespace LogicSystem
             // }
 
             // 应用归约规则
+            // 是否满足AC MC条件
+            bool isSatisfy = true;
             auto factoring_pairs = findPotentialFactoringPairs(resolvent_nodes,
                                                                current_state->tree->getDepthMap(),
                                                                kb);
             for (const auto &[upper_node, lower_node] : factoring_pairs)
             {
+                // 发现不满足AC MC条件 丢弃这个状态
+                if (!isSatisfy)
+                {
+                    break;
+                }
                 if (current_state->tree->t_factoring(upper_node, lower_node))
                 {
-                    std::cout << "Applied t-factoring successfully between nodes:\n";
-                    std::cout << "Upper node: " << upper_node->literal.toString(kb) << " node id " << upper_node->node_id << " is active " << upper_node -> is_active << "\n";
-                    std::cout << "Lower node: " << lower_node->literal.toString(kb) << " node id " << lower_node->node_id << " is active " << upper_node -> is_active << "\n";
+                    // std::cout << "Applied t-factoring successfully between nodes:\n";
+                    // std::cout << "Upper node: " << upper_node->literal.toString(kb) << " node id " << upper_node->node_id << " is active " << upper_node->is_active << "\n";
+                    // std::cout << "Lower node: " << lower_node->literal.toString(kb) << " node id " << lower_node->node_id << " is active " << upper_node->is_active << "\n";
 
+                    // 在t-factoring之后，只需要检查MC条件
+                    if (!current_state->tree->check_all_nodes_MC())
+                    {
+                        isSatisfy = false;
+                        break;
+                    }
                     if (auto parent = lower_node->parent.lock())
                     {
                         checkAndTruncateNode(parent, *current_state->tree);
+                        // 在t-truncation之后，只需要检查AC条件
+                        if (!current_state->tree->check_all_nodes_AC())
+                        {
+                            isSatisfy = false;
+                            break;
+                        }
                     }
                 }
+            }
+            // 发现不满足AC MC条件 丢弃这个状态
+            if (!isSatisfy)
+            {
+                continue;
             }
 
             // std::cout << "Tree After factoring " << std::endl;
@@ -176,15 +221,37 @@ namespace LogicSystem
             auto ancestry_pairs = findPotentialAncestryPairs(resolvent_nodes, kb);
             for (const auto &[ancestor, descendant] : ancestry_pairs)
             {
+                // 发现不满足AC MC条件 丢弃这个状态
+                if (!isSatisfy)
+                {
+                    break;
+                }
                 if (current_state->tree->t_ancestry(ancestor, descendant))
                 {
+                    // 在t-ancestry之后，只需要检查MC条件
+                    if (!current_state->tree->check_all_nodes_MC())
+                    {
+                        isSatisfy = false;
+                        break;
+                    }
                     // std::cout << "Applied t-ancestry successfully" << std::endl;
 
                     if (auto parent = descendant->parent.lock())
                     {
                         checkAndTruncateNode(parent, *current_state->tree);
+                        // 在t-truncation之后，只需要检查AC条件
+                        if (!current_state->tree->check_all_nodes_AC())
+                        {
+                            isSatisfy = false;
+                            break;
+                        }
                     }
                 }
+            }
+            // 发现不满足AC MC条件 丢弃这个状态
+            if (!isSatisfy)
+            {
+                continue;
             }
 
             // std::cout << "Tree After ancestry and truncate " << std::endl;

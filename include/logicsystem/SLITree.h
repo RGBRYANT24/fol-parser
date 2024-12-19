@@ -42,6 +42,20 @@ namespace LogicSystem
         void truncate(std::shared_ptr<SLINode> node);
         void rollback();
 
+        // 获取δL集合
+        std::vector<Literal> get_delta_L(std::shared_ptr<SLINode> L_node) const;
+        // 获取γL集合
+        std::vector<Literal> get_gamma_L(std::shared_ptr<SLINode> L_node) const;
+
+        // 检查一个节点是否满足AC条件
+        bool check_AC(std::shared_ptr<SLINode> L_node) const;
+        // 检查一个节点是否满足MC条件
+        bool check_MC(const std::shared_ptr<SLINode> &node) const;
+        // 检查所有节点是否满足AC条件
+        bool check_all_nodes_AC() const;
+        // 检查所有节点是否满足MC条件
+        bool check_all_nodes_MC() const;
+
         // 查找操作
         std::shared_ptr<SLINode> find_literal(const Literal &literal) const;
         std::vector<std::shared_ptr<SLINode>> get_active_nodes_at_depth(int depth) const;
@@ -105,7 +119,8 @@ namespace LogicSystem
         // 清理depth_map中的空层
         void cleanup_empty_depths();
 
-        
+        // 辅助函数 检查是否有两个原子
+        bool have_same_atom(const Literal &lit1, const Literal &lit2) const;
 
         // 检查两个节点是否等价
         bool areNodesEquivalent(const std::shared_ptr<SLINode> &node1,

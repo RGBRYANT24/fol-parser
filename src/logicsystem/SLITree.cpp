@@ -540,21 +540,21 @@ namespace LogicSystem
     }
 
     // 获取γL集合
-    std::vector<Literal> SLITree::get_gamma_L(std::shared_ptr<SLINode> L_node) const
+    std::vector<std::shared_ptr<SLINode>> SLITree::get_gamma_L(std::shared_ptr<SLINode> L_node) const
     {
-        std::vector<Literal> gamma_L;
+        std::vector<std::shared_ptr<SLINode>> gamma_L;
 
         // 从L节点向上遍历到根节点
         auto current = L_node;
         while (auto parent = current->parent.lock())
         {
             // 对路径上的每个节点,收集其B-literal子节点
-            for (const auto &sibling : parent->children)
+            for (auto &sibling : parent->children)
             {
                 // 排除L节点本身
                 if (!sibling->is_A_literal && sibling != L_node)
                 {
-                    gamma_L.push_back(sibling->literal);
+                    gamma_L.push_back(sibling);
                 }
             }
             current = parent;
@@ -563,9 +563,9 @@ namespace LogicSystem
     }
 
     // 获取δL集合
-    std::vector<Literal> SLITree::get_delta_L(std::shared_ptr<SLINode> L_node) const
+    std::vector<std::shared_ptr<SLINode>> SLITree::get_delta_L(std::shared_ptr<SLINode> L_node) const
     {
-        std::vector<Literal> delta_L;
+        std::vector<std::shared_ptr<SLINode>> delta_L;
 
         // 从L节点向上遍历到根节点
         auto current = L_node;
@@ -574,7 +574,7 @@ namespace LogicSystem
             // 收集路径上的所有A-literal
             if (parent->is_A_literal)
             {
-                delta_L.push_back(parent->literal);
+                delta_L.push_back(parent);
             }
             current = parent;
         }
@@ -592,13 +592,15 @@ namespace LogicSystem
         // 这一步只检查B-lit
         if (!L_node->is_A_literal)
         {
-            gamma_L.push_back(L_node->literal);
+            gamma_L.push_back(L_node);
             for (size_t i = 0; i < gamma_L.size(); i++)
             {
                 for (size_t j = i + 1; j < gamma_L.size(); j++)
                 {
                     if (have_same_atom(gamma_L[i], gamma_L[j]))
                     {
+                        std::cout << "check_AC CONDITION 1 FAILED NODES: " << std::endl;
+                        std::cout << "lit1 " << gamma_L[i]->literal.toString(kb) << " node2 " << gamma_L[j]->literal.toString(kb) << std::endl;
                         return false;
                     }
                 }
@@ -606,13 +608,16 @@ namespace LogicSystem
         }
 
         // 检查条件(ii): δL ∪ {L}中不能有相同atom的literals
-        delta_L.push_back(L_node->literal);
+        delta_L.push_back(L_node);
         for (size_t i = 0; i < delta_L.size(); i++)
         {
             for (size_t j = i + 1; j < delta_L.size(); j++)
             {
                 if (have_same_atom(delta_L[i], delta_L[j]))
                 {
+                    std::cout << "check_AC CONDITION 2 FAILED NODES: " << std::endl;
+                    std::cout << "lit1 " << delta_L[i]->literal.toString(kb) << " node2 " << delta_L[j]->literal.toString(kb) << std::endl;
+                    return false;
                     return false;
                 }
             }
@@ -626,6 +631,8 @@ namespace LogicSystem
         // 如果是叶子节点且是A-literal，则违反MC条件
         if (node->children.empty() && node->is_A_literal)
         {
+            std::cout << "check_MC FAILED NODE: " << std::endl;
+            this->print_node_info(node, kb, "", true);
             return false;
         }
 
@@ -676,8 +683,10 @@ namespace LogicSystem
     }
 
     // 辅助函数：检查两个literal是否有相同的atom
-    bool SLITree::have_same_atom(const Literal &lit1, const Literal &lit2) const
+    bool SLITree::have_same_atom(const std::shared_ptr<SLINode> &node1, const std::shared_ptr<SLINode> &node2) const
     {
+        Literal lit1 = node1 -> literal;
+        Literal lit2 = node2 -> literal;
         // 如果谓词ID相同且参数相同（忽略否定符号），则认为是相同的atom
         return (lit1.getPredicateId() == lit2.getPredicateId() &&
                 lit1.getArgumentIds() == lit2.getArgumentIds());
@@ -952,6 +961,26 @@ namespace LogicSystem
 
         return active_nodes;
     }
+
+    std::vector<std::shared_ptr<SLINode>> SLITree::get_all_B_literals()
+        {
+            std::vector<std::shared_ptr<SLINode>> B_literals;
+
+            // 遍历depth_map中的所有层
+            for (const auto &level : depth_map)
+            {
+                // 遍历每一层中的所有节点
+                for (const auto &node : level)
+                {
+                    // 检查节点是否有效且不是A-literal
+                    if (node && node->is_active && !node->is_A_literal && !node->literal.isEmpty())
+                    {
+                        B_literals.push_back(node);
+                    }
+                }
+            }
+            return B_literals;
+        }
 
     size_t SLITree::computeStateHash() const
     {

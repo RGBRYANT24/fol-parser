@@ -342,7 +342,7 @@ namespace LogicSystem
         }
 
         // 检查深度是否正确, upper > lower
-        if (upper_node->depth >= lower_node->depth)
+        if (upper_node->depth > lower_node->depth)
         {
             std::cout << "deepth wrong in t-factoring" << std::endl;
             std::cout << "upper_node depth " << upper_node->depth << " lower_node_deepth " << lower_node->depth << std::endl;

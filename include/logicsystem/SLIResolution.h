@@ -5,42 +5,50 @@
 #include "SLITree.h"
 #include "KnowledgeBase.h"
 #include "SearchStrategy.h"
+#include "StateManager.h"
+#include "SLIOperation.h"
 #include <optional>
 #include <vector>
 
 namespace LogicSystem
 {
-    struct ProofState
-    {
-        int state_id;
-        std::shared_ptr<ProofState> parent;
-        SLIResolutionPair resolution_pair;
-        std::unique_ptr<SLITree> tree;
-
-        ProofState(const SLIResolutionPair &pair,
-                   std::unique_ptr<SLITree> t,
-                   std::shared_ptr<ProofState> p = nullptr)
-            : resolution_pair(pair), tree(std::move(t)), parent(p)
-        {
-            static int next_id = 0;
-            state_id = next_id++;
-        }
-    };
-
     class SLIResolution
     {
     public:
         static bool prove(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy);
+        static bool prove(KnowledgeBase &kb, const Clause &goal);
+
+        // 辅助函数：生成t-extension状态
+        static void generateExtensionStates(
+            KnowledgeBase &kb,
+            const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
+
+        // 辅助函数：生成t-factoring状态
+        static void generateFactoringStates(
+            const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
+
+        // 辅助函数：生成t-ancestry状态
+        static void generateAncestryStates(
+            const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
+
+        // 辅助函数：生成t-truncate状态
+        static void generateTruncateStates(
+            const std::shared_ptr<SLINode> &node,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
 
     private:
-        static std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>> findPotentialFactoringPairs(
-            const std::vector<std::shared_ptr<SLINode>> &new_nodes,
-            const std::vector<std::vector<std::shared_ptr<SLINode>>> &depth_map,
-            KnowledgeBase &kb);
+        static std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
+        findPotentialAncestryPairs(const std::shared_ptr<SLITree> &tree);
 
         static std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
-        findPotentialAncestryPairs(const std::vector<std::shared_ptr<SLINode>> &new_nodes,
-                                   KnowledgeBase &kb);
+        findPotentialFactoringPairs(const std::shared_ptr<SLITree> &tree);
 
         static bool checkEmptyClause(const SLITree &tree);
 
@@ -49,7 +57,7 @@ namespace LogicSystem
                                          const Literal &resolving_literal);
         static void checkAndTruncateNode(const std::shared_ptr<SLINode> &node, SLITree &tree);
 
-        // 用于存储已访问状态的哈希值
+                // 用于存储已访问状态的哈希值
         static std::unordered_set<size_t> visited_states;
 
         static void printProofPath(std::shared_ptr<ProofState> state, KnowledgeBase &kb);

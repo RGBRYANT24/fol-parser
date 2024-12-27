@@ -373,6 +373,7 @@ TEST_F(SLITreeTest, TFactoring)
     auto nodes7 = tree.add_node(c8, Literal(), false, tree.getRoot());
     ASSERT_EQ(nodes7.size(), 2);
 
+    tree.print_tree(kb);
     result = tree.t_factoring(nodes7[0], nodes7[1]);
     EXPECT_TRUE(result);
     tree.print_tree(kb);
@@ -597,18 +598,18 @@ TEST_F(SLITreeTest, GetGammaLAndDeltaL)
 
     // 子句2: ¬B(x) ∨ C(x) ∨ D(x)
     Clause c2;
-    Literal l2a(pred_B, {var_x}, true); // ¬B(x)
-    Literal l2b(pred_C, {var_x}, false);  // C(x)
-    Literal l2c(pred_D, {var_x}, false);  // D(x)
+    Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+    Literal l2b(pred_C, {var_x}, false); // C(x)
+    Literal l2c(pred_D, {var_x}, false); // D(x)
     c2.addLiteral(l2a);
     c2.addLiteral(l2b);
     c2.addLiteral(l2c);
 
     // 子句3: ¬C(x) E(x) F(x)
     Clause c3;
-    Literal l3a(pred_C, {var_x}, true); // ¬C(x)
-    Literal l3b(pred_E, {var_x}, false);  // E(x)
-    Literal l3c(pred_F, {var_x}, false);  // F(x)
+    Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+    Literal l3b(pred_E, {var_x}, false); // E(x)
+    Literal l3c(pred_F, {var_x}, false); // F(x)
     c3.addLiteral(l3a);
     c3.addLiteral(l3b);
     c3.addLiteral(l3c);
@@ -624,54 +625,54 @@ TEST_F(SLITreeTest, GetGammaLAndDeltaL)
     auto lit_D = add_nodes[1];
     tree.print_tree(kb);
     // add ¬C(x)∨E(x)∨F(x)
-    add_nodes = tree.add_node(c3, l3a, false, add_nodes[0]);\
+    add_nodes = tree.add_node(c3, l3a, false, add_nodes[0]);
     auto lit_E = add_nodes[0];
     auto lit_F = add_nodes[1];
     // Print tree for visualization
     std::cout << "\nTest Tree Structure:" << std::endl;
     tree.print_tree(kb);
 
-//        e*
-//     /     \
+    //        e*
+    //     /     \
 //    a       b*
-//          /    \
+    //          /    \
 //         c*     d
-//       /   \
+    //       /   \
 //      e     f
 
     // 获取节点E(x) e的gammal_l = {f,d,a}
     auto gamma_L = tree.get_gamma_L(lit_E);
     ASSERT_EQ(gamma_L.size(), 3);
-    for(const auto lit : gamma_L)
+    for (const auto node : gamma_L)
     {
-        std::cout << lit.toString(kb) << " ";
+        std::cout << node->literal.toString(kb) << " ";
     }
     std::cout << std::endl;
-    ASSERT_EQ(gamma_L[2], l1a);//F
-    ASSERT_EQ(gamma_L[1], l2c);//D
-    ASSERT_EQ(gamma_L[0], l3c);//A
+    ASSERT_EQ(gamma_L[2]->literal, l1a); // F
+    ASSERT_EQ(gamma_L[1]->literal, l2c); // D
+    ASSERT_EQ(gamma_L[0]->literal, l3c); // A
 
     // 获取节点F(x) 的gammal_l = {e,d,a}
     gamma_L = tree.get_gamma_L(lit_F);
     ASSERT_EQ(gamma_L.size(), 3);
-    for(const auto lit : gamma_L)
+    for (const auto node : gamma_L)
     {
-        std::cout << lit.toString(kb) << " ";
+        std::cout << node->literal.toString(kb) << " ";
     }
     std::cout << std::endl;
-    ASSERT_EQ(gamma_L[2], l1a);//A
-    ASSERT_EQ(gamma_L[1], l2c);//D
-    ASSERT_EQ(gamma_L[0], l3b);//E
+    ASSERT_EQ(gamma_L[2]->literal, l1a); // A
+    ASSERT_EQ(gamma_L[1]->literal, l2c); // D
+    ASSERT_EQ(gamma_L[0]->literal, l3b); // E
 
     // 获取节点D(x) 的gammal_l = {a}
     gamma_L = tree.get_gamma_L(lit_D);
     ASSERT_EQ(gamma_L.size(), 1);
-    for(const auto lit : gamma_L)
+    for (const auto node : gamma_L)
     {
-        std::cout << lit.toString(kb) << " ";
+        std::cout << node->literal.toString(kb) << " ";
     }
     std::cout << std::endl;
-    ASSERT_EQ(gamma_L[0], l1a);//A
+    ASSERT_EQ(gamma_L[0]->literal, l1a); // A
 
     // 获取节点A(x) 的gammal_l = {}
     gamma_L = tree.get_gamma_L(lit_A);
@@ -685,13 +686,69 @@ TEST_F(SLITreeTest, GetGammaLAndDeltaL)
     // 获取节点E(x) delta_l = {f,d,a}
     auto delta_L = tree.get_delta_L(lit_E);
     ASSERT_EQ(delta_L.size(), 2);
-    for(const auto lit : delta_L)
+    for (const auto node : delta_L)
     {
-        std::cout << lit.toString(kb) << " ";
+        std::cout << node->literal.toString(kb) << " ";
     }
     std::cout << std::endl;
-    ASSERT_EQ(delta_L[0], l2b);//C
-    ASSERT_EQ(delta_L[1], l1b);//B
+    ASSERT_EQ(delta_L[0]->literal, l2b); // C
+    ASSERT_EQ(delta_L[1]->literal, l1b); // B
+}
+
+TEST_F(SLITreeTest, ACandMCCheckTest)
+{
+    // 子句1: A(x) ∨ B(x)
+    Clause c1;
+    Literal l1a(pred_A, {var_x}, false); // A(x)
+    Literal l1b(pred_B, {var_x}, false); // B(x)
+    c1.addLiteral(l1a);
+    c1.addLiteral(l1b);
+
+    // 子句2: ¬B(x) ∨ C(x) ∨ D(x)
+    Clause c2;
+    Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+    Literal l2b(pred_C, {var_x}, false); // C(x)
+    Literal l2c(pred_D, {var_x}, false); // D(x)
+    c2.addLiteral(l2a);
+    c2.addLiteral(l2b);
+    c2.addLiteral(l2c);
+
+    // 子句3: ¬C(x) E(x) F(x)
+    Clause c3;
+    Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+    Literal l3b(pred_E, {var_x}, false); // E(x)
+    Literal l3c(pred_F, {var_x}, false); // F(x)
+    c3.addLiteral(l3a);
+    c3.addLiteral(l3b);
+    c3.addLiteral(l3c);
+
+    SLITree tree(kb);
+
+    // add A(x) ∨ B(x)
+    auto add_nodes = tree.add_node(c1, Literal(), false, tree.getRoot());
+    auto lit_A = add_nodes[0];
+    tree.print_tree(kb);
+    // add ¬B(x) ∨ C(x) D(x)
+    add_nodes = tree.add_node(c2, l2a, false, add_nodes[1]);
+    auto lit_D = add_nodes[1];
+    tree.print_tree(kb);
+    // add ¬C(x)∨E(x)∨F(x)
+    add_nodes = tree.add_node(c3, l3a, false, add_nodes[0]);
+    auto lit_E = add_nodes[0];
+    auto lit_F = add_nodes[1];
+    // Print tree for visualization
+    std::cout << "\nTest Tree Structure:" << std::endl;
+    tree.print_tree(kb);
+
+    //        e*
+    //     /     \
+//    a       b*
+    //          /    \
+//         c*     d
+    //       /   \
+//      e     f
 
 
+    ASSERT_TRUE(tree.check_all_nodes_AC());
+    ASSERT_TRUE(tree.check_all_nodes_MC());
 }

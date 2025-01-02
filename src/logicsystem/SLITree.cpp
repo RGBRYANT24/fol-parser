@@ -552,7 +552,8 @@ namespace LogicSystem
             for (auto &sibling : parent->children)
             {
                 // 排除L节点本身
-                if (!sibling->is_A_literal && sibling != L_node)
+                //添加is_active 限制
+                if (!sibling->is_A_literal && sibling != L_node && sibling->is_active)
                 {
                     gamma_L.push_back(sibling);
                 }

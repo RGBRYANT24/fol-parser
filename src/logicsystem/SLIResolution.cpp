@@ -155,12 +155,14 @@ namespace LogicSystem
         {
             // 获取当前node的gamma_L集合
             auto gamma_nodes = tree->get_gamma_L(node);
-
+            //std::cout << "node " << node->node_id << " gamma_nodes size " << gamma_nodes.size() << std::endl;
             // 遍历gamma_node 检查是否能进行factoring
             for (const auto &node_m : gamma_nodes)
             {
-                // 只在第一个节点的地址小于第二个节点的地址时才添加配对
-                if (node.get() < node_m.get() &&
+                // 只在第一个节点的地址大于第二个节点的地址时才添加配对 因为第一个节点node是下层的节点 后添加的 地址会大
+                if (node != node_m &&
+                    node->node_id > node_m->node_id &&
+                    // (node->depth == node_m->depth && node.get() > node_m.get()) &&
                     node->literal.getPredicateId() == node_m->literal.getPredicateId() &&
                     node->literal.isNegated() == node_m->literal.isNegated() &&
                     node->literal.getArgumentIds().size() == node_m->literal.getArgumentIds().size())

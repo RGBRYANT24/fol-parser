@@ -42,14 +42,13 @@ namespace LogicSystem
             const std::shared_ptr<SLINode> &node,
             const std::shared_ptr<SLIOperation::OperationState> &current_state,
             std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
-
-    private:
         static std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
         findPotentialAncestryPairs(const std::shared_ptr<SLITree> &tree);
 
         static std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
         findPotentialFactoringPairs(const std::shared_ptr<SLITree> &tree);
 
+    private:
         static bool checkEmptyClause(const SLITree &tree);
 
         static double calculateHeuristic(const Clause &kb_clause,
@@ -57,7 +56,7 @@ namespace LogicSystem
                                          const Literal &resolving_literal);
         static void checkAndTruncateNode(const std::shared_ptr<SLINode> &node, SLITree &tree);
 
-                // 用于存储已访问状态的哈希值
+        // 用于存储已访问状态的哈希值
         static std::unordered_set<size_t> visited_states;
 
         static void printProofPath(std::shared_ptr<ProofState> state, KnowledgeBase &kb);

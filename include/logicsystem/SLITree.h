@@ -32,6 +32,11 @@ namespace LogicSystem
         {
             return root;
         }
+        // 深拷贝方法
+        std::shared_ptr<SLITree> deepCopy() const
+        {
+            return std::make_shared<SLITree>(*this, root); // 使用拷贝构造函数
+        }
         // 添加拷贝构造函数声明
         SLITree(const SLITree &other, std::shared_ptr<SLINode> startNode);
         // 核心操作

@@ -39,14 +39,18 @@ namespace LogicSystem
 
         // 辅助函数：生成t-truncate状态
         static void generateTruncateStates(
-            const std::shared_ptr<SLINode> &node,
+            const std::vector<std::shared_ptr<SLINode>> &active_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &current_state,
             std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
+            
         static std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
         findPotentialAncestryPairs(const std::shared_ptr<SLITree> &tree);
 
         static std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
         findPotentialFactoringPairs(const std::shared_ptr<SLITree> &tree);
+
+        static std::vector<std::shared_ptr<SLINode>> findPotentialTruncateNodes(
+            const std::shared_ptr<SLITree> &tree);
 
     private:
         static bool checkEmptyClause(const SLITree &tree);

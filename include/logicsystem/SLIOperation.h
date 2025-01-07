@@ -19,6 +19,23 @@ namespace LogicSystem
         TRUNCATE
     };
 
+    inline std::string SLI_Action_to_string(SLIActionType action)
+    {
+        switch (action)
+        {
+        case SLIActionType::EXTENSION:
+            return "EXTENSION";
+        case SLIActionType::FACTORING:
+            return "FACTORING";
+        case SLIActionType::ANCESTRY:
+            return "ANCESTRY";
+        case SLIActionType::TRUNCATE:
+            return "TRUNCATE";
+        default:
+            return "UNKNOWN"; // 防止未定义的行为
+        }
+    }
+
     // 第二操作数的变体类型：可以是SLI节点指针或文字
     using SecondOperand = std::variant<std::shared_ptr<SLINode>, Literal>;
 
@@ -32,7 +49,7 @@ namespace LogicSystem
             SLIActionType action;                   // 操作类型
             std::shared_ptr<SLINode> lit1_node;     // 第一个节点
             SecondOperand second_op;                // 第二个操作数
-            Clause kb_clause;      // 知识库子句（用于extension）
+            Clause kb_clause;                       // 知识库子句（用于extension）
             std::shared_ptr<OperationState> parent; // 父状态
             int state_id;                           // 状态ID
 
@@ -53,6 +70,42 @@ namespace LogicSystem
                 state_id = next_id++;
             }
         };
+        static std::shared_ptr<OperationState> deepCopyOperationState(
+            const std::shared_ptr<OperationState> &original_state)
+        {
+            // 深拷贝 SLITree
+            auto new_sli_tree = original_state->sli_tree->deepCopy();
+
+            // 在新树中找到对应的新节点
+            auto new_lit1_node = new_sli_tree->findNodeById(original_state->lit1_node->node_id);
+
+            // 深拷贝第二个操作数
+            SecondOperand new_second_op;
+
+            if (isNode(original_state->second_op))
+            {
+                // 如果是 SLINode，进行深拷贝
+                auto original_node = getNode(original_state->second_op);
+                auto new_node = new_sli_tree->findNodeById(original_node->node_id);
+                new_second_op = SecondOperand(new_node);
+            }
+            else if (isLiteral(original_state->second_op))
+            {
+                // 如果是 Literal，直接拷贝
+                auto original_literal = getLiteral(original_state->second_op);
+                new_second_op = SecondOperand(original_literal);
+            }
+
+            // 创建新的 OperationState
+            auto new_state = std::make_shared<OperationState>(
+                new_sli_tree,
+                original_state->action,
+                new_lit1_node,
+                new_second_op,
+                original_state->kb_clause,
+                original_state->parent);
+            return new_state;
+        }
 
         // 创建extension操作状态
         static std::shared_ptr<OperationState> createExtensionState(

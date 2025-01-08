@@ -114,6 +114,7 @@ namespace LogicSystem
 
         void print_tree(const KnowledgeBase &kb) const;
 
+        KnowledgeBase getKB() {return this->kb;}
     private:
         KnowledgeBase &kb;
         std::unordered_map<size_t, std::shared_ptr<SLINode>> literal_map;

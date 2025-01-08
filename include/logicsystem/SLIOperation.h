@@ -5,6 +5,7 @@
 #include "Literal.h"
 #include "Clause.h"
 #include <memory>
+#include <iostream>
 #include <variant>
 
 namespace LogicSystem
@@ -68,8 +69,76 @@ namespace LogicSystem
             {
                 static int next_id = 0;
                 state_id = next_id++;
+                std::cout << "[OperationState] Created state_id: " << state_id << "\n";
             }
         };
+
+        // 获取操作路径（从根到当前状态）
+        static std::vector<std::shared_ptr<OperationState>> getOperationPath(
+            const std::shared_ptr<OperationState> &state)
+        {
+            std::vector<std::shared_ptr<OperationState>> path;
+            auto current = state;
+            while (current)
+            {
+                path.push_back(current);
+                current = current->parent;
+            }
+            std::reverse(path.begin(), path.end());
+            return path;
+        }
+
+        // 打印操作路径的函数
+        static void printOperationPath(const std::shared_ptr<OperationState> &state, const KnowledgeBase &kb)
+        {
+            if (!state)
+            {
+                std::cout << "No operations to display.\n";
+                return;
+            }
+
+            // Get operation path from root to current state
+            std::vector<std::shared_ptr<OperationState>> path = getOperationPath(state);
+
+            std::cout << "\n====== Operation Path ======\n";
+
+            for (size_t i = 0; i < path.size(); ++i)
+            {
+                const auto &op = path[i];
+                std::cout << "Step " << i << ":\n";
+                std::cout << "State id " << op->state_id;
+                if (op->parent)
+                    std::cout << " Parent id " << op->parent->state_id << std::endl;
+                else
+                    std::cout << " No Parent " << std::endl;
+                std::cout << "  Operation Type: " << SLI_Action_to_string(op->action) << "\n";
+                std::cout << "  Node1 ID: " << (op->lit1_node ? std::to_string(op->lit1_node->node_id) : "NULL") << "\n";
+
+                if (isNode(op->second_op))
+                {
+                    auto node = getNode(op->second_op);
+                    std::cout << "  Node2 ID: " << (node ? std::to_string(node->node_id) : "NULL") << "\n";
+                }
+                else if (isLiteral(op->second_op))
+                {
+                    auto lit = getLiteral(op->second_op);
+                    std::cout << "  Literal: " << lit.toString(kb) << "\n";
+                }
+                // 打印 kb_clause（如果存在）
+                if (!op->kb_clause.isEmpty())
+                {
+                    std::cout << "  KB Clause: " << op->kb_clause.toString(kb) << "\n";
+                }
+
+                // Print current tree state
+                std::cout << "  Current Tree State:\n";
+                op->sli_tree->print_tree(kb);
+                std::cout << "----------------------\n";
+            }
+
+            std::cout << "====== End of Operation Path ======\n";
+        }
+
         static std::shared_ptr<OperationState> deepCopyOperationState(
             const std::shared_ptr<OperationState> &original_state)
         {
@@ -77,7 +146,21 @@ namespace LogicSystem
             auto new_sli_tree = original_state->sli_tree->deepCopy();
 
             // 在新树中找到对应的新节点
-            auto new_lit1_node = new_sli_tree->findNodeById(original_state->lit1_node->node_id);
+            std::shared_ptr<SLINode> new_lit1_node;
+            if (original_state->lit1_node)
+            {
+                new_lit1_node = new_sli_tree->findNodeById(original_state->lit1_node->node_id);
+                if (new_lit1_node == nullptr)
+                {
+                    throw std::runtime_error(
+                        "Failed to find the corresponding node in the new tree. Node ID: " + std::to_string(original_state->lit1_node->node_id));
+                }
+            }
+            else
+            {
+                new_lit1_node = nullptr;
+            }
+            std::cout << "finish copy new_lit1_node \n";
 
             // 深拷贝第二个操作数
             SecondOperand new_second_op;
@@ -86,8 +169,21 @@ namespace LogicSystem
             {
                 // 如果是 SLINode，进行深拷贝
                 auto original_node = getNode(original_state->second_op);
-                auto new_node = new_sli_tree->findNodeById(original_node->node_id);
-                new_second_op = SecondOperand(new_node);
+                if (!original_node)
+                {
+                    // 处理 second_op 是 null 的情况
+                    new_second_op = SecondOperand(std::shared_ptr<SLINode>(nullptr));
+                }
+                else
+                {
+                    auto new_node = new_sli_tree->findNodeById(original_node->node_id);
+                    if (!new_node)
+                    {
+                        throw std::runtime_error(
+                            "Failed to find the corresponding second node in the new tree. Node ID: " + std::to_string(original_node->node_id));
+                    }
+                    new_second_op = SecondOperand(new_node);
+                }
             }
             else if (isLiteral(original_state->second_op))
             {
@@ -95,15 +191,21 @@ namespace LogicSystem
                 auto original_literal = getLiteral(original_state->second_op);
                 new_second_op = SecondOperand(original_literal);
             }
+            else
+            {
+                throw std::runtime_error("second_op holds an unknown type for state_id: " + std::to_string(original_state->state_id));
+            }
+            std::cout << "finish copy new_second_op \n";
 
-            // 创建新的 OperationState
+            // 创建新的 OperationState，保持 parent 指向原始 parent
             auto new_state = std::make_shared<OperationState>(
                 new_sli_tree,
                 original_state->action,
                 new_lit1_node,
                 new_second_op,
                 original_state->kb_clause,
-                original_state->parent);
+                original_state->parent); // 这里保持 parent 指向原始 parent
+
             return new_state;
         }
 
@@ -232,19 +334,19 @@ namespace LogicSystem
         }
 
         // 获取操作路径（从根到当前状态）
-        static std::vector<std::shared_ptr<OperationState>> getOperationPath(
-            const std::shared_ptr<OperationState> &state)
-        {
-            std::vector<std::shared_ptr<OperationState>> path;
-            auto current = state;
-            while (current)
-            {
-                path.push_back(current);
-                current = current->parent;
-            }
-            std::reverse(path.begin(), path.end());
-            return path;
-        }
+        // static std::vector<std::shared_ptr<OperationState>> getOperationPath(
+        //     const std::shared_ptr<OperationState> &state)
+        // {
+        //     std::vector<std::shared_ptr<OperationState>> path;
+        //     auto current = state;
+        //     while (current)
+        //     {
+        //         path.push_back(current);
+        //         current = current->parent;
+        //     }
+        //     std::reverse(path.begin(), path.end());
+        //     return path;
+        // }
     };
 
 } // namespace LogicSystem

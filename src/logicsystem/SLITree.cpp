@@ -552,7 +552,7 @@ namespace LogicSystem
             for (auto &sibling : parent->children)
             {
                 // 排除L节点本身
-                //添加is_active 限制
+                // 添加is_active 限制
                 if (!sibling->is_A_literal && sibling != L_node && sibling->is_active)
                 {
                     gamma_L.push_back(sibling);
@@ -686,8 +686,8 @@ namespace LogicSystem
     // 辅助函数：检查两个literal是否有相同的atom
     bool SLITree::have_same_atom(const std::shared_ptr<SLINode> &node1, const std::shared_ptr<SLINode> &node2) const
     {
-        Literal lit1 = node1 -> literal;
-        Literal lit2 = node2 -> literal;
+        Literal lit1 = node1->literal;
+        Literal lit2 = node2->literal;
         // 如果谓词ID相同且参数相同（忽略否定符号），则认为是相同的atom
         return (lit1.getPredicateId() == lit2.getPredicateId() &&
                 lit1.getArgumentIds() == lit2.getArgumentIds());
@@ -830,12 +830,12 @@ namespace LogicSystem
         }
     }
 
-    // 在SLITree.cpp中
+    // SLITree.cpp  中实现拷贝构造函数
     SLITree::SLITree(const SLITree &other, std::shared_ptr<SLINode> startNode)
         : kb(other.kb)
     {
-        // 创建节点映射表，用于维护新旧节点的对应关系
-        std::unordered_map<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>> nodeMap;
+        // 创建节点映射表，使用 node_id 作为键
+        std::unordered_map<int, std::shared_ptr<SLINode>> nodeMap;
 
         // 复制根节点
         root = std::make_shared<SLINode>(other.root->literal,
@@ -843,9 +843,9 @@ namespace LogicSystem
                                          other.root->node_id);
         root->depth = 0;
         root->is_active = other.root->is_active;
-        nodeMap[other.root] = root;
+        nodeMap[other.root->node_id] = root;
 
-        // 从根节点开始，按层复制整棵树
+        // 按层复制整棵树
         for (size_t depth = 0; depth < other.depth_map.size(); ++depth)
         {
             for (const auto &oldNode : other.depth_map[depth])
@@ -862,19 +862,23 @@ namespace LogicSystem
                 newNode->substitution = oldNode->substitution;
                 newNode->rule_applied = oldNode->rule_applied;
 
-                // 找到并设置父节点
+                // 设置父节点
                 if (auto oldParent = oldNode->parent.lock())
                 {
-                    auto it = nodeMap.find(oldParent);
+                    auto it = nodeMap.find(oldParent->node_id);
                     if (it != nodeMap.end())
                     {
                         newNode->parent = it->second;
                         it->second->children.push_back(newNode);
                     }
+                    else
+                    {
+                        std::cerr << "Parent node_id " << oldParent->node_id << " not found in nodeMap.\n";
+                    }
                 }
 
                 // 将新节点加入映射表
-                nodeMap[oldNode] = newNode;
+                nodeMap[oldNode->node_id] = newNode;
             }
         }
 
@@ -884,10 +888,14 @@ namespace LogicSystem
         {
             for (auto &node : level)
             {
-                auto it = nodeMap.find(node);
-                if (it != nodeMap.end())
+                if (nodeMap.find(node->node_id) != nodeMap.end())
                 {
-                    node = it->second;
+                    node = nodeMap[node->node_id];
+                }
+                else
+                {
+                    std::cerr << "Node with node_id " << node->node_id << " not found in nodeMap.\n";
+                    node = nullptr; // 或者其他错误处理
                 }
             }
         }
@@ -895,10 +903,13 @@ namespace LogicSystem
         // 复制文字映射
         for (const auto &[hash, oldNode] : other.literal_map)
         {
-            auto it = nodeMap.find(oldNode);
-            if (it != nodeMap.end())
+            if (nodeMap.find(oldNode->node_id) != nodeMap.end())
             {
-                literal_map[hash] = it->second;
+                literal_map[hash] = nodeMap[oldNode->node_id];
+            }
+            else
+            {
+                std::cerr << "Literal map node_id " << oldNode->node_id << " not found in nodeMap.\n";
             }
         }
     }
@@ -964,24 +975,24 @@ namespace LogicSystem
     }
 
     std::vector<std::shared_ptr<SLINode>> SLITree::get_all_B_literals()
-        {
-            std::vector<std::shared_ptr<SLINode>> B_literals;
+    {
+        std::vector<std::shared_ptr<SLINode>> B_literals;
 
-            // 遍历depth_map中的所有层
-            for (const auto &level : depth_map)
+        // 遍历depth_map中的所有层
+        for (const auto &level : depth_map)
+        {
+            // 遍历每一层中的所有节点
+            for (const auto &node : level)
             {
-                // 遍历每一层中的所有节点
-                for (const auto &node : level)
+                // 检查节点是否有效且不是A-literal
+                if (node && node->is_active && !node->is_A_literal && !node->literal.isEmpty())
                 {
-                    // 检查节点是否有效且不是A-literal
-                    if (node && node->is_active && !node->is_A_literal && !node->literal.isEmpty())
-                    {
-                        B_literals.push_back(node);
-                    }
+                    B_literals.push_back(node);
                 }
             }
-            return B_literals;
         }
+        return B_literals;
+    }
 
     size_t SLITree::computeStateHash() const
     {

@@ -10,19 +10,13 @@ namespace LogicSystem
     {
         // 创建初始状态
         auto initialTree = std::make_shared<SLITree>(kb);
-        // auto initial_nodes = initialTree->add_node(goal, Literal(), false, initialTree->getRoot());
-
-        // if (initial_nodes.empty())
-        // {
-        //     return false;
-        // }
 
         // 创建初始操作状态
         auto initial_state = SLIOperation::createExtensionState(
             initialTree,
             initialTree->getRoot(), // 使用第一个节点作为起始节点
-            Literal(),        // 空文字
-            goal              // 目标子句
+            Literal(),              // 空文字
+            goal                    // 目标子句
         );
 
         // 搜索栈
@@ -30,18 +24,40 @@ namespace LogicSystem
         state_stack.push(initial_state);
 
         std::shared_ptr<SLIOperation::OperationState> successful_state = nullptr;
-        
+        std::shared_ptr<SLIOperation::OperationState> last_state = nullptr;
+
         int count = 0;
         while (!state_stack.empty())
         {
-            count ++;
-            if(count >= 10)
+            count++;
+            std::cout << "round " << count << std::endl;
+
+            auto current_state = state_stack.top();
+            last_state = current_state;
+            state_stack.pop();
+            // std::cout << "Get new state " << std::endl;
+            // std::cout << "Current State before copy" << std::endl;
+            // SLIOperation::printOperationPath(current_state, kb);
+
+            std::shared_ptr<SLIOperation::OperationState> new_state;
+            try
             {
+                new_state = SLIOperation::deepCopyOperationState(current_state);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Error during deep copy: " << e.what() << "\n";
+                continue; // 根据需要决定是否跳过或终止
+            }
+
+            if (count >= 100)
+            {
+                SLIOperation::printOperationPath(current_state, kb);
                 return false;
             }
-            auto current_state = state_stack.top();
-            state_stack.pop();
-            auto new_state = SLIOperation::deepCopyOperationState(current_state);
+            // std::cout << "Current State " << std::endl;
+            // SLIOperation::printOperationPath(new_state, kb);
+            // std::cout << "Performing action " << SLIOperation::getActionString(new_state->action) << std::endl;
 
             // 执行操作
             switch (new_state->action)
@@ -51,17 +67,11 @@ namespace LogicSystem
                 if (SLIOperation::isLiteral(new_state->second_op))
                 {
                     auto kb_lit = SLIOperation::getLiteral(new_state->second_op);
-                    // std::cout <<"Before Perform extension" <<std::endl;
-                    // new_state->sli_tree->print_tree(kb);
                     auto new_nodes = new_state->sli_tree->add_node(
                         new_state->kb_clause,
                         kb_lit,
                         true,
                         new_state->lit1_node);
-                    // If extension successful, continue with the process
-                    // std::cout <<"After Perform extension" <<std::endl;
-                    // new_state->sli_tree->print_tree(kb);
-                    // std::cout << "parent status " << new_state->lit1_node->is_A_literal << std::endl;
                 }
                 break;
             }
@@ -85,37 +95,35 @@ namespace LogicSystem
             }
             case SLIActionType::TRUNCATE:
             {
+                // std::cout << "Performing Truncate " << std::endl;
                 new_state->sli_tree->truncate(new_state->lit1_node);
                 break;
             }
             }
-            std::cout<<"After Perform Action "<< SLI_Action_to_string(new_state->action)<<std::endl;
-            new_state->sli_tree->print_tree(kb);
 
-
-            // 状态去重检查
-            // size_t state_hash = new_state->tree->computeStateHash();
-            // if (visited_states.find(state_hash) != visited_states.end()) {
-            //     continue;
-            // }
-            // visited_states.insert(state_hash);
-
-            // 基本条件检查
-            // 基本条件检查
-            bool AC_result = new_state->sli_tree->check_all_nodes_AC();
-            bool MC_result = new_state->sli_tree->check_all_nodes_MC();
             // 检查空子句
+            // std::cout << "Check Empty Clause " << std::endl;
             if (checkEmptyClause(*new_state->sli_tree))
             {
                 successful_state = new_state;
+                // 打印操作路径
+                SLIOperation::printOperationPath(successful_state, kb);
                 return true;
             }
+
+            // 基本条件检查
+            // std::cout << "Basic Condition Test " << std::endl;
+            bool AC_result = new_state->sli_tree->check_all_nodes_AC();
+            bool MC_result = new_state->sli_tree->check_all_nodes_MC();
+            // std::cout << "After Perform Action " << SLI_Action_to_string(new_state->action) << std::endl;
+            // std::cout << "Check AC " << AC_result << " MC " << MC_result << std::endl;
+            // SLIOperation::printOperationPath(new_state, kb);
 
             auto b_lit_nodes = new_state->sli_tree->get_all_B_literals();
 
             if (AC_result && MC_result)
             {
-                
+                // std::cout << "Both AC MC Perform ALL in round " << count << std::endl;
                 // t-factoring
                 generateFactoringStates(b_lit_nodes, new_state, state_stack);
                 // t-extension
@@ -127,16 +135,18 @@ namespace LogicSystem
                                        new_state, state_stack);
             }
 
-            else if (AC_result)
+            else if (MC_result)
             {
+                // std::cout << "Only MC Perform Factoring and Ancestry in round " << count << std::endl;
                 // t-factoring
                 generateFactoringStates(b_lit_nodes, new_state, state_stack);
                 // t-ancestry
                 generateAncestryStates(b_lit_nodes, new_state, state_stack);
             }
 
-            else if (MC_result)
+            else if (AC_result)
             {
+                // std::cout << "Only AC Perform Truncate in round " << count << std::endl;
                 // t-truncate
                 generateTruncateStates(new_state->sli_tree->get_all_active_nodes(),
                                        new_state, state_stack);
@@ -146,7 +156,7 @@ namespace LogicSystem
                 continue;
             }
         }
-
+        SLIOperation::printOperationPath(last_state, kb);
         return false;
     }
 
@@ -214,6 +224,7 @@ namespace LogicSystem
 
         // 获取所有的B文字
         auto b_lit_nodes = tree->get_all_B_literals();
+        KnowledgeBase kb = tree->getKB();
 
         for (const auto &node : b_lit_nodes)
         {
@@ -223,6 +234,7 @@ namespace LogicSystem
             //  遍历gamma_node 检查是否能进行factoring
             for (const auto &node_m : gamma_nodes)
             {
+
                 // 只在第一个节点的地址大于第二个节点的地址时才添加配对 因为第一个节点node是下层的节点 后添加的 地址会大
                 if (node != node_m &&
                     node->node_id > node_m->node_id &&
@@ -231,7 +243,12 @@ namespace LogicSystem
                     node->literal.isNegated() == node_m->literal.isNegated() &&
                     node->literal.getArgumentIds().size() == node_m->literal.getArgumentIds().size())
                 {
-                    factoring_pairs.emplace_back(node, node_m);
+                    // 如果能找到MGU 才能factoring 避免出现两个具有不同常量的 谓词符号符合条件 但是不能存在MGU
+                    auto mgu = Unifier::findMGU(node->literal, node_m->literal, kb);
+                    if (mgu)
+                    {
+                        factoring_pairs.emplace_back(node, node_m);
+                    }
                 }
             }
         }
@@ -242,7 +259,7 @@ namespace LogicSystem
     SLIResolution::findPotentialAncestryPairs(const std::shared_ptr<SLITree> &tree)
     {
         std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>> ancestry_pairs;
-
+        KnowledgeBase kb = tree->getKB();
         // 获取所有的B文字
         auto b_lit_nodes = tree->get_all_B_literals();
         // std::cout << "Searching for potential ancestry pairs..." << std::endl;
@@ -259,7 +276,12 @@ namespace LogicSystem
                     current->literal.isNegated() != node->literal.isNegated() &&
                     current->literal.getArgumentIds().size() == node->literal.getArgumentIds().size())
                 {
-                    ancestry_pairs.emplace_back(current, node);
+                    // 如果能找到MGU 才能factoring 避免出现两个具有不同常量的 谓词符号符合条件 但是不能存在MGU
+                    auto mgu = Unifier::findMGU(node->literal, current->literal, kb);
+                    if (mgu)
+                    {
+                        ancestry_pairs.emplace_back(current, node);
+                    }
                 }
                 current = current->parent.lock();
             }
@@ -314,8 +336,9 @@ namespace LogicSystem
             {
                 for (const auto &lit : kb_clause.getLiterals())
                 {
-                    if (Resolution::isComplementary(node->literal, lit))
+                    if (Resolution::isComplementary(node->literal, lit) && Unifier::findMGU(node->literal, lit, kb))
                     {
+
                         // 直接使用当前树的指针
                         auto new_state = std::make_shared<SLIOperation::OperationState>(
                             current_state->sli_tree, // 还是原来的树
@@ -376,6 +399,8 @@ namespace LogicSystem
         std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack)
     {
         auto truncate_nodes = findPotentialTruncateNodes(current_state->sli_tree);
+        // std::cout << "Find Truncate Nodes " << std::endl;
+        // std::cout << "potential truncate Nodes size " << truncate_nodes.size() << std::endl;
         for (const auto &node : truncate_nodes)
         {
             auto new_state = SLIOperation::createTruncateState(
@@ -383,6 +408,14 @@ namespace LogicSystem
                 node,
                 current_state);
             state_stack.push(new_state);
+            // std::cout << "Push truncate state" << std::endl;
+            // auto top_state = state_stack.top();
+            // std::cout << "Need Truncate Tree: " << std::endl;
+            // KnowledgeBase kb = top_state->sli_tree->getKB();
+            // top_state->sli_tree->print_tree(kb);
+            // std::cout << "Action " << SLIOperation::getActionString(top_state->action) << std::endl;
+            // std::cout << "Truncate Node " << std::endl;
+            // node->print(kb);
         }
     }
 

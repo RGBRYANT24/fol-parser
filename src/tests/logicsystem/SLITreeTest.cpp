@@ -752,3 +752,255 @@ TEST_F(SLITreeTest, ACandMCCheckTest)
     ASSERT_TRUE(tree.check_all_nodes_AC());
     ASSERT_TRUE(tree.check_all_nodes_MC());
 }
+
+TEST_F(SLITreeTest, CheckAllNodes_AC_Success)
+{
+    // 子句1: A(x) ∨ B(x)
+    Clause c1;
+    Literal l1a(pred_A, {var_x}, false); // A(x)
+    Literal l1b(pred_B, {var_x}, false); // B(x)
+    c1.addLiteral(l1a);
+    c1.addLiteral(l1b);
+
+    // 子句2: ¬B(x) ∨ C(x) ∨ D(x)
+    Clause c2;
+    Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+    Literal l2b(pred_C, {var_x}, false); // C(x)
+    Literal l2c(pred_D, {var_x}, false); // D(x)
+    c2.addLiteral(l2a);
+    c2.addLiteral(l2b);
+    c2.addLiteral(l2c);
+
+    // 子句3: ¬C(x) ∨ E(x) ∨ F(x)
+    Clause c3;
+    Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+    Literal l3b(pred_E, {var_x}, false); // E(x)
+    Literal l3c(pred_F, {var_x}, false); // F(x)
+    c3.addLiteral(l3a);
+    c3.addLiteral(l3b);
+    c3.addLiteral(l3c);
+
+    SLITree tree(kb);
+
+    // 添加 A(x) ∨ B(x)
+    auto add_nodes = tree.add_node(c1, Literal(), false, tree.getRoot());
+    auto lit_A = add_nodes[0];
+    auto lit_B = add_nodes[1];
+
+    // 添加 ¬B(x) ∨ C(x) ∨ D(x)
+    add_nodes = tree.add_node(c2, l2a, false, lit_B);
+    auto lit_C = add_nodes[0];
+    auto lit_D = add_nodes[1];
+
+    // 添加 ¬C(x) ∨ E(x) ∨ F(x)
+    add_nodes = tree.add_node(c3, l3a, false, lit_C);
+    auto lit_E = add_nodes[0];
+    auto lit_F = add_nodes[1];
+
+    // 打印树结构以进行可视化
+    std::cout << "\nCheckAllNodes_AC_Success Test Tree Structure:" << std::endl;
+    tree.print_tree(kb);
+
+    // 断言所有节点满足 AC 条件
+    ASSERT_TRUE(tree.check_all_nodes_AC());
+}
+
+TEST_F(SLITreeTest, CheckAllNodes_AC_Failure)
+{
+    // 子句1: A(x) ∨ B(x)
+    Clause c1;
+    Literal l1a(pred_A, {var_x}, false); // A(x)
+    Literal l1b(pred_B, {var_x}, false); // B(x)
+    c1.addLiteral(l1a);
+    c1.addLiteral(l1b);
+
+    // 子句2: ¬B(x) ∨ C(x) ∨ D(x)
+    Clause c2;
+    Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+    Literal l2b(pred_C, {var_x}, false); // C(x)
+    Literal l2c(pred_D, {var_x}, false); // D(x)
+    c2.addLiteral(l2a);
+    c2.addLiteral(l2b);
+    c2.addLiteral(l2c);
+
+    // 子句3: ¬C(x) ∨ E(x) ∨ F(x)
+    Clause c3;
+    Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+    Literal l3b(pred_E, {var_x}, false); // E(x)
+    Literal l3c(pred_F, {var_x}, false); // F(x)
+    c3.addLiteral(l3a);
+    c3.addLiteral(l3b);
+    c3.addLiteral(l3c);
+
+    // 子句4: ¬D(x) ∨ B(x) // 这将引入一个重复的 B(x) 节点
+    Clause c4;
+    Literal l4a(pred_D, {var_x}, false); // G(x)
+    Literal l4b(pred_B, {var_x}, false); // B(x)
+    c4.addLiteral(l4a);
+    c4.addLiteral(l4b);
+
+    SLITree tree(kb);
+
+    // 添加 A(x) ∨ B(x)
+    auto add_nodes = tree.add_node(c1, Literal(), false, tree.getRoot());
+    auto lit_A = add_nodes[0];
+    auto lit_B1 = add_nodes[1];
+
+    // 添加 ¬B(x) ∨ C(x) ∨ D(x)
+    add_nodes = tree.add_node(c2, l2a, false, lit_B1);
+    auto lit_C = add_nodes[0];
+    auto lit_D = add_nodes[1];
+
+    // 添加 ¬C(x) ∨ E(x) ∨ F(x)
+    add_nodes = tree.add_node(c3, l3a, false, lit_C);
+    auto lit_E = add_nodes[0];
+    auto lit_F = add_nodes[1];
+
+    // 添加 ¬D(x) ∨ B(x)，引入重复的 B(x)
+    add_nodes = tree.add_node(c4, l4a, false, lit_D);
+    // auto lit_B = add_nodes[0];
+    auto lit_B2 = add_nodes[0];
+
+    // 打印树结构以进行可视化
+    std::cout << "\nCheckAllNodes_AC_Failure Test Tree Structure:" << std::endl;
+    tree.print_tree(kb);
+
+    // 断言 AC 条件不满足
+    ASSERT_FALSE(tree.check_all_nodes_AC());
+}
+
+TEST_F(SLITreeTest, CheckAllNodes_AC_Failure2)
+{
+    // 子句1: A(x) ∨ B(x)
+    Clause c1;
+    Literal l1a(pred_A, {var_x}, false); // A(x)
+    Literal l1b(pred_B, {var_x}, false); // B(x)
+    c1.addLiteral(l1a);
+    c1.addLiteral(l1b);
+
+    // 子句2: ¬B(x) ∨ C(x) ∨ D(x)
+    Clause c2;
+    Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+    Literal l2b(pred_C, {var_x}, false); // C(x)
+    Literal l2c(pred_D, {var_x}, false); // D(x)
+    c2.addLiteral(l2a);
+    c2.addLiteral(l2b);
+    c2.addLiteral(l2c);
+
+    // 子句3: ¬C(x) ∨ E(x) ∨ F(x)
+    Clause c3;
+    Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+    Literal l3b(pred_E, {var_x}, false); // E(x)
+    Literal l3c(pred_F, {var_x}, false); // F(x)
+    c3.addLiteral(l3a);
+    c3.addLiteral(l3b);
+    c3.addLiteral(l3c);
+
+    // 子句4: ¬D(x) ∨ C(x) // 这将引入一个重复的 C(x) 节点
+    Clause c4;
+    Literal l4a(pred_D, {var_x}, false); // ¬D(x)
+    Literal l4b(pred_C, {var_x}, false); // C(x)
+    c4.addLiteral(l4a);
+    c4.addLiteral(l4b);
+
+    SLITree tree(kb);
+
+    // 添加 A(x) ∨ B(x)
+    auto add_nodes = tree.add_node(c1, Literal(), false, tree.getRoot());
+    auto lit_A = add_nodes[0];
+    auto lit_B1 = add_nodes[1];
+
+    // 添加 ¬B(x) ∨ C(x) ∨ D(x)
+    add_nodes = tree.add_node(c2, l2a, false, lit_B1);
+    auto lit_C = add_nodes[0];
+    auto lit_D = add_nodes[1];
+
+    // 这里不添加 因为要保证C(x)是B-lit
+    // // 添加 ¬C(x) ∨ E(x) ∨ F(x)
+    // add_nodes = tree.add_node(c3, l3a, false, lit_C);
+    // auto lit_E = add_nodes[0];
+    // auto lit_F = add_nodes[1];
+
+    // 添加 ¬D(x) ∨ C(x)，引入重复的 C(x)
+    // 这里是和堂兄弟节点有相同原子
+    add_nodes = tree.add_node(c4, l4a, false, lit_D);
+    // auto lit_B = add_nodes[0];
+    auto lit_C2 = add_nodes[0];
+
+    // 打印树结构以进行可视化
+    std::cout << "\nCheckAllNodes_AC_Failure Test Tree Structure:" << std::endl;
+    tree.print_tree(kb);
+
+
+    //断言 对于第二个节点C AC条件不满足
+    ASSERT_FALSE(tree.check_AC(lit_C2));
+    // 断言 AC 条件不满足
+    ASSERT_FALSE(tree.check_all_nodes_AC());
+}
+
+TEST_F(SLITreeTest, CheckAllNodes_MC_Failure)
+{
+    // 子句1: A(x) ∨ B(x)
+    Clause c1;
+    Literal l1a(pred_A, {var_x}, false); // A(x)
+    Literal l1b(pred_B, {var_x}, false); // B(x)
+    c1.addLiteral(l1a);
+    c1.addLiteral(l1b);
+
+    // 子句2: ¬B(x) ∨ C(x) ∨ D(x)
+    Clause c2;
+    Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+    Literal l2b(pred_C, {var_x}, false); // C(x)
+    Literal l2c(pred_D, {var_x}, false); // D(x)
+    c2.addLiteral(l2a);
+    c2.addLiteral(l2b);
+    c2.addLiteral(l2c);
+
+    // 子句3: ¬C(x) ∨ E(x) ∨ F(x)
+    Clause c3;
+    Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+    Literal l3b(pred_E, {var_x}, false); // E(x)
+    Literal l3c(pred_F, {var_x}, false); // F(x)
+    c3.addLiteral(l3a);
+    c3.addLiteral(l3b);
+    c3.addLiteral(l3c);
+
+    // 子句4: ¬E(x) ∨ G(x)  // 添加一个 A-literal 叶子节点
+    Clause c4;
+    Literal l4a(pred_E, {var_x}, true);  // ¬E(x)
+    Literal l4b(pred_A, {var_x}, false); // A(x)  // A-literal 叶子节点
+    c4.addLiteral(l4a);
+    c4.addLiteral(l4b);
+
+    SLITree tree(kb);
+
+    // 添加 A(x) ∨ B(x)
+    auto add_nodes = tree.add_node(c1, Literal(), false, tree.getRoot());
+    auto lit_A1 = add_nodes[0];
+    auto lit_B = add_nodes[1];
+
+    // 添加 ¬B(x) ∨ C(x) ∨ D(x)
+    add_nodes = tree.add_node(c2, l2a, false, lit_B);
+    auto lit_C = add_nodes[0];
+    auto lit_D = add_nodes[1];
+
+    // 添加 ¬C(x) ∨ E(x) ∨ F(x)
+    add_nodes = tree.add_node(c3, l3a, false, lit_C);
+    auto lit_E = add_nodes[0];
+    auto lit_F = add_nodes[1];
+
+    // 添加 ¬E(x) ∨ G(x) ∨ A(x)，引入 A-literal 叶子节点
+    Clause c4_modified = c4;
+    c4_modified.addLiteral(l4b); // 确保 A-literal 被添加
+    add_nodes = tree.add_node(c4, Literal(), false, lit_E);
+    auto lit_G = add_nodes[0];
+    auto lit_A2 = add_nodes[1]; // 这是一个 A-literal 叶子节点
+    lit_A2->is_A_literal = true;
+
+    // 打印树结构以进行可视化
+    std::cout << "\nCheckAllNodes_MC_Failure Test Tree Structure:" << std::endl;
+    tree.print_tree(kb);
+
+    // 断言 MC 条件不满足
+    ASSERT_FALSE(tree.check_all_nodes_MC());
+}

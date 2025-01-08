@@ -74,6 +74,58 @@ namespace LogicSystem
         EXPECT_LT(strategy.getSearchedStates(), 10);
     }
 
+    // 辅助函数：构建一个具有特定结构的SLITree
+    std::shared_ptr<SLITree> buildSampleTree(KnowledgeBase &kb,
+                                             int pred_A, int pred_B, int pred_C, int pred_D, int pred_E, int pred_F,
+                                             SymbolId var_x, SymbolId var_y, SymbolId var_z,
+                                             bool includeInactive = false)
+    {
+        // 创建树
+        auto tree = std::make_shared<SLITree>(kb);
+
+        // 添加 A(x) ∨ B(x)
+        Clause c1;
+        Literal l1a(pred_A, {var_x}, false); // A(x)
+        Literal l1b(pred_B, {var_x}, false); // B(x)
+        c1.addLiteral(l1a);
+        c1.addLiteral(l1b);
+        auto nodes1 = tree->add_node(c1, Literal(), false, tree->getRoot());
+        auto lit_A = nodes1[0];
+        auto lit_B = nodes1[1];
+
+        // 添加 ¬B(x) ∨ C(x) ∨ D(x)
+        Clause c2;
+        Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+        Literal l2b(pred_C, {var_x}, false); // C(x)
+        Literal l2c(pred_D, {var_x}, false); // D(x)
+        c2.addLiteral(l2a);
+        c2.addLiteral(l2b);
+        c2.addLiteral(l2c);
+        auto nodes2 = tree->add_node(c2, l2a, false, lit_B);
+        auto lit_C = nodes2[0];
+        auto lit_D = nodes2[1];
+
+        // 添加 ¬C(x) ∨ E(x) ∨ F(x)
+        Clause c3;
+        Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+        Literal l3b(pred_E, {var_x}, false); // E(x)
+        Literal l3c(pred_F, {var_x}, false); // F(x)
+        c3.addLiteral(l3a);
+        c3.addLiteral(l3b);
+        c3.addLiteral(l3c);
+        auto nodes3 = tree->add_node(c3, l3a, false, lit_C);
+        auto lit_E = nodes3[1];
+        auto lit_F = nodes3[2];
+
+        // // 可选：设置某些节点为不活动
+        // if (includeInactive)
+        // {
+        //     lit_B->is_active = false;
+        //     lit_C->is_active = false;
+        // }
+
+        return tree;
+    }
     // ... 其他测试用例类似修改 ...
 
     TEST_F(SLIResolutionTest, BacktrackingTest)
@@ -432,6 +484,284 @@ namespace LogicSystem
             // 验证结果
             ASSERT_EQ(factoring_pairs.size(), 1);
         }
+    }
+
+    // 新增的 findPotentialAncestryPairs 测试
+    TEST_F(SLIResolutionTest, FindPotentialAncestryPairs_EmptyTree)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+        auto pairs = SLIResolution::findPotentialAncestryPairs(tree);
+        EXPECT_TRUE(pairs.empty());
+    }
+
+    TEST_F(SLIResolutionTest, FindPotentialAncestryPairs_NoBLiterals)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+
+        // 添加一个不含 B-literals 的节点
+        Clause c1;
+        Literal l1a(pred_A, {var_x}, false); // A(x)
+        c1.addLiteral(l1a);
+        auto new_node_A = tree->add_node(c1, Literal(), false, tree->getRoot());
+        tree->print_tree(kb);
+
+        auto pairs = SLIResolution::findPotentialAncestryPairs(tree);
+        EXPECT_TRUE(pairs.empty());
+    }
+    TEST_F(SLIResolutionTest, FindPotentialAncestryPairs_NoMatchingPairs)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+
+        // 添加 B(x)
+        Clause c1;
+        Literal l1b(pred_B, {var_x}, false); // B(x)
+        c1.addLiteral(l1b);
+        auto nodes1 = tree->add_node(c1, Literal(), false, tree->getRoot());
+        auto lit_B = nodes1[0];
+
+        // 添加另一个 B(x) 但不符合条件（相同否定状态）
+        // ¬B(y) \lor B(y)
+        Clause c2;
+        Literal l2a(pred_B, {var_y}, true);  // ¬B(y)
+        Literal l2b(pred_B, {var_y}, false); // B(y)
+        c2.addLiteral(l2a);
+        c2.addLiteral(l2b);
+        auto nodes2 = tree->add_node(c2, l2a, false, lit_B);
+        auto lit_B2 = nodes2[0];
+
+        auto pairs = SLIResolution::findPotentialAncestryPairs(tree);
+        EXPECT_TRUE(pairs.empty());
+        ASSERT_FALSE(tree->check_all_nodes_AC());
+    }
+
+    TEST_F(SLIResolutionTest, FindPotentialAncestryPairs_WithMatchingPairs)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+
+        // 添加 B(x)
+        Clause c1;
+        Literal l1b(pred_B, {var_x}, false); // B(x)
+        c1.addLiteral(l1b);
+        auto nodes1 = tree->add_node(c1, Literal(), false, tree->getRoot());
+        auto lit_B = nodes1[0];
+
+        // 添加 ¬B(x) ∨ C(x) ∨ D(x)
+        Clause c2;
+        Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+        Literal l2b(pred_C, {var_x}, false); // C(x)
+        Literal l2c(pred_D, {var_x}, false); // D(x)
+        c2.addLiteral(l2a);
+        c2.addLiteral(l2b);
+        c2.addLiteral(l2c);
+        auto nodes2 = tree->add_node(c2, l2a, false, lit_B);
+        auto lit_C = nodes2[0];
+        auto lit_D = nodes2[1];
+
+        // 添加 ¬C(x) ∨ E(x) ∨ F(x)
+        Clause c3;
+        Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+        Literal l3b(pred_E, {var_x}, false); // E(x)
+        Literal l3c(pred_F, {var_x}, false); // F(x)
+        c3.addLiteral(l3a);
+        c3.addLiteral(l3b);
+        c3.addLiteral(l3c);
+        auto nodes3 = tree->add_node(c3, l3a, false, lit_C);
+        auto lit_E = nodes3[0];
+        auto lit_F = nodes3[1];
+
+        auto pairs = SLIResolution::findPotentialAncestryPairs(tree);
+        EXPECT_TRUE(pairs.empty()); //
+    }
+
+    TEST_F(SLIResolutionTest, FindPotentialAncestryPairs_MultipleMatchingPairs)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+
+        // 添加 B(x)
+        Clause c1;
+        Literal l1b(pred_B, {var_x}, false); // B(x)
+        c1.addLiteral(l1b);
+        auto nodes1 = tree->add_node(c1, Literal(), false, tree->getRoot());
+        auto lit_B1 = nodes1[0];
+
+        // 添加 ¬B(x) ∨ C(x) ∨ D(x)
+        Clause c2;
+        Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+        Literal l2b(pred_C, {var_x}, false); // C(x)
+        Literal l2c(pred_D, {var_x}, false); // D(x)
+        c2.addLiteral(l2a);
+        c2.addLiteral(l2b);
+        c2.addLiteral(l2c);
+        auto nodes2 = tree->add_node(c2, l2a, false, lit_B1);
+        auto lit_C = nodes2[0];
+        auto lit_D = nodes2[1];
+
+        // 添加 ¬C(x) ∨ E(x) ∨ F(x)
+        Clause c3;
+        Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+        Literal l3b(pred_E, {var_x}, false); // E(x)
+        Literal l3c(pred_F, {var_x}, false); // F(x)
+        c3.addLiteral(l3a);
+        c3.addLiteral(l3b);
+        c3.addLiteral(l3c);
+        auto nodes3 = tree->add_node(c3, l3a, false, lit_C);
+        auto lit_E = nodes3[0];
+        auto lit_F = nodes3[1];
+
+        // 添加另一个 B(y)
+        Clause c4;
+        Literal l4b(pred_B, {var_y}, false); // B(y)
+        c4.addLiteral(l4b);
+        auto nodes4 = tree->add_node(c4, Literal(), false, tree->getRoot());
+        auto lit_B2 = nodes4[0];
+
+        // 添加 ¬B(y) ∨ G(y)
+        Clause c5;
+        Literal l5a(pred_B, {var_y}, true);  // ¬B(y)
+        Literal l5b(pred_G, {var_y}, false); // G(y)
+        c5.addLiteral(l5a);
+        c5.addLiteral(l5b);
+        auto nodes5 = tree->add_node(c5, l5a, false, lit_B2);
+        auto lit_G = nodes5[0];
+
+        // 现在有两个 B-literals: lit_B1 和 lit_B2
+        auto pairs = SLIResolution::findPotentialAncestryPairs(tree);
+        // 期望有两个对: (root B1, B1 itself does not pair), (root B2)
+        // 根据函数实现，应该找出对 (root B1's ancestor nodes matching conditions, which might not exist)
+        // 需要更复杂的结构来确保存在匹配对
+
+        // 重新设计树结构，确保有匹配对
+        // 添加一个 B-literal with different predicate condition
+        // 这里假设 lit_B1 和 lit_B2 不会形成对，因为他们属于不同变量
+
+        // 为确保有匹配对，添加一个具有相同谓词和相反否定状态的 B-literal
+        Clause c6;
+        Literal l6d(pred_D, {var_y}, true); // ¬D(y)
+        Literal l6b(pred_B, {var_x}, true); // ¬B(x)
+        c6.addLiteral(l6d);
+        c6.addLiteral(l6b);
+        auto nodes6 = tree->add_node(c6, l6d, false, lit_D); // parent is lit_D
+        auto lit_B3 = nodes6[0];
+        tree->print_tree(kb);
+
+        // 现在 lit_B1 和 lit_B3 应该形成一个祖先对
+        auto updated_pairs = SLIResolution::findPotentialAncestryPairs(tree);
+        // ASSERT_FALSE(tree->check_all_nodes_AC());
+        ASSERT_EQ(updated_pairs.size(), 1);
+        EXPECT_EQ(updated_pairs[0].first, lit_B1);  // upper_node
+        EXPECT_EQ(updated_pairs[0].second, lit_B3); // lower_node
+    }
+    // 新增的 findPotentialTruncateNodes 测试
+    TEST_F(SLIResolutionTest, FindPotentialTruncateNodes_EmptyTree)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+        auto truncate_nodes = SLIResolution::findPotentialTruncateNodes(tree);
+        EXPECT_TRUE(truncate_nodes.empty());
+    }
+
+    TEST_F(SLIResolutionTest, FindPotentialTruncateNodes_NoALiterals)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+
+        // 添加 B(x)
+        Clause c1;
+        Literal l1b(pred_B, {var_x}, false); // B(x)
+        c1.addLiteral(l1b);
+        tree->add_node(c1, Literal(), false, tree->getRoot());
+
+        auto truncate_nodes = SLIResolution::findPotentialTruncateNodes(tree);
+        EXPECT_TRUE(truncate_nodes.empty());
+    }
+
+    TEST_F(SLIResolutionTest, FindPotentialTruncateNodes_AllALiteralsHaveChildren)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+
+        // 添加 A(x) ∨ B(x)
+        Clause c1;
+        Literal l1a(pred_A, {var_x}, false); // A(x)
+        Literal l1b(pred_B, {var_x}, false); // B(x)
+        c1.addLiteral(l1a);
+        c1.addLiteral(l1b);
+        auto nodes1 = tree->add_node(c1, Literal(), false, tree->getRoot());
+        auto lit_A = nodes1[0];
+        auto lit_B = nodes1[1];
+
+        // 添加 ¬B(x) ∨ C(x)
+        Clause c2;
+        Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+        Literal l2b(pred_C, {var_x}, false); // C(x)
+        c2.addLiteral(l2a);
+        c2.addLiteral(l2b);
+        auto nodes2 = tree->add_node(c2, l2a, false, lit_B);
+        auto lit_C = nodes2[0];
+
+        // 添加 ¬C(x) ∨ E(x)
+        Clause c3;
+        Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+        Literal l3b(pred_E, {var_x}, false); // E(x)
+        c3.addLiteral(l3a);
+        c3.addLiteral(l3b);
+        tree->add_node(c3, l3a, false, lit_C);
+
+        auto truncate_nodes = SLIResolution::findPotentialTruncateNodes(tree);
+        EXPECT_TRUE(truncate_nodes.empty());
+    }
+    TEST_F(SLIResolutionTest, FindPotentialTruncateNodes_MixedALiterals)
+    {
+        auto tree = std::make_shared<SLITree>(kb);
+
+        // 添加 A(x) ∨ B(x)
+        Clause c1;
+        Literal l1a(pred_A, {var_x}, false); // A(x)
+        Literal l1b(pred_B, {var_x}, false); // B(x)
+        c1.addLiteral(l1a);
+        c1.addLiteral(l1b);
+        auto nodes1 = tree->add_node(c1, Literal(), false, tree->getRoot());
+        auto lit_A = nodes1[0];
+        auto lit_B = nodes1[1];
+
+        // 添加 ¬B(x) ∨ C(x)
+        Clause c2;
+        Literal l2a(pred_B, {var_x}, true);  // ¬B(x)
+        Literal l2b(pred_C, {var_x}, false); // C(x)
+        c2.addLiteral(l2a);
+        c2.addLiteral(l2b);
+        auto nodes2 = tree->add_node(c2, l2a, false, lit_B);
+        auto lit_C = nodes2[0];
+
+        // 添加 ¬C(x) ∨ E(x)
+        Clause c3;
+        Literal l3a(pred_C, {var_x}, true);  // ¬C(x)
+        Literal l3b(pred_E, {var_x}, false); // E(x)
+        c3.addLiteral(l3a);
+        c3.addLiteral(l3b);
+        tree->add_node(c3, l3a, false, lit_C);
+
+        // 添加另一个 A(y) 没有子节点
+        Clause c4;
+        Literal l4a(pred_A, {var_y}, false); // A(y)
+        c4.addLiteral(l4a);
+        auto nodes4 = tree->add_node(c4, Literal(), false, tree->getRoot());
+        auto lit_A2 = nodes4[0];
+        //lit_A2->is_A_literal = true;
+
+        // 添加另一个 A(z) 有子节点
+        Clause c5;
+        Literal l5a(pred_A, {var_z}, true); // A(z)
+        c5.addLiteral(l5a);
+        auto nodes5 = tree->add_node(c5, l5a, false, lit_A2);
+        //auto lit_A3 = nodes5[0];
+
+        // // 添加一个子节点到 A(z)
+        // Clause c6;
+        // Literal l6b(pred_F, {var_z}, false); // F(z)
+        // c6.addLiteral(l6b);
+        // tree->add_node(c6, Literal(), false, lit_A3);
+
+        auto truncate_nodes = SLIResolution::findPotentialTruncateNodes(tree);
+        ASSERT_EQ(truncate_nodes.size(), 1);
+        EXPECT_EQ(truncate_nodes[0], lit_A2);
     }
 
 } // namespace LogicSystem

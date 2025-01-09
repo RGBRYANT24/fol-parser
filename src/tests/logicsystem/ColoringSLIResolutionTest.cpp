@@ -54,6 +54,32 @@ namespace LogicSystem
         SymbolId var_y;
     };
 
+    TEST_F(ColoringSLIResolutionTest, SimpleTest)
+    {
+        // ¬E(x,y)∨ ¬R(x)
+        Clause c1;
+        c1.addLiteral(Literal(pred_E, {var_x, var_y}, true));
+        c1.addLiteral(Literal(pred_R, {var_x}, true));
+        kb.addClause(c1);
+
+        // R(x)
+        Clause c2;
+        c2.addLiteral(Literal(pred_R, {var_x}, false));
+        kb.addClause(c2);
+
+        Clause goal;
+        goal.addLiteral(Literal(pred_E, {var_x, var_y}, false));
+
+        // 执行SLI消解
+        auto strategy = createStrategy();
+        bool proved = SLIResolution::prove(kb, goal, strategy);
+
+        // 验证结果
+        EXPECT_TRUE(proved);
+
+
+    }
+
     TEST_F(ColoringSLIResolutionTest, K3GraphCannotBeTwoColored)
     {
         // 1. 相邻顶点不能同色（红色）

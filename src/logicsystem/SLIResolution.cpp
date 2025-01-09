@@ -23,6 +23,10 @@ namespace LogicSystem
         std::stack<std::shared_ptr<SLIOperation::OperationState>> state_stack;
         state_stack.push(initial_state);
 
+        // 访问集合，用于存储已访问的状态哈希值
+        std::unordered_set<size_t> visited_states;
+        visited_states.insert(initialTree->computeStateHash());
+
         std::shared_ptr<SLIOperation::OperationState> successful_state = nullptr;
         std::shared_ptr<SLIOperation::OperationState> last_state = nullptr;
 
@@ -35,6 +39,8 @@ namespace LogicSystem
             auto current_state = state_stack.top();
             last_state = current_state;
             state_stack.pop();
+            std::cout << current_state->state_id << " state id " << std::endl;
+
             // std::cout << "Get new state " << std::endl;
             // std::cout << "Current State before copy" << std::endl;
             // SLIOperation::printOperationPath(current_state, kb);
@@ -43,14 +49,18 @@ namespace LogicSystem
             try
             {
                 new_state = SLIOperation::deepCopyOperationState(current_state);
+                // std::cout << "new state " << std::endl;
+                // SLIOperation::printCurrentState(new_state, kb);
+                // std::cout << "old state " << std::endl;
+                // SLIOperation::printCurrentState(current_state, kb);
             }
             catch (const std::exception &e)
             {
                 std::cerr << "Error during deep copy: " << e.what() << "\n";
-                continue; // 根据需要决定是否跳过或终止
+                return false; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 20)
+            if (count >= 999999)
             {
                 SLIOperation::printOperationPath(current_state, kb);
                 return false;
@@ -95,7 +105,7 @@ namespace LogicSystem
             }
             case SLIActionType::TRUNCATE:
             {
-                // std::cout << "Performing Truncate " << std::endl;
+                //std::cout << "Performing Truncate " << std::endl;
                 new_state->sli_tree->truncate(new_state->lit1_node);
                 break;
             }
@@ -111,10 +121,38 @@ namespace LogicSystem
                 return true;
             }
 
+            // 检查是否访问过
+            size_t state_hash = new_state->sli_tree->computeStateHash();
+            if (visited_states.find(state_hash) != visited_states.end())
+            {
+                std::cout << "Skipping already visited factoring state with hash: " << state_hash << std::endl;
+                continue;
+            }
+            else
+            {
+                visited_states.insert(state_hash);
+            }
+
+            
             // 基本条件检查
             // std::cout << "Basic Condition Test " << std::endl;
             bool AC_result = new_state->sli_tree->check_all_nodes_AC();
             bool MC_result = new_state->sli_tree->check_all_nodes_MC();
+            // if (current_state->state_id == 24)
+            // {
+            //     std::cout << "===== Detected State ID: 24 =====" << std::endl;
+            //     SLIOperation::printOperationPath(current_state, kb); // 打印当前状态路径
+            //     std::cout << "After Perform Action " << SLI_Action_to_string(new_state->action) << std::endl;
+            //     std::cout << "Check AC " << AC_result << " MC " << MC_result << std::endl;
+            //     SLIOperation::printOperationPath(new_state, kb);
+            //     // if (!state_stack.empty())
+            //     // {
+            //     //     auto top_state = state_stack.top();
+            //     //     std::cout << "Next State Action: " << SLIOperation::getActionString(top_state->action) << std::endl;
+            //     //     SLIOperation::printOperationPath(top_state, kb);
+            //     // }
+            //     return false; // 根据需要决定是否继续或终止
+            // }
             // std::cout << "After Perform Action " << SLI_Action_to_string(new_state->action) << std::endl;
             // std::cout << "Check AC " << AC_result << " MC " << MC_result << std::endl;
             // SLIOperation::printOperationPath(new_state, kb);
@@ -124,13 +162,14 @@ namespace LogicSystem
             if (AC_result && MC_result)
             {
                 // std::cout << "Both AC MC Perform ALL in round " << count << std::endl;
+                
+                // t-ancestry
+                generateFactoringStates(b_lit_nodes, new_state, state_stack);
                 // t-extension
                 generateExtensionStates(kb, b_lit_nodes, new_state, state_stack);
-                // t-factoring
-                generateFactoringStates(b_lit_nodes, new_state, state_stack);
-                // t-ancestry
-                generateAncestryStates(b_lit_nodes, new_state, state_stack);
                 // t-truncate
+                generateAncestryStates(b_lit_nodes, new_state, state_stack);
+                // t-factoring 
                 generateTruncateStates(new_state->sli_tree->get_all_active_nodes(),
                                        new_state, state_stack);
             }
@@ -155,6 +194,17 @@ namespace LogicSystem
             {
                 continue;
             }
+            // 检查是否是特定的 state id
+            // if (new_state->state_id == 19)
+            // {
+            //     std::cout << "Processing State ID: " << new_state->state_id << std::endl;
+            //     SLIOperation::printOperationPath(new_state, kb); // 打印当前状态路径
+            //     auto top_state = state_stack.top();
+            //     std::cout << "top action " << SLIOperation::getActionString(top_state->action) << std::endl;
+            //     SLIOperation::printOperationPath(top_state, kb);
+            //     return false;
+            //     // 这里可以进一步检查或记录当前状态的详细信息
+            // }
         }
         SLIOperation::printOperationPath(last_state, kb);
         return false;

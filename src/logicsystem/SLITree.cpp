@@ -281,8 +281,29 @@ namespace LogicSystem
                 current->rule_applied = "t-truncate";
                 truncation_performed = true;
 
-                // Move to parent for potential further truncation
-                current = current->parent.lock();
+                // 从父节点的 children 向量中移除当前节点
+                std::shared_ptr<SLINode> parent = current->parent.lock();
+                if (parent)
+                {
+                    auto &siblings = parent->children;
+                    siblings.erase(
+                        std::remove(siblings.begin(), siblings.end(), current),
+                        siblings.end());
+
+                    // 保存父节点引用
+                    std::shared_ptr<SLINode> old_parent = parent;
+
+                    // 断开当前节点与父节点的关系
+                    current->parent.reset();
+
+                    // 将 current 指向父节点，继续向上截断
+                    current = old_parent;
+                }
+                else
+                {
+                    // 没有父节点，停止截断
+                    current = nullptr;
+                }
             }
             // Case 2: Check if all children are inactive
             else if (!current->children.empty())
@@ -304,6 +325,30 @@ namespace LogicSystem
                     current->rule_applied = "t-truncate";
                     truncation_performed = true;
                     current = current->parent.lock();
+
+                    // 从父节点的 children 向量中移除当前节点
+                    std::shared_ptr<SLINode> parent = current->parent.lock();
+                    if (parent)
+                    {
+                        auto &siblings = parent->children;
+                        siblings.erase(
+                            std::remove(siblings.begin(), siblings.end(), current),
+                            siblings.end());
+
+                        // 保存父节点引用
+                        std::shared_ptr<SLINode> old_parent = parent;
+
+                        // 断开当前节点与父节点的关系
+                        current->parent.reset();
+
+                        // 将 current 指向父节点，继续向上截断
+                        current = old_parent;
+                    }
+                    else
+                    {
+                        // 没有父节点，停止截断
+                        current = nullptr;
+                    }
                 }
                 else
                 {
@@ -346,6 +391,8 @@ namespace LogicSystem
         {
             std::cout << "deepth wrong in t-factoring" << std::endl;
             std::cout << "upper_node depth " << upper_node->depth << " lower_node_deepth " << lower_node->depth << std::endl;
+            std::cout << "upper node " << upper_node->node_id << " lower node " << lower_node->node_id << std::endl;
+            this->print_tree(kb);
             return false;
         }
 

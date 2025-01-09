@@ -139,6 +139,65 @@ namespace LogicSystem
             std::cout << "====== End of Operation Path ======\n";
         }
 
+        static void printCurrentState(const std::shared_ptr<OperationState> &state, const KnowledgeBase &kb)
+        {
+            if (!state)
+            {
+                std::cout << "Null state.\n";
+                return;
+            }
+
+            std::cout << "\n=== Current State Details ===\n";
+            std::cout << "State ID: " << state->state_id << "\n";
+            std::cout << "Parent ID: " << (state->parent ? std::to_string(state->parent->state_id) : "None") << "\n";
+            std::cout << "Operation Type: " << SLI_Action_to_string(state->action) << "\n";
+
+            // 打印第一个节点信息
+            std::cout << "First Node: ";
+            if (state->lit1_node)
+            {
+                std::cout << "ID=" << state->lit1_node->node_id
+                          << ", Literal=" << state->lit1_node->literal.toString(kb) << "\n";
+            }
+            else
+            {
+                std::cout << "NULL\n";
+            }
+
+            // 打印第二个操作数信息
+            std::cout << "Second Operand: ";
+            if (isNode(state->second_op))
+            {
+                auto node = getNode(state->second_op);
+                if (node)
+                {
+                    std::cout << "Node(ID=" << node->node_id
+                              << ", Literal=" << node->literal.toString(kb) << ")\n";
+                }
+                else
+                {
+                    std::cout << "NULL Node\n";
+                }
+            }
+            else if (isLiteral(state->second_op))
+            {
+                auto lit = getLiteral(state->second_op);
+                std::cout << "Literal(" << lit.toString(kb) << ")\n";
+            }
+
+            // 打印知识库子句（如果存在）
+            if (!state->kb_clause.isEmpty())
+            {
+                std::cout << "KB Clause: " << state->kb_clause.toString(kb) << "\n";
+            }
+
+            // 打印当前SLI树状态
+            std::cout << "\nCurrent Tree State:\n";
+            state->sli_tree->print_tree(kb);
+
+            std::cout << "=========================\n";
+        }
+
         static std::shared_ptr<OperationState> deepCopyOperationState(
             const std::shared_ptr<OperationState> &original_state)
         {

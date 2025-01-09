@@ -50,7 +50,7 @@ namespace LogicSystem
                 continue; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 100)
+            if (count >= 20)
             {
                 SLIOperation::printOperationPath(current_state, kb);
                 return false;
@@ -124,10 +124,10 @@ namespace LogicSystem
             if (AC_result && MC_result)
             {
                 // std::cout << "Both AC MC Perform ALL in round " << count << std::endl;
-                // t-factoring
-                generateFactoringStates(b_lit_nodes, new_state, state_stack);
                 // t-extension
                 generateExtensionStates(kb, b_lit_nodes, new_state, state_stack);
+                // t-factoring
+                generateFactoringStates(b_lit_nodes, new_state, state_stack);
                 // t-ancestry
                 generateAncestryStates(b_lit_nodes, new_state, state_stack);
                 // t-truncate
@@ -247,7 +247,8 @@ namespace LogicSystem
                     auto mgu = Unifier::findMGU(node->literal, node_m->literal, kb);
                     if (mgu)
                     {
-                        factoring_pairs.emplace_back(node, node_m);
+                        // 注意前面是upper node 是在gammal中得到的
+                        factoring_pairs.emplace_back(node_m, node);
                     }
                 }
             }

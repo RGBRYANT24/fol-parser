@@ -53,6 +53,7 @@ namespace LogicSystem
             Clause kb_clause;                       // 知识库子句（用于extension）
             std::shared_ptr<OperationState> parent; // 父状态
             int state_id;                           // 状态ID
+            int depth;                              // 深度
 
             OperationState(std::shared_ptr<SLITree> tree,
                            SLIActionType act,
@@ -69,7 +70,8 @@ namespace LogicSystem
             {
                 static int next_id = 0;
                 state_id = next_id++;
-                std::cout << "[OperationState] Created state_id: " << state_id << "\n";
+                depth = (parent) ? parent->depth + 1 : 1;
+                // std::cout << "[OperationState] Created state_id: " << state_id << "\n";
             }
         };
 
@@ -133,6 +135,50 @@ namespace LogicSystem
                 // Print current tree state
                 std::cout << "  Current Tree State:\n";
                 op->sli_tree->print_tree(kb);
+                std::cout << "----------------------\n";
+            }
+
+            std::cout << "====== End of Operation Path ======\n";
+        }
+
+        static void printOperationPathAsClause(const std::shared_ptr<OperationState> &state, const KnowledgeBase &kb)
+        {
+            if (!state)
+            {
+                std::cout << "No operations to display.\n";
+                return;
+            }
+
+            // Get operation path from root to current state
+            std::vector<std::shared_ptr<OperationState>> path = getOperationPath(state);
+
+            std::cout << "\n====== Operation Path (Clause Form) ======\n";
+
+            for (size_t i = 0; i < path.size(); ++i)
+            {
+                const auto &op = path[i];
+                std::cout << "Step " << i << ":\n";
+                std::cout << "Operation Type: " << SLI_Action_to_string(op->action) << "\n";
+
+                std::cout << "Node1: " << (op->lit1_node ? op->lit1_node->literal.toString(kb) : "NULL") << "\n";
+
+                if (isNode(op->second_op))
+                {
+                    auto node = getNode(op->second_op);
+                    std::cout << "Node2: " << (node ? node->literal.toString(kb) : "NULL") << "\n";
+                }
+                else if (isLiteral(op->second_op))
+                {
+                    auto lit = getLiteral(op->second_op);
+                    std::cout << "Literal: " << lit.toString(kb) << "\n";
+                }
+
+                if (!op->kb_clause.isEmpty())
+                {
+                    std::cout << "KB Clause: " << op->kb_clause.toString(kb) << "\n";
+                }
+
+                std::cout << "Current Clause: " << op->sli_tree->printBLiteralsAsClause() << "\n";
                 std::cout << "----------------------\n";
             }
 

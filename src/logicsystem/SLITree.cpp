@@ -1159,4 +1159,33 @@ namespace LogicSystem
         return true;
     }
 
+    std::string SLITree::printBLiteralsAsClause() const
+    {
+        // 获取所有B-literals
+        std::vector<Literal> b_literals;
+        for (const auto &level : depth_map)
+        {
+            for (const auto &node : level)
+            {
+                if (node && node->is_active && !node->is_A_literal)
+                {
+                    b_literals.push_back(node->literal);
+                }
+            }
+        }
+
+        // 按照子句格式构建输出字符串
+        std::string result;
+        for (size_t i = 0; i < b_literals.size(); ++i)
+        {
+            result += b_literals[i].toString(kb);
+            if (i < b_literals.size() - 1)
+            {
+                result += " ∨ ";
+            }
+        }
+
+        return result;
+    }
+
 } // namespace LogicSystem

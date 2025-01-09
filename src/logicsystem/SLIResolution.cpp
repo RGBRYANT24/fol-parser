@@ -27,6 +27,10 @@ namespace LogicSystem
         std::unordered_set<size_t> visited_states;
         visited_states.insert(initialTree->computeStateHash());
 
+        // 记录最长路径的信息
+        int max_depth = 0;
+        std::shared_ptr<SLIOperation::OperationState> max_depth_state = nullptr;
+
         std::shared_ptr<SLIOperation::OperationState> successful_state = nullptr;
         std::shared_ptr<SLIOperation::OperationState> last_state = nullptr;
 
@@ -40,6 +44,14 @@ namespace LogicSystem
             last_state = current_state;
             state_stack.pop();
             std::cout << current_state->state_id << " state id " << std::endl;
+
+            // 更新最长路径
+            if (current_state->depth > max_depth)
+            {
+                max_depth = current_state->depth;
+                max_depth_state = current_state;
+                // std::cout << "New maximum depth: " << max_depth << " at state id: " << current_state->state_id << std::endl;
+            }
 
             // std::cout << "Get new state " << std::endl;
             // std::cout << "Current State before copy" << std::endl;
@@ -60,9 +72,10 @@ namespace LogicSystem
                 return false; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 5000)
+            if (count >= 599000)
             {
-                SLIOperation::printOperationPath(current_state, kb);
+                // SLIOperation::printOperationPath(current_state, kb);
+                SLIOperation::printOperationPathAsClause(max_depth_state, kb);
                 return false;
             }
             // std::cout << "Current State " << std::endl;
@@ -121,22 +134,22 @@ namespace LogicSystem
                 return true;
             }
 
-            // 在执行操作后添加验证
-            if (!new_state->sli_tree->validateAllNodes())
-            {
-                continue; // 跳过包含无效节点的状态
-            }
-            // 检查是否访问过
-            size_t state_hash = new_state->sli_tree->computeStateHash();
-            if (visited_states.find(state_hash) != visited_states.end())
-            {
-                std::cout << "Skipping already visited factoring state with hash: " << state_hash << std::endl;
-                continue;
-            }
-            else
-            {
-                visited_states.insert(state_hash);
-            }
+            // // 在执行操作后添加验证
+            // if (!new_state->sli_tree->validateAllNodes())
+            // {
+            //     continue; // 跳过包含无效节点的状态
+            // }
+            // // 检查是否访问过
+            // size_t state_hash = new_state->sli_tree->computeStateHash();
+            // if (visited_states.find(state_hash) != visited_states.end())
+            // {
+            //     std::cout << "Skipping already visited factoring state with hash: " << state_hash << std::endl;
+            //     continue;
+            // }
+            // else
+            // {
+            //     visited_states.insert(state_hash);
+            // }
 
             // 基本条件检查
             // std::cout << "Basic Condition Test " << std::endl;

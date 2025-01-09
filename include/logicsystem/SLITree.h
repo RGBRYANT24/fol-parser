@@ -143,6 +143,7 @@ namespace LogicSystem
             }
             return true; // 所有节点都有效
         }
+        std::string printBLiteralsAsClause() const;
 
     private:
         KnowledgeBase &kb;

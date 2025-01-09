@@ -60,7 +60,7 @@ namespace LogicSystem
                 return false; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 999999)
+            if (count >= 5000)
             {
                 SLIOperation::printOperationPath(current_state, kb);
                 return false;
@@ -105,7 +105,7 @@ namespace LogicSystem
             }
             case SLIActionType::TRUNCATE:
             {
-                //std::cout << "Performing Truncate " << std::endl;
+                // std::cout << "Performing Truncate " << std::endl;
                 new_state->sli_tree->truncate(new_state->lit1_node);
                 break;
             }
@@ -121,6 +121,11 @@ namespace LogicSystem
                 return true;
             }
 
+            // 在执行操作后添加验证
+            if (!new_state->sli_tree->validateAllNodes())
+            {
+                continue; // 跳过包含无效节点的状态
+            }
             // 检查是否访问过
             size_t state_hash = new_state->sli_tree->computeStateHash();
             if (visited_states.find(state_hash) != visited_states.end())
@@ -133,7 +138,6 @@ namespace LogicSystem
                 visited_states.insert(state_hash);
             }
 
-            
             // 基本条件检查
             // std::cout << "Basic Condition Test " << std::endl;
             bool AC_result = new_state->sli_tree->check_all_nodes_AC();
@@ -162,14 +166,14 @@ namespace LogicSystem
             if (AC_result && MC_result)
             {
                 // std::cout << "Both AC MC Perform ALL in round " << count << std::endl;
-                
-                // t-ancestry
-                generateFactoringStates(b_lit_nodes, new_state, state_stack);
+
                 // t-extension
                 generateExtensionStates(kb, b_lit_nodes, new_state, state_stack);
-                // t-truncate
+                // t-factoring
+                generateFactoringStates(b_lit_nodes, new_state, state_stack);
+                // t-ancestry
                 generateAncestryStates(b_lit_nodes, new_state, state_stack);
-                // t-factoring 
+                // t-truncate
                 generateTruncateStates(new_state->sli_tree->get_all_active_nodes(),
                                        new_state, state_stack);
             }

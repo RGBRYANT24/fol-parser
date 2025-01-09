@@ -114,7 +114,36 @@ namespace LogicSystem
 
         void print_tree(const KnowledgeBase &kb) const;
 
-        KnowledgeBase getKB() {return this->kb;}
+        KnowledgeBase getKB() { return this->kb; }
+
+        bool validateAllNodes() 
+        {
+            // 从根节点开始递归检查所有节点
+            for (const auto &level : depth_map)
+            {
+                for (const auto &node : level)
+                {
+                    if (node && node->is_active)
+                    { // 只检查活跃节点
+                        const auto &lit = node->literal;
+                        // 检查是否为边关系谓词
+                        auto predId = kb.getPredicateId("E");
+                        if (predId && lit.getPredicateId() == *predId)
+                        {
+                            const auto &args = lit.getArgumentIds();
+                            // 检查是否有两个参数且参数相同（自环）
+                            if (args.size() == 2 && args[0] == args[1])
+                            {
+                                this->has_self_loop = true; // 设置标志
+                                return false;         // 发现无效节点，返回false
+                            }
+                        }
+                    }
+                }
+            }
+            return true; // 所有节点都有效
+        }
+
     private:
         KnowledgeBase &kb;
         std::unordered_map<size_t, std::shared_ptr<SLINode>> literal_map;

@@ -76,8 +76,6 @@ namespace LogicSystem
 
         // 验证结果
         EXPECT_TRUE(proved);
-
-
     }
 
     TEST_F(ColoringSLIResolutionTest, K2GraphCannotBeOneColored)
@@ -136,6 +134,63 @@ namespace LogicSystem
         // 验证结果
         EXPECT_TRUE(proved);
         std::cout << "SLI Resolution proves that K2 graph cannot be one-colored." << std::endl;
+        std::cout << "States searched: " << strategy.getSearchedStates() << std::endl;
+    }
+
+    TEST_F(ColoringSLIResolutionTest, P3GraphCanBeTwoColored)
+    {
+        // 1. 相邻顶点不能同色（红色）
+        // ¬E(x,y)∨ ¬R(x)∨ ¬R(y)∨ uncol
+        Clause adjacentNotSameColorR;
+        adjacentNotSameColorR.addLiteral(Literal(pred_E, {var_x, var_y}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_R, {var_x}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_R, {var_y}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_uncol, {}, false));
+        kb.addClause(adjacentNotSameColorR);
+
+        // 2. 相邻顶点不能同色（绿色）
+        // ¬E(x,y)∨ ¬G(x)∨ ¬G(y)∨ uncol
+        Clause adjacentNotSameColorG;
+        adjacentNotSameColorG.addLiteral(Literal(pred_E, {var_x, var_y}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_G, {var_x}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_G, {var_y}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_uncol, {}, false));
+        kb.addClause(adjacentNotSameColorG);
+
+        // 3. 每个顶点必须着色（红色或绿色）
+        // R(x) ∨ G(x)
+        Clause vertexMustBeColored;
+        vertexMustBeColored.addLiteral(Literal(pred_R, {var_x}, false));
+        vertexMustBeColored.addLiteral(Literal(pred_G, {var_x}, false));
+        kb.addClause(vertexMustBeColored);
+
+        // 4. P3图的边 (a-b-c)
+        std::vector<std::pair<SymbolId, SymbolId>> edges = {
+            {const_a, const_b},
+            {const_b, const_c}};
+
+        for (const auto &edge : edges)
+        {
+            Clause edgeClause;
+            edgeClause.addLiteral(Literal(pred_E, {edge.first, edge.second}, false));
+            kb.addClause(edgeClause);
+        }
+
+        // 打印知识库内容
+        std::cout << "P3 Two-Coloring Knowledge Base:" << std::endl;
+        kb.print();
+
+        // 设置目标：证明图不可着色
+        Clause goal;
+        goal.addLiteral(Literal(pred_uncol, {}, true));
+
+        // 执行SLI消解
+        auto strategy = createStrategy();
+        bool proved = SLIResolution::prove(kb, goal, strategy);
+
+        // 验证结果：P3是可以二染色的，所以期望证明失败
+        EXPECT_FALSE(proved);
+        std::cout << "SLI Resolution correctly shows that P3 graph can be two-colored." << std::endl;
         std::cout << "States searched: " << strategy.getSearchedStates() << std::endl;
     }
 

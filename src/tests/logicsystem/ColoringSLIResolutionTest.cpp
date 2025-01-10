@@ -232,9 +232,9 @@ namespace LogicSystem
             Clause edgeClause;
             edgeClause.addLiteral(Literal(pred_E, {edge.first, edge.second}, false));
             kb.addClause(edgeClause);
-            /*Clause edgeClauseReverse;
+            Clause edgeClauseReverse;
             edgeClauseReverse.addLiteral(Literal(pred_E, {edge.second, edge.first}, false));
-            kb.addClause(edgeClauseReverse);*/
+            kb.addClause(edgeClauseReverse);
         }
 
         // 打印知识库内容
@@ -306,9 +306,9 @@ namespace LogicSystem
             Clause edgeClause;
             edgeClause.addLiteral(Literal(pred_E, {edge.first, edge.second}, false));
             kb.addClause(edgeClause);
-            /*Clause edgeClauseReverse;
+            Clause edgeClauseReverse;
             edgeClauseReverse.addLiteral(Literal(pred_E, {edge.second, edge.first}, false));
-            kb.addClause(edgeClauseReverse);*/
+            kb.addClause(edgeClauseReverse);
         }
 
         // 打印知识库内容

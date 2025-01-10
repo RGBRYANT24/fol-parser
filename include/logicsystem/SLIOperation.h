@@ -265,7 +265,7 @@ namespace LogicSystem
             {
                 new_lit1_node = nullptr;
             }
-            std::cout << "finish copy new_lit1_node \n";
+            // std::cout << "finish copy new_lit1_node \n";
 
             // 深拷贝第二个操作数
             SecondOperand new_second_op;
@@ -300,7 +300,7 @@ namespace LogicSystem
             {
                 throw std::runtime_error("second_op holds an unknown type for state_id: " + std::to_string(original_state->state_id));
             }
-            std::cout << "finish copy new_second_op \n";
+            // std::cout << "finish copy new_second_op \n";
 
             // 创建新的 OperationState，保持 parent 指向原始 parent
             auto new_state = std::make_shared<OperationState>(

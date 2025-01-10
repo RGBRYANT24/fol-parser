@@ -38,12 +38,15 @@ namespace LogicSystem
         while (!state_stack.empty())
         {
             count++;
-            std::cout << "round " << count << std::endl;
+            if (count % 5000 == 0)
+            {
+                std::cout << "round " << count << std::endl;
+            }               
 
             auto current_state = state_stack.top();
             last_state = current_state;
             state_stack.pop();
-            std::cout << current_state->state_id << " state id " << std::endl;
+            // std::cout << current_state->state_id << " state id " << std::endl;
 
             // 更新最长路径
             if (current_state->depth > max_depth)
@@ -72,7 +75,7 @@ namespace LogicSystem
                 return false; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 599000)
+            if (count >= 9000009)
             {
                 // SLIOperation::printOperationPath(current_state, kb);
                 SLIOperation::printOperationPathAsClause(max_depth_state, kb);
@@ -134,22 +137,22 @@ namespace LogicSystem
                 return true;
             }
 
-            // // 在执行操作后添加验证
-            // if (!new_state->sli_tree->validateAllNodes())
-            // {
-            //     continue; // 跳过包含无效节点的状态
-            // }
-            // // 检查是否访问过
-            // size_t state_hash = new_state->sli_tree->computeStateHash();
-            // if (visited_states.find(state_hash) != visited_states.end())
-            // {
-            //     std::cout << "Skipping already visited factoring state with hash: " << state_hash << std::endl;
-            //     continue;
-            // }
-            // else
-            // {
-            //     visited_states.insert(state_hash);
-            // }
+            // 在执行操作后添加验证
+            if (!new_state->sli_tree->validateAllNodes())
+            {
+                continue; // 跳过包含无效节点的状态
+            }
+            // 检查是否访问过
+            size_t state_hash = new_state->sli_tree->computeStateHash();
+            if (visited_states.find(state_hash) != visited_states.end())
+            {
+                std::cout << "Skipping already visited state with hash: " << state_hash << std::endl;
+                continue;
+            }
+            else
+            {
+                visited_states.insert(state_hash);
+            }
 
             // 基本条件检查
             // std::cout << "Basic Condition Test " << std::endl;

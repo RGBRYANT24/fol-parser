@@ -70,10 +70,10 @@ namespace LogicSystem
         std::optional<Substitution> mgu;
         Literal substituted_parent_lit = parent->literal;
 
-        std::cout << "Original clause: " << input_clause.toString(this->kb) << std::endl;
-        std::cout << "Renamed clause: " << renamed_clause.toString(this->kb) << std::endl;
-        std::cout << "Resolving literal: " << renamed_resolving_literal.toString(this->kb) << std::endl;
-        std::cout << "Parent literal: " << parent->literal.toString(this->kb) << std::endl;
+        // std::cout << "Original clause: " << input_clause.toString(this->kb) << std::endl;
+        // std::cout << "Renamed clause: " << renamed_clause.toString(this->kb) << std::endl;
+        // std::cout << "Resolving literal: " << renamed_resolving_literal.toString(this->kb) << std::endl;
+        // std::cout << "Parent literal: " << parent->literal.toString(this->kb) << std::endl;
         // std::cout << "Tree before add nodes " <<std::endl;
         // this->print_tree(kb);
         // MGU计算和应用
@@ -85,11 +85,11 @@ namespace LogicSystem
                 std::cout << "MGU unification failed" << std::endl;
                 return {};
             }
-            else
-            {
-                std::cout << "print MGU " << std::endl;
-                Unifier::printSubstitution(mgu.value(), this->kb);
-            }
+            // else
+            // {
+            //     std::cout << "print MGU " << std::endl;
+            //     Unifier::printSubstitution(mgu.value(), this->kb);
+            // }
 
             try
             {
@@ -663,9 +663,8 @@ namespace LogicSystem
             {
                 if (have_same_atom(delta_L[i], delta_L[j]))
                 {
-                    std::cout << "check_AC CONDITION 2 FAILED NODES: " << std::endl;
-                    std::cout << "higher node in delta_L " << delta_L[i]->literal.toString(kb) << " lower node " << delta_L[j]->literal.toString(kb) << std::endl;
-                    return false;
+                    // std::cout << "check_AC CONDITION 2 FAILED NODES: " << std::endl;
+                    // std::cout << "higher node in delta_L " << delta_L[i]->literal.toString(kb) << " lower node " << delta_L[j]->literal.toString(kb) << std::endl;
                     return false;
                 }
             }
@@ -679,8 +678,8 @@ namespace LogicSystem
         // 如果是叶子节点且是A-literal，则违反MC条件
         if (node->children.empty() && node->is_A_literal)
         {
-            std::cout << "check_MC FAILED NODE: " << std::endl;
-            this->print_node_info(node, kb, "", true);
+            // std::cout << "check_MC FAILED NODE: " << std::endl;
+            // this->print_node_info(node, kb, "", true);
             return false;
         }
 

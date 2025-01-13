@@ -34,7 +34,7 @@ namespace LogicSystem
         std::shared_ptr<SLIOperation::OperationState> successful_state = nullptr;
         std::shared_ptr<SLIOperation::OperationState> last_state = nullptr;
 
-        int count = 0;
+        long long count = 0;
         while (!state_stack.empty())
         {
             count++;
@@ -75,7 +75,7 @@ namespace LogicSystem
                 return false; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 9000009)
+            if (count >= 1000000000LL)
             {
                 // SLIOperation::printOperationPath(current_state, kb);
                 SLIOperation::printOperationPathAsClause(max_depth_state, kb);
@@ -142,17 +142,17 @@ namespace LogicSystem
             {
                 continue; // 跳过包含无效节点的状态
             }
-            // 检查是否访问过
-            size_t state_hash = new_state->sli_tree->computeStateHash();
-            if (visited_states.find(state_hash) != visited_states.end())
-            {
-                std::cout << "Skipping already visited state with hash: " << state_hash << std::endl;
-                continue;
-            }
-            else
-            {
-                visited_states.insert(state_hash);
-            }
+            // // 检查是否访问过
+            // size_t state_hash = new_state->sli_tree->computeStateHash();
+            // if (visited_states.find(state_hash) != visited_states.end())
+            // {
+            //     std::cout << "Skipping already visited state with hash: " << state_hash << std::endl;
+            //     continue;
+            // }
+            // else
+            // {
+            //     visited_states.insert(state_hash);
+            // }
 
             // 基本条件检查
             // std::cout << "Basic Condition Test " << std::endl;

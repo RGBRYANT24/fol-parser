@@ -18,6 +18,10 @@ namespace LogicSystem
         static bool prove(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy);
         static bool prove(KnowledgeBase &kb, const Clause &goal);
 
+        // 添加新的BFS版本
+        static bool proveBFS(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy);
+        static bool proveBFS(KnowledgeBase &kb, const Clause &goal);
+
         // 辅助函数：生成t-extension状态
         static void generateExtensionStates(
             KnowledgeBase &kb,
@@ -42,7 +46,29 @@ namespace LogicSystem
             const std::vector<std::shared_ptr<SLINode>> &active_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &current_state,
             std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
-            
+
+        // 添加BFS版本的辅助函数
+        static void generateExtensionStatesBFS(
+            KnowledgeBase &kb,
+            const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::queue<std::shared_ptr<SLIOperation::OperationState>> &state_queue);
+
+        static void generateFactoringStatesBFS(
+            const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::queue<std::shared_ptr<SLIOperation::OperationState>> &state_queue);
+
+        static void generateAncestryStatesBFS(
+            const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::queue<std::shared_ptr<SLIOperation::OperationState>> &state_queue);
+
+        static void generateTruncateStatesBFS(
+            const std::vector<std::shared_ptr<SLINode>> &active_nodes,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::queue<std::shared_ptr<SLIOperation::OperationState>> &state_queue);
+
         static std::vector<std::pair<std::shared_ptr<SLINode>, std::shared_ptr<SLINode>>>
         findPotentialAncestryPairs(const std::shared_ptr<SLITree> &tree);
 

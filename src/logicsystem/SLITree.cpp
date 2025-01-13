@@ -647,8 +647,8 @@ namespace LogicSystem
                 {
                     if (have_same_atom(gamma_L[i], gamma_L[j]))
                     {
-                        std::cout << "check_AC CONDITION 1 FAILED NODES: " << std::endl;
-                        std::cout << "higher node in gamma_L " << gamma_L[i]->literal.toString(kb) << " lower node " << gamma_L[j]->literal.toString(kb) << std::endl;
+                        // std::cout << "check_AC CONDITION 1 FAILED NODES: " << std::endl;
+                        // std::cout << "higher node in gamma_L " << gamma_L[i]->literal.toString(kb) << " lower node " << gamma_L[j]->literal.toString(kb) << std::endl;
                         return false;
                     }
                 }

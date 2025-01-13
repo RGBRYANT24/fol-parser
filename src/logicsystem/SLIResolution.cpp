@@ -41,7 +41,7 @@ namespace LogicSystem
             if (count % 5000 == 0)
             {
                 std::cout << "round " << count << std::endl;
-            }               
+            }
 
             auto current_state = state_stack.top();
             last_state = current_state;
@@ -228,6 +228,241 @@ namespace LogicSystem
         }
         SLIOperation::printOperationPath(last_state, kb);
         return false;
+    }
+
+    // SLIResolution.cpp
+
+    // bool SLIResolution::proveBFS(KnowledgeBase &kb, const Clause &goal)
+    // {
+    //     auto defaultStrategy = BFSStrategy(2000, 60.0, 1024 * 1024 * 100);
+    //     return proveBFS(kb, goal, defaultStrategy);
+    // }
+
+    bool SLIResolution::proveBFS(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
+    {
+        auto initialTree = std::make_shared<SLITree>(kb);
+
+        // 创建初始操作状态
+        auto initial_state = SLIOperation::createExtensionState(
+            initialTree,
+            initialTree->getRoot(),
+            Literal(),
+            goal);
+
+        std::queue<std::shared_ptr<SLIOperation::OperationState>> state_queue;
+        state_queue.push(initial_state);
+
+        std::unordered_set<size_t> visited_states;
+        visited_states.insert(initialTree->computeStateHash());
+
+        int max_depth = 0;
+        std::shared_ptr<SLIOperation::OperationState> max_depth_state = nullptr;
+        std::shared_ptr<SLIOperation::OperationState> successful_state = nullptr;
+        std::shared_ptr<SLIOperation::OperationState> last_state = nullptr;
+
+        long long count = 0;
+        while (!state_queue.empty())
+        {
+            count++;
+            if (count % 5000 == 0)
+            {
+                std::cout << "BFS round " << count << std::endl;
+            }
+
+            auto current_state = state_queue.front();
+            last_state = current_state;
+            state_queue.pop();
+
+            if (current_state->depth > max_depth)
+            {
+                max_depth = current_state->depth;
+                max_depth_state = current_state;
+            }
+
+            if (count >= 1000000000LL)
+            {
+                SLIOperation::printOperationPathAsClause(max_depth_state, kb);
+                return false;
+            }
+
+            std::shared_ptr<SLIOperation::OperationState> new_state;
+            try
+            {
+                new_state = SLIOperation::deepCopyOperationState(current_state);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Error during deep copy: " << e.what() << "\n";
+                return false;
+            }
+
+            // 执行操作
+            switch (new_state->action)
+            {
+            case SLIActionType::EXTENSION:
+            {
+                if (SLIOperation::isLiteral(new_state->second_op))
+                {
+                    auto kb_lit = SLIOperation::getLiteral(new_state->second_op);
+                    auto new_nodes = new_state->sli_tree->add_node(
+                        new_state->kb_clause,
+                        kb_lit,
+                        true,
+                        new_state->lit1_node);
+                }
+                break;
+            }
+            case SLIActionType::FACTORING:
+            {
+                if (SLIOperation::isNode(new_state->second_op))
+                {
+                    auto second_node = SLIOperation::getNode(new_state->second_op);
+                    new_state->sli_tree->t_factoring(new_state->lit1_node, second_node);
+                }
+                break;
+            }
+            case SLIActionType::ANCESTRY:
+            {
+                if (SLIOperation::isNode(new_state->second_op))
+                {
+                    auto second_node = SLIOperation::getNode(new_state->second_op);
+                    new_state->sli_tree->t_ancestry(new_state->lit1_node, second_node);
+                }
+                break;
+            }
+            case SLIActionType::TRUNCATE:
+            {
+                // std::cout << "Performing Truncate " << std::endl;
+                new_state->sli_tree->truncate(new_state->lit1_node);
+                break;
+            }
+            }
+
+            if (checkEmptyClause(*new_state->sli_tree))
+            {
+                successful_state = new_state;
+                SLIOperation::printOperationPath(successful_state, kb);
+                return true;
+            }
+
+            if (!new_state->sli_tree->validateAllNodes())
+            {
+                continue;
+            }
+
+            auto b_lit_nodes = new_state->sli_tree->get_all_B_literals();
+            bool AC_result = new_state->sli_tree->check_all_nodes_AC();
+            bool MC_result = new_state->sli_tree->check_all_nodes_MC();
+
+            if (AC_result && MC_result)
+            {
+                generateExtensionStatesBFS(kb, b_lit_nodes, new_state, state_queue);
+                generateFactoringStatesBFS(b_lit_nodes, new_state, state_queue);
+                generateAncestryStatesBFS(b_lit_nodes, new_state, state_queue);
+                generateTruncateStatesBFS(new_state->sli_tree->get_all_active_nodes(),
+                                          new_state, state_queue);
+            }
+            else if (MC_result)
+            {
+                generateFactoringStatesBFS(b_lit_nodes, new_state, state_queue);
+                generateAncestryStatesBFS(b_lit_nodes, new_state, state_queue);
+            }
+            else if (AC_result)
+            {
+                generateTruncateStatesBFS(new_state->sli_tree->get_all_active_nodes(),
+                                          new_state, state_queue);
+            }
+        }
+
+        SLIOperation::printOperationPath(last_state, kb);
+        return false;
+    }
+
+    // 实现BFS版本的generate函数
+    void SLIResolution::generateExtensionStatesBFS(
+        KnowledgeBase &kb,
+        const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+        const std::shared_ptr<SLIOperation::OperationState> &current_state,
+        std::queue<std::shared_ptr<SLIOperation::OperationState>> &state_queue)
+    {
+        // 实现与原版类似，只是使用queue.push替代stack.push
+        for (const auto &node : b_lit_nodes)
+        {
+            if (!node->is_active || node->is_A_literal)
+                continue;
+
+            for (const auto &kb_clause : kb.getClauses())
+            {
+                for (const auto &lit : kb_clause.getLiterals())
+                {
+                    if (Resolution::isComplementary(node->literal, lit) &&
+                        Unifier::findMGU(node->literal, lit, kb))
+                    {
+                        auto new_state = std::make_shared<SLIOperation::OperationState>(
+                            current_state->sli_tree,
+                            SLIActionType::EXTENSION,
+                            node,
+                            SecondOperand(lit),
+                            kb_clause,
+                            current_state);
+                        state_queue.push(new_state);
+                    }
+                }
+            }
+        }
+    }
+
+    // Factoring的BFS版本
+    void SLIResolution::generateFactoringStatesBFS(
+        const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+        const std::shared_ptr<SLIOperation::OperationState> &current_state,
+        std::queue<std::shared_ptr<SLIOperation::OperationState>> &state_queue)
+    {
+        auto factoring_pairs = findPotentialFactoringPairs(current_state->sli_tree);
+        for (const auto &[upper_node, lower_node] : factoring_pairs)
+        {
+            auto new_state = SLIOperation::createFactoringState(
+                current_state->sli_tree,
+                upper_node,
+                lower_node,
+                current_state);
+            state_queue.push(new_state);
+        }
+    }
+
+    // Ancestry的BFS版本
+    void SLIResolution::generateAncestryStatesBFS(
+        const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+        const std::shared_ptr<SLIOperation::OperationState> &current_state,
+        std::queue<std::shared_ptr<SLIOperation::OperationState>> &state_queue)
+    {
+        auto ancestry_pairs = findPotentialAncestryPairs(current_state->sli_tree);
+        for (const auto &[upper_node, lower_node] : ancestry_pairs)
+        {
+            auto new_state = SLIOperation::createAncestryState(
+                current_state->sli_tree,
+                upper_node,
+                lower_node,
+                current_state);
+            state_queue.push(new_state);
+        }
+    }
+
+    // Truncate的BFS版本
+    void SLIResolution::generateTruncateStatesBFS(
+        const std::vector<std::shared_ptr<SLINode>> &active_nodes,
+        const std::shared_ptr<SLIOperation::OperationState> &current_state,
+        std::queue<std::shared_ptr<SLIOperation::OperationState>> &state_queue)
+    {
+        auto truncate_nodes = findPotentialTruncateNodes(current_state->sli_tree);
+        for (const auto &node : truncate_nodes)
+        {
+            auto new_state = SLIOperation::createTruncateState(
+                current_state->sli_tree,
+                node,
+                current_state);
+            state_queue.push(new_state);
+        }
     }
 
     double SLIResolution::calculateHeuristic(const Clause &kb_clause,

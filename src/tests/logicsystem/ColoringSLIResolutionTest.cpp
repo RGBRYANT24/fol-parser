@@ -329,6 +329,141 @@ namespace LogicSystem
         std::cout << "States searched: " << strategy.getSearchedStates() << std::endl;
     }
 
+    TEST_F(ColoringSLIResolutionTest, K3GraphCannotBeTwoColoredBFS)
+    {
+        // 1. 相邻顶点不能同色（红色）
+        // ¬E(x,y)∨ ¬R(x)∨ ¬R(y)∨ uncol
+        Clause adjacentNotSameColorR;
+        adjacentNotSameColorR.addLiteral(Literal(pred_E, {var_x, var_y}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_R, {var_x}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_R, {var_y}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_uncol, {}, false));
+        kb.addClause(adjacentNotSameColorR);
+
+        // 2. 相邻顶点不能同色（绿色）
+        // ¬E(x,y)∨ ¬G(x)∨ ¬G(y)∨ uncol
+        Clause adjacentNotSameColorG;
+        adjacentNotSameColorG.addLiteral(Literal(pred_E, {var_x, var_y}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_G, {var_x}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_G, {var_y}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_uncol, {}, false));
+        kb.addClause(adjacentNotSameColorG);
+
+        // 3. 每个顶点必须着色（红色或绿色）
+        // R(x) ∨ G(x)
+        Clause vertexMustBeColored;
+        vertexMustBeColored.addLiteral(Literal(pred_R, {var_x}, false));
+        vertexMustBeColored.addLiteral(Literal(pred_G, {var_x}, false));
+        kb.addClause(vertexMustBeColored);
+
+        // 4. K3图的边
+        std::vector<std::pair<SymbolId, SymbolId>> edges = {
+            {const_a, const_b},
+            {const_b, const_c},
+            {const_a, const_c}};
+
+        for (const auto &edge : edges)
+        {
+            Clause edgeClause;
+            edgeClause.addLiteral(Literal(pred_E, {edge.first, edge.second}, false));
+            kb.addClause(edgeClause);
+            Clause edgeClauseReverse;
+            edgeClauseReverse.addLiteral(Literal(pred_E, {edge.second, edge.first}, false));
+            kb.addClause(edgeClauseReverse);
+        }
+
+        // 打印知识库内容
+        std::cout << "K3 Two-Coloring Knowledge Base:" << std::endl;
+        kb.print();
+
+        // 设置目标：证明图不可着色
+        Clause goal;
+        goal.addLiteral(Literal(pred_uncol, {}, true));
+
+        // 执行SLI消解
+        auto strategy = createStrategy();
+        bool proved = SLIResolution::proveBFS(kb, goal, strategy);
+
+        // 验证结果
+        EXPECT_TRUE(proved);
+        std::cout << "SLI Resolution BFS proves that K3 graph cannot be two-colored." << std::endl;
+        std::cout << "States searched: " << strategy.getSearchedStates() << std::endl;
+    }
+
+    TEST_F(ColoringSLIResolutionTest, K4GraphCannotBeThreeColoredBFS)
+    {
+        // 1. 相邻顶点不能同色（红色）
+        // ¬E(x,y)∨ ¬R(x)∨ ¬R(y)∨ uncol
+        Clause adjacentNotSameColorR;
+        adjacentNotSameColorR.addLiteral(Literal(pred_E, {var_x, var_y}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_R, {var_x}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_R, {var_y}, true));
+        adjacentNotSameColorR.addLiteral(Literal(pred_uncol, {}, false));
+        kb.addClause(adjacentNotSameColorR);
+
+        // 2. 相邻顶点不能同色（绿色）
+        // ¬E(x,y)∨ ¬G(x)∨ ¬G(y)∨ uncol
+        Clause adjacentNotSameColorG;
+        adjacentNotSameColorG.addLiteral(Literal(pred_E, {var_x, var_y}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_G, {var_x}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_G, {var_y}, true));
+        adjacentNotSameColorG.addLiteral(Literal(pred_uncol, {}, false));
+        kb.addClause(adjacentNotSameColorG);
+
+        // 3. 相邻顶点不能同色（蓝色）
+        // ¬E(x,y)∨ ¬B(x)∨ ¬B(y)∨ uncol
+        Clause adjacentNotSameColorB;
+        adjacentNotSameColorB.addLiteral(Literal(pred_E, {var_x, var_y}, true));
+        adjacentNotSameColorB.addLiteral(Literal(pred_B, {var_x}, true));
+        adjacentNotSameColorB.addLiteral(Literal(pred_B, {var_y}, true));
+        adjacentNotSameColorB.addLiteral(Literal(pred_uncol, {}, false));
+        kb.addClause(adjacentNotSameColorB);
+
+        // 4. 每个顶点必须着色（红色或绿色）
+        // R(x) ∨ G(x) ∨ B(x)
+        Clause vertexMustBeColored;
+        vertexMustBeColored.addLiteral(Literal(pred_R, {var_x}, false));
+        vertexMustBeColored.addLiteral(Literal(pred_G, {var_x}, false));
+        vertexMustBeColored.addLiteral(Literal(pred_B, {var_x}, false));
+        kb.addClause(vertexMustBeColored);
+
+        // 5. K4图的边
+        std::vector<std::pair<SymbolId, SymbolId>> edges = {
+            {const_a, const_b},
+            {const_b, const_c},
+            {const_a, const_c},
+            {const_a, const_d},
+            {const_b, const_d},
+            {const_c, const_d}};
+
+        for (const auto &edge : edges)
+        {
+            Clause edgeClause;
+            edgeClause.addLiteral(Literal(pred_E, {edge.first, edge.second}, false));
+            kb.addClause(edgeClause);
+            Clause edgeClauseReverse;
+            edgeClauseReverse.addLiteral(Literal(pred_E, {edge.second, edge.first}, false));
+            kb.addClause(edgeClauseReverse);
+        }
+
+        // 打印知识库内容
+        std::cout << "K4 Three-Coloring Knowledge Base:" << std::endl;
+        kb.print();
+
+        // 设置目标：证明图不可着色
+        Clause goal;
+        goal.addLiteral(Literal(pred_uncol, {}, true));
+
+        // 执行SLI消解
+        auto strategy = createStrategy();
+        bool proved = SLIResolution::proveBFS(kb, goal, strategy);
+
+        // 验证结果
+        EXPECT_TRUE(proved);
+        std::cout << "SLI Resolution BFS proves that K4 graph cannot be three-colored." << std::endl;
+        std::cout << "States searched: " << strategy.getSearchedStates() << std::endl;
+    }
+
     TEST_F(ColoringSLIResolutionTest, W5GraphCanBeThreeColored)
     {
 

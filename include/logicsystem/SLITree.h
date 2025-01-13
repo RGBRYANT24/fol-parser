@@ -105,7 +105,7 @@ namespace LogicSystem
         std::vector<std::shared_ptr<SLINode>> get_all_B_literals();
 
         const std::vector<std::vector<std::shared_ptr<SLINode>>> &getDepthMap() const { return this->depth_map; };
-        std::unordered_map<size_t, std::shared_ptr<SLINode>> getLitMap() { return this->literal_map; };
+        // std::unordered_map<size_t, std::shared_ptr<SLINode>> getLitMap() { return this->literal_map; };
 
         // 获取所有活动节点
         std::vector<std::shared_ptr<SLINode>> get_all_active_nodes() const;
@@ -147,7 +147,7 @@ namespace LogicSystem
 
     private:
         KnowledgeBase &kb;
-        std::unordered_map<size_t, std::shared_ptr<SLINode>> literal_map;
+        // std::unordered_map<size_t, std::shared_ptr<SLINode>> literal_map;
         std::vector<std::vector<std::shared_ptr<SLINode>>> depth_map;
         std::stack<std::unique_ptr<Operation>> operation_stack;
         std::shared_ptr<SLINode> root;

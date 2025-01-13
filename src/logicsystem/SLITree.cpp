@@ -28,8 +28,8 @@ namespace LogicSystem
                     depth_level.end());
             }
 
-            // 从文字映射中移除
-            literal_map.erase(node->literal.hash());
+            // // 从文字映射中移除
+            // literal_map.erase(node->literal.hash());
         }
     }
 
@@ -107,8 +107,8 @@ namespace LogicSystem
                             previous_literals.emplace_back(node, node->literal);
                             previous_substitutions.emplace_back(node, node->substitution);
 
-                            // 从literal_map中移除旧的hash
-                            literal_map.erase(node->literal.hash());
+                            // // 从literal_map中移除旧的hash
+                            // literal_map.erase(node->literal.hash());
 
                             // 应用替换
                             node->literal = Unifier::applySubstitutionToLiteral(node->literal, *mgu, kb);
@@ -119,8 +119,8 @@ namespace LogicSystem
                                 node->substitution[var] = term;
                             }
 
-                            // 更新literal_map
-                            literal_map[node->literal.hash()] = node;
+                            // // 更新literal_map
+                            // literal_map[node->literal.hash()] = node;
                         }
                     }
                 }
@@ -194,7 +194,7 @@ namespace LogicSystem
                     }
 
                     depth_map[child->depth].push_back(child);
-                    literal_map[substituted_lit.hash()] = child;
+                    // literal_map[substituted_lit.hash()] = child;
                     parent->children.push_back(child);
                     added_nodes.push_back(child);
 
@@ -218,17 +218,17 @@ namespace LogicSystem
             return {};
         }*/
 
-        try
-        {
-            auto op = std::make_unique<AddOperation>(added_nodes, literal_map, depth_map);
-            operation_stack.push(std::move(op));
-            // std::cout << "Successfully created and stored operation for " << added_nodes.size() << " nodes" << std::endl;
-        }
-        catch (const std::exception &e)
-        {
-            std::cout << "Error creating operation: " << e.what() << std::endl;
-            throw;
-        }
+        // try
+        // {
+        //     auto op = std::make_unique<AddOperation>(added_nodes, literal_map, depth_map);
+        //     operation_stack.push(std::move(op));
+        //     // std::cout << "Successfully created and stored operation for " << added_nodes.size() << " nodes" << std::endl;
+        // }
+        // catch (const std::exception &e)
+        // {
+        //     std::cout << "Error creating operation: " << e.what() << std::endl;
+        //     throw;
+        // }
 
         return added_nodes;
     }
@@ -946,18 +946,18 @@ namespace LogicSystem
             }
         }
 
-        // 复制文字映射
-        for (const auto &[hash, oldNode] : other.literal_map)
-        {
-            if (nodeMap.find(oldNode->node_id) != nodeMap.end())
-            {
-                literal_map[hash] = nodeMap[oldNode->node_id];
-            }
-            else
-            {
-                std::cerr << "Literal map node_id " << oldNode->node_id << " not found in nodeMap.\n";
-            }
-        }
+        // // 复制文字映射
+        // for (const auto &[hash, oldNode] : other.literal_map)
+        // {
+        //     if (nodeMap.find(oldNode->node_id) != nodeMap.end())
+        //     {
+        //         literal_map[hash] = nodeMap[oldNode->node_id];
+        //     }
+        //     else
+        //     {
+        //         std::cerr << "Literal map node_id " << oldNode->node_id << " not found in nodeMap.\n";
+        //     }
+        // }
     }
 
     std::shared_ptr<SLINode> SLITree::copyNode(const std::shared_ptr<SLINode> &node)

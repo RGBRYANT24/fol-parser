@@ -75,7 +75,7 @@ namespace LogicSystem
                 return false; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 1000000000LL)
+            if (count >= 200LL)
             {
                 // SLIOperation::printOperationPath(current_state, kb);
                 SLIOperation::printOperationPathAsClause(max_depth_state, kb);
@@ -378,6 +378,172 @@ namespace LogicSystem
         return false;
     }
 
+    bool SLIResolution::proveHeuristic(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
+    {
+        // 创建初始状态
+        auto initialTree = std::make_shared<SLITree>(kb);
+
+        // 创建初始操作状态
+        auto initial_state = SLIOperation::createExtensionState(
+            initialTree,
+            initialTree->getRoot(), // 使用第一个节点作为起始节点
+            Literal(),              // 空文字
+            goal                    // 目标子句
+        );
+
+        // 搜索栈
+        std::stack<std::shared_ptr<SLIOperation::OperationState>> state_stack;
+        state_stack.push(initial_state);
+
+        // 访问集合，用于存储已访问的状态哈希值
+        std::unordered_set<size_t> visited_states;
+        visited_states.insert(initialTree->computeStateHash());
+
+        // 记录最长路径的信息
+        int max_depth = 0;
+        std::shared_ptr<SLIOperation::OperationState> max_depth_state = nullptr;
+
+        std::shared_ptr<SLIOperation::OperationState> successful_state = nullptr;
+        std::shared_ptr<SLIOperation::OperationState> last_state = nullptr;
+
+        long long count = 0;
+        while (!state_stack.empty())
+        {
+            count++;
+            if (count % 5000 == 0)
+            {
+                std::cout << "round " << count << std::endl;
+            }
+
+            auto current_state = state_stack.top();
+            last_state = current_state;
+            state_stack.pop();
+            std::cout << "current_state score " << current_state->heuristic_score << std::endl;
+            // std::cout << current_state->state_id << " state id " << std::endl;
+
+            // 更新最长路径
+            if (current_state->depth > max_depth)
+            {
+                max_depth = current_state->depth;
+                max_depth_state = current_state;
+                // std::cout << "New maximum depth: " << max_depth << " at state id: " << current_state->state_id << std::endl;
+            }
+
+            // std::cout << "Get new state " << std::endl;
+            // std::cout << "Current State before copy" << std::endl;
+            // SLIOperation::printOperationPath(current_state, kb);
+
+            std::shared_ptr<SLIOperation::OperationState> new_state;
+            try
+            {
+                new_state = SLIOperation::deepCopyOperationState(current_state);
+                // std::cout << "new state " << std::endl;
+                // SLIOperation::printCurrentState(new_state, kb);
+                // std::cout << "old state " << std::endl;
+                // SLIOperation::printCurrentState(current_state, kb);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Error during deep copy: " << e.what() << "\n";
+                return false; // 根据需要决定是否跳过或终止
+            }
+
+            if (count >= 99200LL)
+            {
+                // SLIOperation::printOperationPath(current_state, kb);
+                SLIOperation::printOperationPathAsClause(max_depth_state, kb);
+                return false;
+            }
+            // std::cout << "Current State " << std::endl;
+            // SLIOperation::printOperationPath(new_state, kb);
+            // std::cout << "Performing action " << SLIOperation::getActionString(new_state->action) << std::endl;
+
+            // 执行操作
+            switch (new_state->action)
+            {
+            case SLIActionType::EXTENSION:
+            {
+                if (SLIOperation::isLiteral(new_state->second_op))
+                {
+                    auto kb_lit = SLIOperation::getLiteral(new_state->second_op);
+                    auto new_nodes = new_state->sli_tree->add_node(
+                        new_state->kb_clause,
+                        kb_lit,
+                        true,
+                        new_state->lit1_node);
+                }
+                break;
+            }
+            case SLIActionType::FACTORING:
+            {
+                if (SLIOperation::isNode(new_state->second_op))
+                {
+                    auto second_node = SLIOperation::getNode(new_state->second_op);
+                    new_state->sli_tree->t_factoring(new_state->lit1_node, second_node);
+                }
+                break;
+            }
+            case SLIActionType::ANCESTRY:
+            {
+                if (SLIOperation::isNode(new_state->second_op))
+                {
+                    auto second_node = SLIOperation::getNode(new_state->second_op);
+                    new_state->sli_tree->t_ancestry(new_state->lit1_node, second_node);
+                }
+                break;
+            }
+            case SLIActionType::TRUNCATE:
+            {
+                // std::cout << "Performing Truncate " << std::endl;
+                new_state->sli_tree->truncate(new_state->lit1_node);
+                break;
+            }
+            }
+
+            // 检查空子句
+            // std::cout << "Check Empty Clause " << std::endl;
+            if (checkEmptyClause(*new_state->sli_tree))
+            {
+                successful_state = new_state;
+                // 打印操作路径
+                SLIOperation::printOperationPath(successful_state, kb);
+                return true;
+            }
+
+            // 在执行操作后添加验证
+            if (!new_state->sli_tree->validateAllNodes())
+            {
+                continue; // 跳过包含无效节点的状态
+            }
+            // // 检查是否访问过
+            // size_t state_hash = new_state->sli_tree->computeStateHash();
+            // if (visited_states.find(state_hash) != visited_states.end())
+            // {
+            //     std::cout << "Skipping already visited state with hash: " << state_hash << std::endl;
+            //     continue;
+            // }
+            // else
+            // {
+            //     visited_states.insert(state_hash);
+            // }
+
+            generataAllStatesHeuristic(new_state, state_stack);
+            // 检查是否是特定的 state id
+            // if (new_state->state_id == 19)
+            // {
+            //     std::cout << "Processing State ID: " << new_state->state_id << std::endl;
+            //     SLIOperation::printOperationPath(new_state, kb); // 打印当前状态路径
+            //     auto top_state = state_stack.top();
+            //     std::cout << "top action " << SLIOperation::getActionString(top_state->action) << std::endl;
+            //     SLIOperation::printOperationPath(top_state, kb);
+            //     return false;
+            //     // 这里可以进一步检查或记录当前状态的详细信息
+            // }
+        }
+        SLIOperation::printOperationPath(last_state, kb);
+        return false;
+    }
+
     // 实现BFS版本的generate函数
     void SLIResolution::generateExtensionStatesBFS(
         KnowledgeBase &kb,
@@ -462,6 +628,132 @@ namespace LogicSystem
                 node,
                 current_state);
             state_queue.push(new_state);
+        }
+    }
+
+    void generateExtensionStatesHeuristc(const std::shared_ptr<SLIOperation::OperationState> &current_state,
+                                         std::vector<std::shared_ptr<SLIOperation::OperationState>> &allStates)
+    {
+        auto b_lit_nodes = current_state->sli_tree->get_all_B_literals();
+        auto kb = current_state->sli_tree->getKB();
+
+        // ExtensionStates
+        for (const auto &node : b_lit_nodes)
+        {
+            if (!node->is_active || node->is_A_literal)
+                continue;
+
+            for (const auto &kb_clause : kb.getClauses())
+            {
+                for (const auto &lit : kb_clause.getLiterals())
+                {
+                    if (Resolution::isComplementary(node->literal, lit) &&
+                        Unifier::findMGU(node->literal, lit, kb))
+                    {
+                        auto new_state = std::make_shared<SLIOperation::OperationState>(
+                            current_state->sli_tree,
+                            SLIActionType::EXTENSION,
+                            node,
+                            SecondOperand(lit),
+                            kb_clause,
+                            current_state);
+                        SLIOperation::calculateHeuristicScore(new_state);
+                        allStates.push_back(new_state);
+                    }
+                }
+            }
+        }
+    }
+
+    void generateFactoringStatesHeuristc(const std::shared_ptr<SLIOperation::OperationState> &current_state,
+                                         std::vector<std::shared_ptr<SLIOperation::OperationState>> &allStates)
+    {
+        // Factoring
+        auto factoring_pairs = SLIResolution::findPotentialFactoringPairs(current_state->sli_tree);
+        for (const auto &[upper_node, lower_node] : factoring_pairs)
+        {
+            auto new_state = SLIOperation::createFactoringState(
+                current_state->sli_tree,
+                upper_node,
+                lower_node,
+                current_state);
+            SLIOperation::calculateHeuristicScore(new_state);
+            allStates.push_back(new_state);
+        }
+    }
+
+    void generateAncestryStatesHeuristc(const std::shared_ptr<SLIOperation::OperationState> &current_state,
+                                        std::vector<std::shared_ptr<SLIOperation::OperationState>> &allStates)
+    {
+        // Ancestry
+        auto ancestry_pairs = SLIResolution::findPotentialAncestryPairs(current_state->sli_tree);
+        for (const auto &[upper_node, lower_node] : ancestry_pairs)
+        {
+            auto new_state = SLIOperation::createAncestryState(
+                current_state->sli_tree,
+                upper_node,
+                lower_node,
+                current_state);
+            SLIOperation::calculateHeuristicScore(new_state);
+            allStates.push_back(new_state);
+        }
+    }
+
+    void generateTruncateStatesHeuristc(const std::shared_ptr<SLIOperation::OperationState> &current_state,
+                                        std::vector<std::shared_ptr<SLIOperation::OperationState>> &allStates)
+    {
+        // Truncate
+        auto truncate_nodes = SLIResolution::findPotentialTruncateNodes(current_state->sli_tree);
+        for (const auto &node : truncate_nodes)
+        {
+            auto new_state = SLIOperation::createTruncateState(
+                current_state->sli_tree,
+                node,
+                current_state);
+            SLIOperation::calculateHeuristicScore(new_state);
+            allStates.push_back(new_state);
+        }
+    }
+
+    void SLIResolution::generataAllStatesHeuristic(
+        const std::shared_ptr<SLIOperation::OperationState> &current_state,
+        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack)
+    {
+        std::vector<std::shared_ptr<SLIOperation::OperationState>> allStates;
+
+        auto b_lit_nodes = current_state->sli_tree->get_all_B_literals();
+        auto kb = current_state->sli_tree->getKB();
+
+        bool AC_result = current_state->sli_tree->check_all_nodes_AC();
+        bool MC_result = current_state->sli_tree->check_all_nodes_MC();
+
+        if (AC_result && MC_result)
+        {
+            generateExtensionStatesHeuristc(current_state, allStates);
+            generateFactoringStatesHeuristc(current_state, allStates);
+            generateAncestryStatesHeuristc(current_state, allStates);
+            generateTruncateStatesHeuristc(current_state, allStates);
+        }
+        else if (MC_result)
+        {
+            generateFactoringStatesHeuristc(current_state, allStates);
+            generateAncestryStatesHeuristc(current_state, allStates);
+        }
+        else if (AC_result)
+        {
+            generateTruncateStatesHeuristc(current_state, allStates);
+        }
+
+        // 从低到高排序 这样按照顺序入栈 栈顶就是得分最高的
+        std::sort(allStates.begin(), allStates.end(),
+                  [](const auto &a, const auto &b)
+                  {
+                      return a->heuristic_score < b->heuristic_score;
+                  });
+
+        for (const auto &state : allStates)
+        {
+            state_stack.push(state);
         }
     }
 

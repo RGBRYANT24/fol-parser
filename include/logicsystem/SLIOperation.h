@@ -52,21 +52,24 @@ namespace LogicSystem
             SecondOperand second_op;                // 第二个操作数
             Clause kb_clause;                       // 知识库子句（用于extension）
             std::shared_ptr<OperationState> parent; // 父状态
-            int state_id;                           // 状态ID
-            int depth;                              // 深度
+            double heuristic_score;
+            int state_id; // 状态ID
+            int depth;    // 深度
 
             OperationState(std::shared_ptr<SLITree> tree,
                            SLIActionType act,
                            std::shared_ptr<SLINode> l1,
                            SecondOperand second,
                            Clause clause = Clause(), // 默认是一个空的Clause
-                           std::shared_ptr<OperationState> p = nullptr)
+                           std::shared_ptr<OperationState> p = nullptr,
+                           double score = 0.0) // 默认不调用启发式 score就是0.0
                 : sli_tree(tree),
                   action(act),
                   lit1_node(l1),
                   second_op(second),
                   kb_clause(clause),
-                  parent(p)
+                  parent(p),
+                  heuristic_score(score)
             {
                 static int next_id = 0;
                 state_id = next_id++;
@@ -74,6 +77,99 @@ namespace LogicSystem
                 // std::cout << "[OperationState] Created state_id: " << state_id << "\n";
             }
         };
+
+        // 启发式评分结构
+        struct HeuristicScore
+        {
+            double extension_score = 0.0; // extension操作的分数
+            double factoring_score = 0.0; // factoring操作的分数
+            double ancestry_score = 0.0;  // ancestry操作的分数
+            double truncate_score = 0.0;  // truncate操作的分数
+
+            // 获取当前操作类型对应的分数
+            double getScoreForAction(SLIActionType action) const
+            {
+                switch (action)
+                {
+                case SLIActionType::EXTENSION:
+                    return extension_score;
+                case SLIActionType::FACTORING:
+                    return factoring_score;
+                case SLIActionType::ANCESTRY:
+                    return ancestry_score;
+                case SLIActionType::TRUNCATE:
+                    return truncate_score;
+                default:
+                    return 0.0;
+                }
+            }
+        };
+
+        // 执行操作
+        static void performAction(std::shared_ptr<OperationState> state)
+        {
+            // 执行操作
+            switch (state->action)
+            {
+            case SLIActionType::EXTENSION:
+            {
+                if (SLIOperation::isLiteral(state->second_op))
+                {
+                    auto kb_lit = SLIOperation::getLiteral(state->second_op);
+                    auto new_nodes = state->sli_tree->add_node(
+                        state->kb_clause,
+                        kb_lit,
+                        true,
+                        state->lit1_node);
+                }
+                break;
+            }
+            case SLIActionType::FACTORING:
+            {
+                if (SLIOperation::isNode(state->second_op))
+                {
+                    auto second_node = SLIOperation::getNode(state->second_op);
+                    state->sli_tree->t_factoring(state->lit1_node, second_node);
+                }
+                break;
+            }
+            case SLIActionType::ANCESTRY:
+            {
+                if (SLIOperation::isNode(state->second_op))
+                {
+                    auto second_node = SLIOperation::getNode(state->second_op);
+                    state->sli_tree->t_ancestry(state->lit1_node, second_node);
+                }
+                break;
+            }
+            case SLIActionType::TRUNCATE:
+            {
+                // std::cout << "Performing Truncate " << std::endl;
+                state->sli_tree->truncate(state->lit1_node);
+                break;
+            }
+            }
+        }
+
+        // 添加启发式评分计算方法
+        static void calculateHeuristicScore(std::shared_ptr<OperationState> state)
+        {
+            auto new_state = deepCopyOperationState(state);
+            performAction(new_state);
+            double score = 0.0;
+            // 基础分数 - 基于操作类型
+            // score += weights.getScoreForAction(new_state->action);
+
+            // 节点深度评分（避免过深搜索）
+            score -= new_state->depth *0.03;
+
+            //子句长度
+            int clause_len = new_state->sli_tree->get_all_active_nodes().size();
+            score += 10.0 / (1 + clause_len);
+
+            state->heuristic_score = score;
+
+        }
 
         // 获取操作路径（从根到当前状态）
         static std::vector<std::shared_ptr<OperationState>> getOperationPath(

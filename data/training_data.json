@@ -66,11 +66,11 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "EXTENSION",
-                "kb_clause": "¬uncol()",
-                "node1_lit": "()",
-                "second_operand": "()",
+                "kb_clause": "¬E(x, y) ∨ ¬G(x) ∨ ¬G(y) ∨ uncol()",
+                "node1_lit": "¬uncol()",
+                "second_operand": "uncol()",
                 "second_operand_type": "literal",
-                "state_id": 1
+                "state_id": 3
             },
             "state_id": 1
         },
@@ -256,11 +256,11 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "EXTENSION",
-                "kb_clause": "¬E(x, y) ∨ ¬G(x) ∨ ¬G(y) ∨ uncol()",
-                "node1_lit": "¬uncol()",
-                "second_operand": "uncol()",
+                "kb_clause": "R(x) ∨ G(x)",
+                "node1_lit": "¬G(y)",
+                "second_operand": "G(x)",
                 "second_operand_type": "literal",
-                "state_id": 4
+                "state_id": 12
             },
             "state_id": 4
         },
@@ -479,11 +479,11 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "EXTENSION",
-                "kb_clause": "R(x) ∨ G(x)",
-                "node1_lit": "¬G(y)",
-                "second_operand": "G(x)",
+                "kb_clause": "¬E(x, y) ∨ ¬R(x) ∨ ¬R(y) ∨ uncol()",
+                "node1_lit": "R(y)",
+                "second_operand": "¬R(y)",
                 "second_operand_type": "literal",
-                "state_id": 15
+                "state_id": 24
             },
             "state_id": 15
         },
@@ -713,12 +713,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "¬E(x, y) ∨ ¬R(x) ∨ ¬R(y) ∨ uncol()",
-                "node1_lit": "R(y)",
-                "second_operand": "¬R(y)",
-                "second_operand_type": "literal",
-                "state_id": 25
+                "action_type": "ANCESTRY",
+                "node1_lit": "¬uncol()",
+                "second_operand_id": 8,
+                "second_operand_type": "node",
+                "state_id": 27
             },
             "state_id": 25
         },
@@ -1052,11 +1051,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "ANCESTRY",
-                "node1_lit": "¬uncol()",
-                "second_operand_id": 8,
+                "action_type": "FACTORING",
+                "node1_lit": "¬E(x, y)",
+                "second_operand_id": 6,
                 "second_operand_type": "node",
-                "state_id": 28
+                "state_id": 43
             },
             "state_id": 28
         },
@@ -1342,271 +1341,14 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "FACTORING",
-                "node1_lit": "¬E(x1, y)",
-                "second_operand_id": 6,
-                "second_operand_type": "node",
-                "state_id": 44
-            },
-            "state_id": 44
-        },
-        {
-            "available_operations": [
-                {
-                    "action_type": "ANCESTRY",
-                    "node1_lit": "¬G(y)",
-                    "second_operand_id": 9,
-                    "second_operand_type": "node",
-                    "state_id": 54
-                }
-            ],
-            "current_tree_state": {
-                "depth_map": [
-                    [
-                        0
-                    ],
-                    [
-                        1
-                    ],
-                    [
-                        2,
-                        3,
-                        4
-                    ],
-                    [
-                        5
-                    ],
-                    [
-                        6,
-                        7,
-                        8
-                    ],
-                    [
-                        9
-                    ]
-                ],
-                "nodes": [
-                    {
-                        "children_ids": [
-                            1
-                        ],
-                        "depth": 0,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": false,
-                            "predicate": ""
-                        },
-                        "node_id": 0,
-                        "node_lit": "()",
-                        "parent_id": -1,
-                        "substitution": null
-                    },
-                    {
-                        "children_ids": [
-                            2,
-                            3,
-                            4
-                        ],
-                        "depth": 1,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": true,
-                            "predicate": "uncol"
-                        },
-                        "node_id": 1,
-                        "node_lit": "¬uncol()",
-                        "parent_id": 0,
-                        "substitution": {
-                            "x": "x1",
-                            "x1": "y",
-                            "y1": "y"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 2,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "x1",
-                                "y"
-                            ],
-                            "is_negated": true,
-                            "predicate": "E"
-                        },
-                        "node_id": 2,
-                        "node_lit": "¬E(x1, y)",
-                        "parent_id": 1,
-                        "substitution": {
-                            "x": "x1",
-                            "x1": "y",
-                            "y1": "y"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 2,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "x1"
-                            ],
-                            "is_negated": true,
-                            "predicate": "G"
-                        },
-                        "node_id": 3,
-                        "node_lit": "¬G(x1)",
-                        "parent_id": 1,
-                        "substitution": {
-                            "x": "x1",
-                            "x1": "y",
-                            "y1": "y"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            5
-                        ],
-                        "depth": 2,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "y"
-                            ],
-                            "is_negated": true,
-                            "predicate": "G"
-                        },
-                        "node_id": 4,
-                        "node_lit": "¬G(y)",
-                        "parent_id": 1,
-                        "substitution": {
-                            "x": "x1",
-                            "x1": "y",
-                            "y1": "y"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            7
-                        ],
-                        "depth": 3,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "y"
-                            ],
-                            "is_negated": false,
-                            "predicate": "R"
-                        },
-                        "node_id": 5,
-                        "node_lit": "R(y)",
-                        "parent_id": 4,
-                        "substitution": {
-                            "x": "x1",
-                            "x1": "y",
-                            "y1": "y"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 4,
-                        "is_A_literal": false,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [
-                                "x1",
-                                "y"
-                            ],
-                            "is_negated": true,
-                            "predicate": "E"
-                        },
-                        "node_id": 6,
-                        "node_lit": "¬E(x1, y)",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "x1",
-                            "y1": "y"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            9
-                        ],
-                        "depth": 4,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "x1"
-                            ],
-                            "is_negated": true,
-                            "predicate": "R"
-                        },
-                        "node_id": 7,
-                        "node_lit": "¬R(x1)",
-                        "parent_id": 5,
-                        "substitution": {
-                            "x": "x1",
-                            "y1": "y"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 4,
-                        "is_A_literal": false,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": false,
-                            "predicate": "uncol"
-                        },
-                        "node_id": 8,
-                        "node_lit": "uncol()",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "x1",
-                            "y1": "y"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 5,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "x1"
-                            ],
-                            "is_negated": false,
-                            "predicate": "G"
-                        },
-                        "node_id": 9,
-                        "node_lit": "G(x1)",
-                        "parent_id": 7,
-                        "substitution": {
-                            "x": "x1"
-                        }
-                    }
-                ]
-            },
-            "reward": 1.0,
-            "selected_operation": {
                 "action_type": "EXTENSION",
                 "kb_clause": "R(x) ∨ G(x)",
-                "node1_lit": "¬R(x1)",
-                "second_operand": "R(x)",
+                "node1_lit": "¬G(x1)",
+                "second_operand": "G(x)",
                 "second_operand_type": "literal",
-                "state_id": 53
+                "state_id": 51
             },
-            "state_id": 53
+            "state_id": 44
         },
         {
             "available_operations": [
@@ -1922,10 +1664,10 @@
             "selected_operation": {
                 "action_type": "EXTENSION",
                 "kb_clause": "R(x) ∨ G(x)",
-                "node1_lit": "¬G(x1)",
-                "second_operand": "G(x)",
+                "node1_lit": "¬R(x1)",
+                "second_operand": "R(x)",
                 "second_operand_type": "literal",
-                "state_id": 56
+                "state_id": 65
             },
             "state_id": 56
         },
@@ -2281,11 +2023,11 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "EXTENSION",
-                "kb_clause": "R(x) ∨ G(x)",
-                "node1_lit": "¬R(x1)",
-                "second_operand": "R(x)",
+                "kb_clause": "¬E(x, y) ∨ ¬G(x) ∨ ¬G(y) ∨ uncol()",
+                "node1_lit": "G(x1)",
+                "second_operand": "¬G(y)",
                 "second_operand_type": "literal",
-                "state_id": 66
+                "state_id": 76
             },
             "state_id": 66
         },
@@ -2634,12 +2376,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "¬E(x, y) ∨ ¬G(x) ∨ ¬G(y) ∨ uncol()",
-                "node1_lit": "G(x1)",
-                "second_operand": "¬G(y)",
-                "second_operand_type": "literal",
-                "state_id": 79
+                "action_type": "ANCESTRY",
+                "node1_lit": "¬uncol()",
+                "second_operand_id": 14,
+                "second_operand_type": "node",
+                "state_id": 81
             },
             "state_id": 79
         },
@@ -3100,11 +2841,12 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "ANCESTRY",
-                "node1_lit": "¬uncol()",
-                "second_operand_id": 14,
-                "second_operand_type": "node",
-                "state_id": 82
+                "action_type": "EXTENSION",
+                "kb_clause": "R(x) ∨ G(x)",
+                "node1_lit": "¬G(x)",
+                "second_operand": "G(x)",
+                "second_operand_type": "literal",
+                "state_id": 97
             },
             "state_id": 82
         },
@@ -3618,11 +3360,11 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "EXTENSION",
-                "kb_clause": "R(x) ∨ G(x)",
-                "node1_lit": "¬G(x)",
-                "second_operand": "G(x)",
+                "kb_clause": "¬E(x, y) ∨ ¬R(x) ∨ ¬R(y) ∨ uncol()",
+                "node1_lit": "R(x)",
+                "second_operand": "¬R(y)",
                 "second_operand_type": "literal",
-                "state_id": 100
+                "state_id": 116
             },
             "state_id": 100
         },
@@ -4094,12 +3836,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "¬E(x, y) ∨ ¬R(x) ∨ ¬R(y) ∨ uncol()",
-                "node1_lit": "R(x)",
-                "second_operand": "¬R(y)",
-                "second_operand_type": "literal",
-                "state_id": 121
+                "action_type": "ANCESTRY",
+                "node1_lit": "¬uncol()",
+                "second_operand_id": 18,
+                "second_operand_type": "node",
+                "state_id": 126
             },
             "state_id": 121
         },
@@ -4732,10 +4473,10 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "ANCESTRY",
-                "node1_lit": "¬uncol()",
-                "second_operand_id": 18,
+                "node1_lit": "R(y)",
+                "second_operand_id": 17,
                 "second_operand_type": "node",
-                "state_id": 127
+                "state_id": 152
             },
             "state_id": 127
         },
@@ -5368,11 +5109,12 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "ANCESTRY",
-                "node1_lit": "R(x2)",
-                "second_operand_id": 17,
-                "second_operand_type": "node",
-                "state_id": 153
+                "action_type": "EXTENSION",
+                "kb_clause": "E(c, a)",
+                "node1_lit": "¬E(x2, x)",
+                "second_operand": "E(c, a)",
+                "second_operand_type": "literal",
+                "state_id": 173
             },
             "state_id": 153
         },
@@ -5841,12 +5583,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "E(c, a)",
+                "action_type": "TRUNCATE",
                 "node1_lit": "¬E(c, a)",
-                "second_operand": "E(c, a)",
-                "second_operand_type": "literal",
-                "state_id": 180
+                "second_operand_id": -1,
+                "second_operand_type": "node",
+                "state_id": 181
             },
             "state_id": 180
         },
@@ -6256,11 +5997,12 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "TRUNCATE",
-                "node1_lit": "¬E(c, a)",
-                "second_operand_id": -1,
-                "second_operand_type": "node",
-                "state_id": 182
+                "action_type": "EXTENSION",
+                "kb_clause": "E(a, b)",
+                "node1_lit": "¬E(a, x1)",
+                "second_operand": "E(a, b)",
+                "second_operand_type": "literal",
+                "state_id": 187
             },
             "state_id": 182
         },
@@ -6637,12 +6379,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "E(a, b)",
+                "action_type": "TRUNCATE",
                 "node1_lit": "¬E(a, b)",
-                "second_operand": "E(a, b)",
-                "second_operand_type": "literal",
-                "state_id": 190
+                "second_operand_id": -1,
+                "second_operand_type": "node",
+                "state_id": 191
             },
             "state_id": 190
         },
@@ -6855,11 +6596,12 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "TRUNCATE",
-                "node1_lit": "¬E(a, b)",
-                "second_operand_id": -1,
-                "second_operand_type": "node",
-                "state_id": 192
+                "action_type": "EXTENSION",
+                "kb_clause": "¬E(x, y) ∨ ¬R(x) ∨ ¬R(y) ∨ uncol()",
+                "node1_lit": "R(b)",
+                "second_operand": "¬R(y)",
+                "second_operand_type": "literal",
+                "state_id": 195
             },
             "state_id": 192
         },
@@ -7120,12 +6862,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "¬E(x, y) ∨ ¬R(x) ∨ ¬R(y) ∨ uncol()",
-                "node1_lit": "R(b)",
-                "second_operand": "¬R(y)",
-                "second_operand_type": "literal",
-                "state_id": 196
+                "action_type": "ANCESTRY",
+                "node1_lit": "¬uncol()",
+                "second_operand_id": 21,
+                "second_operand_type": "node",
+                "state_id": 197
             },
             "state_id": 196
         },
@@ -7410,11 +7151,12 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "ANCESTRY",
-                "node1_lit": "¬uncol()",
-                "second_operand_id": 21,
-                "second_operand_type": "node",
-                "state_id": 198
+                "action_type": "EXTENSION",
+                "kb_clause": "R(x) ∨ G(x)",
+                "node1_lit": "¬R(x)",
+                "second_operand": "R(x)",
+                "second_operand_type": "literal",
+                "state_id": 202
             },
             "state_id": 198
         },
@@ -7742,11 +7484,11 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "EXTENSION",
-                "kb_clause": "R(x) ∨ G(x)",
-                "node1_lit": "¬R(x)",
-                "second_operand": "R(x)",
+                "kb_clause": "¬E(x, y) ∨ ¬G(x) ∨ ¬G(y) ∨ uncol()",
+                "node1_lit": "G(x)",
+                "second_operand": "¬G(y)",
                 "second_operand_type": "literal",
-                "state_id": 203
+                "state_id": 208
             },
             "state_id": 203
         },
@@ -8113,12 +7855,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "¬E(x, y) ∨ ¬G(x) ∨ ¬G(y) ∨ uncol()",
-                "node1_lit": "G(x)",
-                "second_operand": "¬G(y)",
-                "second_operand_type": "literal",
-                "state_id": 211
+                "action_type": "ANCESTRY",
+                "node1_lit": "¬uncol()",
+                "second_operand_id": 25,
+                "second_operand_type": "node",
+                "state_id": 214
             },
             "state_id": 211
         },
@@ -8557,370 +8298,14 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "ANCESTRY",
-                "node1_lit": "¬uncol()",
-                "second_operand_id": 25,
-                "second_operand_type": "node",
-                "state_id": 215
+                "action_type": "EXTENSION",
+                "kb_clause": "R(x) ∨ G(x)",
+                "node1_lit": "¬G(x1)",
+                "second_operand": "G(x)",
+                "second_operand_type": "literal",
+                "state_id": 225
             },
             "state_id": 215
-        },
-        {
-            "available_operations": null,
-            "current_tree_state": {
-                "depth_map": [
-                    [
-                        0
-                    ],
-                    [
-                        1
-                    ],
-                    [
-                        2,
-                        3,
-                        4
-                    ],
-                    [
-                        5,
-                        10
-                    ],
-                    [
-                        19,
-                        20,
-                        21
-                    ],
-                    [
-                        22
-                    ],
-                    [
-                        23,
-                        24,
-                        25
-                    ]
-                ],
-                "nodes": [
-                    {
-                        "children_ids": [
-                            1
-                        ],
-                        "depth": 0,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": false,
-                            "predicate": ""
-                        },
-                        "node_id": 0,
-                        "node_lit": "()",
-                        "parent_id": -1,
-                        "substitution": null
-                    },
-                    {
-                        "children_ids": [
-                            2,
-                            3
-                        ],
-                        "depth": 1,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": true,
-                            "predicate": "uncol"
-                        },
-                        "node_id": 1,
-                        "node_lit": "¬uncol()",
-                        "parent_id": 0,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "c",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 2,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b",
-                                "c"
-                            ],
-                            "is_negated": true,
-                            "predicate": "E"
-                        },
-                        "node_id": 2,
-                        "node_lit": "¬E(b, c)",
-                        "parent_id": 1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "c",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            10
-                        ],
-                        "depth": 2,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b"
-                            ],
-                            "is_negated": true,
-                            "predicate": "G"
-                        },
-                        "node_id": 3,
-                        "node_lit": "¬G(b)",
-                        "parent_id": 1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "c",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 2,
-                        "is_A_literal": true,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [
-                                "c"
-                            ],
-                            "is_negated": true,
-                            "predicate": "G"
-                        },
-                        "node_id": 4,
-                        "node_lit": "¬G(c)",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "c",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 3,
-                        "is_A_literal": true,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [
-                                "c"
-                            ],
-                            "is_negated": false,
-                            "predicate": "R"
-                        },
-                        "node_id": 5,
-                        "node_lit": "R(c)",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "c",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            19,
-                            20
-                        ],
-                        "depth": 3,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b"
-                            ],
-                            "is_negated": false,
-                            "predicate": "R"
-                        },
-                        "node_id": 10,
-                        "node_lit": "R(b)",
-                        "parent_id": 3,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "c",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 4,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "c",
-                                "b"
-                            ],
-                            "is_negated": true,
-                            "predicate": "E"
-                        },
-                        "node_id": 19,
-                        "node_lit": "¬E(c, b)",
-                        "parent_id": 10,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            22
-                        ],
-                        "depth": 4,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "c"
-                            ],
-                            "is_negated": true,
-                            "predicate": "R"
-                        },
-                        "node_id": 20,
-                        "node_lit": "¬R(c)",
-                        "parent_id": 10,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 4,
-                        "is_A_literal": false,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": false,
-                            "predicate": "uncol"
-                        },
-                        "node_id": 21,
-                        "node_lit": "uncol()",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            24
-                        ],
-                        "depth": 5,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "c"
-                            ],
-                            "is_negated": false,
-                            "predicate": "G"
-                        },
-                        "node_id": 22,
-                        "node_lit": "G(c)",
-                        "parent_id": 20,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 6,
-                        "is_A_literal": false,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [
-                                "b",
-                                "c"
-                            ],
-                            "is_negated": true,
-                            "predicate": "E"
-                        },
-                        "node_id": 23,
-                        "node_lit": "¬E(b, c)",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 6,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b"
-                            ],
-                            "is_negated": true,
-                            "predicate": "G"
-                        },
-                        "node_id": 24,
-                        "node_lit": "¬G(b)",
-                        "parent_id": 22,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 6,
-                        "is_A_literal": false,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": false,
-                            "predicate": "uncol"
-                        },
-                        "node_id": 25,
-                        "node_lit": "uncol()",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "y": "x"
-                        }
-                    }
-                ]
-            },
-            "reward": 1.0,
-            "selected_operation": {
-                "action_type": "FACTORING",
-                "node1_lit": "¬E(b, c)",
-                "second_operand_id": 23,
-                "second_operand_type": "node",
-                "state_id": 228
-            },
-            "state_id": 228
         },
         {
             "available_operations": [
@@ -9404,403 +8789,13 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "EXTENSION",
-                "kb_clause": "R(x) ∨ G(x)",
-                "node1_lit": "¬G(x1)",
-                "second_operand": "G(x)",
+                "kb_clause": "¬E(x, y) ∨ ¬R(x) ∨ ¬R(y) ∨ uncol()",
+                "node1_lit": "R(x1)",
+                "second_operand": "¬R(y)",
                 "second_operand_type": "literal",
-                "state_id": 230
+                "state_id": 241
             },
             "state_id": 230
-        },
-        {
-            "available_operations": null,
-            "current_tree_state": {
-                "depth_map": [
-                    [
-                        0
-                    ],
-                    [
-                        1
-                    ],
-                    [
-                        2,
-                        3,
-                        4
-                    ],
-                    [
-                        5,
-                        10
-                    ],
-                    [
-                        19,
-                        20,
-                        21
-                    ],
-                    [
-                        22
-                    ],
-                    [
-                        23,
-                        24,
-                        25
-                    ],
-                    [
-                        26
-                    ]
-                ],
-                "nodes": [
-                    {
-                        "children_ids": [
-                            1
-                        ],
-                        "depth": 0,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": false,
-                            "predicate": ""
-                        },
-                        "node_id": 0,
-                        "node_lit": "()",
-                        "parent_id": -1,
-                        "substitution": null
-                    },
-                    {
-                        "children_ids": [
-                            2,
-                            3
-                        ],
-                        "depth": 1,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": true,
-                            "predicate": "uncol"
-                        },
-                        "node_id": 1,
-                        "node_lit": "¬uncol()",
-                        "parent_id": 0,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 2,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b",
-                                "c"
-                            ],
-                            "is_negated": true,
-                            "predicate": "E"
-                        },
-                        "node_id": 2,
-                        "node_lit": "¬E(b, c)",
-                        "parent_id": 1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            10
-                        ],
-                        "depth": 2,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b"
-                            ],
-                            "is_negated": true,
-                            "predicate": "G"
-                        },
-                        "node_id": 3,
-                        "node_lit": "¬G(b)",
-                        "parent_id": 1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 2,
-                        "is_A_literal": true,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [
-                                "c"
-                            ],
-                            "is_negated": true,
-                            "predicate": "G"
-                        },
-                        "node_id": 4,
-                        "node_lit": "¬G(c)",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 3,
-                        "is_A_literal": true,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [
-                                "c"
-                            ],
-                            "is_negated": false,
-                            "predicate": "R"
-                        },
-                        "node_id": 5,
-                        "node_lit": "R(c)",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            19,
-                            20
-                        ],
-                        "depth": 3,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b"
-                            ],
-                            "is_negated": false,
-                            "predicate": "R"
-                        },
-                        "node_id": 10,
-                        "node_lit": "R(b)",
-                        "parent_id": 3,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x",
-                            "y1": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 4,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "c",
-                                "b"
-                            ],
-                            "is_negated": true,
-                            "predicate": "E"
-                        },
-                        "node_id": 19,
-                        "node_lit": "¬E(c, b)",
-                        "parent_id": 10,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            22
-                        ],
-                        "depth": 4,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "c"
-                            ],
-                            "is_negated": true,
-                            "predicate": "R"
-                        },
-                        "node_id": 20,
-                        "node_lit": "¬R(c)",
-                        "parent_id": 10,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 4,
-                        "is_A_literal": false,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": false,
-                            "predicate": "uncol"
-                        },
-                        "node_id": 21,
-                        "node_lit": "uncol()",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            24
-                        ],
-                        "depth": 5,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "c"
-                            ],
-                            "is_negated": false,
-                            "predicate": "G"
-                        },
-                        "node_id": 22,
-                        "node_lit": "G(c)",
-                        "parent_id": 20,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 6,
-                        "is_A_literal": false,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [
-                                "b",
-                                "c"
-                            ],
-                            "is_negated": true,
-                            "predicate": "E"
-                        },
-                        "node_id": 23,
-                        "node_lit": "¬E(b, c)",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [
-                            26
-                        ],
-                        "depth": 6,
-                        "is_A_literal": true,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b"
-                            ],
-                            "is_negated": true,
-                            "predicate": "G"
-                        },
-                        "node_id": 24,
-                        "node_lit": "¬G(b)",
-                        "parent_id": 22,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 6,
-                        "is_A_literal": false,
-                        "is_active": false,
-                        "literal": {
-                            "arguments": [],
-                            "is_negated": false,
-                            "predicate": "uncol"
-                        },
-                        "node_id": 25,
-                        "node_lit": "uncol()",
-                        "parent_id": -1,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1",
-                            "y": "x"
-                        }
-                    },
-                    {
-                        "children_ids": [],
-                        "depth": 7,
-                        "is_A_literal": false,
-                        "is_active": true,
-                        "literal": {
-                            "arguments": [
-                                "b"
-                            ],
-                            "is_negated": false,
-                            "predicate": "R"
-                        },
-                        "node_id": 26,
-                        "node_lit": "R(b)",
-                        "parent_id": 24,
-                        "substitution": {
-                            "x": "c",
-                            "x1": "b",
-                            "x2": "x1"
-                        }
-                    }
-                ]
-            },
-            "reward": 1.0,
-            "selected_operation": {
-                "action_type": "FACTORING",
-                "node1_lit": "¬E(b, c)",
-                "second_operand_id": 23,
-                "second_operand_type": "node",
-                "state_id": 246
-            },
-            "state_id": 246
         },
         {
             "available_operations": [
@@ -10289,12 +9284,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "¬E(x, y) ∨ ¬R(x) ∨ ¬R(y) ∨ uncol()",
-                "node1_lit": "R(x1)",
-                "second_operand": "¬R(y)",
-                "second_operand_type": "literal",
-                "state_id": 248
+                "action_type": "ANCESTRY",
+                "node1_lit": "¬uncol()",
+                "second_operand_id": 29,
+                "second_operand_type": "node",
+                "state_id": 255
             },
             "state_id": 248
         },
@@ -10906,10 +9900,10 @@
             "reward": 1.0,
             "selected_operation": {
                 "action_type": "ANCESTRY",
-                "node1_lit": "¬uncol()",
-                "second_operand_id": 29,
+                "node1_lit": "R(b)",
+                "second_operand_id": 28,
                 "second_operand_type": "node",
-                "state_id": 256
+                "state_id": 278
             },
             "state_id": 256
         },
@@ -11475,11 +10469,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "ANCESTRY",
-                "node1_lit": "R(b)",
-                "second_operand_id": 28,
+                "action_type": "FACTORING",
+                "node1_lit": "¬E(b, c)",
+                "second_operand_id": 27,
                 "second_operand_type": "node",
-                "state_id": 279
+                "state_id": 295
             },
             "state_id": 279
         },
@@ -11873,11 +10867,12 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "FACTORING",
-                "node1_lit": "¬E(b, c)",
-                "second_operand_id": 27,
-                "second_operand_type": "node",
-                "state_id": 296
+                "action_type": "EXTENSION",
+                "kb_clause": "E(c, a)",
+                "node1_lit": "¬E(c, x)",
+                "second_operand": "E(c, a)",
+                "second_operand_type": "literal",
+                "state_id": 301
             },
             "state_id": 296
         },
@@ -12245,12 +11240,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "E(c, a)",
+                "action_type": "TRUNCATE",
                 "node1_lit": "¬E(c, a)",
-                "second_operand": "E(c, a)",
-                "second_operand_type": "literal",
-                "state_id": 302
+                "second_operand_id": -1,
+                "second_operand_type": "node",
+                "state_id": 303
             },
             "state_id": 302
         },
@@ -12527,11 +11521,12 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "TRUNCATE",
-                "node1_lit": "¬E(c, a)",
-                "second_operand_id": -1,
-                "second_operand_type": "node",
-                "state_id": 304
+                "action_type": "EXTENSION",
+                "kb_clause": "E(a, b)",
+                "node1_lit": "¬E(a, b)",
+                "second_operand": "E(a, b)",
+                "second_operand_type": "literal",
+                "state_id": 306
             },
             "state_id": 304
         },
@@ -12799,12 +11794,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "E(a, b)",
+                "action_type": "TRUNCATE",
                 "node1_lit": "¬E(a, b)",
-                "second_operand": "E(a, b)",
-                "second_operand_type": "literal",
-                "state_id": 307
+                "second_operand_id": -1,
+                "second_operand_type": "node",
+                "state_id": 308
             },
             "state_id": 307
         },
@@ -12948,11 +11942,12 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "TRUNCATE",
-                "node1_lit": "¬E(a, b)",
-                "second_operand_id": -1,
-                "second_operand_type": "node",
-                "state_id": 309
+                "action_type": "EXTENSION",
+                "kb_clause": "E(b, c)",
+                "node1_lit": "¬E(b, c)",
+                "second_operand": "E(b, c)",
+                "second_operand_type": "literal",
+                "state_id": 310
             },
             "state_id": 309
         },
@@ -13095,12 +12090,11 @@
             },
             "reward": 1.0,
             "selected_operation": {
-                "action_type": "EXTENSION",
-                "kb_clause": "E(b, c)",
+                "action_type": "TRUNCATE",
                 "node1_lit": "¬E(b, c)",
-                "second_operand": "E(b, c)",
-                "second_operand_type": "literal",
-                "state_id": 311
+                "second_operand_id": -1,
+                "second_operand_type": "node",
+                "state_id": 312
             },
             "state_id": 311
         }

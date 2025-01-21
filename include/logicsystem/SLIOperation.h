@@ -53,8 +53,10 @@ namespace LogicSystem
             Clause kb_clause;                       // 知识库子句（用于extension）
             std::shared_ptr<OperationState> parent; // 父状态
             double heuristic_score;
-            int state_id; // 状态ID
-            int depth;    // 深度
+            int state_id;                                                      // 状态ID
+            int depth;                                                         // 深度
+            std::vector<std::shared_ptr<OperationState>> parent_available_ops; // 用于保存父状态所有可能执行的操作 即当前节点的所有兄弟
+            std::shared_ptr<OperationState> copy_state; // 指向从哪个状态深拷贝过来的
 
             OperationState(std::shared_ptr<SLITree> tree,
                            SLIActionType act,
@@ -62,18 +64,24 @@ namespace LogicSystem
                            SecondOperand second,
                            Clause clause = Clause(), // 默认是一个空的Clause
                            std::shared_ptr<OperationState> p = nullptr,
-                           double score = 0.0) // 默认不调用启发式 score就是0.0
+                           double score = 0.0, // 默认不调用启发式 score就是0.0
+                           std::shared_ptr<OperationState> copystate = nullptr) 
                 : sli_tree(tree),
                   action(act),
                   lit1_node(l1),
                   second_op(second),
                   kb_clause(clause),
                   parent(p),
-                  heuristic_score(score)
+                  heuristic_score(score),
+                  copy_state(copystate)
             {
                 static int next_id = 0;
                 state_id = next_id++;
                 depth = (parent) ? parent->depth + 1 : 1;
+                if (parent)
+                {
+                    parent_available_ops = parent->parent_available_ops;
+                }
                 // std::cout << "[OperationState] Created state_id: " << state_id << "\n";
             }
         };
@@ -161,14 +169,13 @@ namespace LogicSystem
             // score += weights.getScoreForAction(new_state->action);
 
             // 节点深度评分（避免过深搜索）
-            score -= new_state->depth *0.03;
+            score -= new_state->depth * 0.03;
 
-            //子句长度
+            // 子句长度
             int clause_len = new_state->sli_tree->get_all_active_nodes().size();
             score += 10.0 / (1 + clause_len);
 
             state->heuristic_score = score;
-
         }
 
         // 获取操作路径（从根到当前状态）
@@ -407,6 +414,11 @@ namespace LogicSystem
                 original_state->kb_clause,
                 original_state->parent); // 这里保持 parent 指向原始 parent
 
+            // 浅拷贝 parent_available_ops（直接复制指针）
+            new_state->parent_available_ops = original_state->parent_available_ops;
+
+            //指向原来的状态，用于收集数据时进行回溯
+            new_state->copy_state = original_state;
             return new_state;
         }
 

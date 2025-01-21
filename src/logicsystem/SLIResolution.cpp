@@ -133,8 +133,42 @@ namespace LogicSystem
             if (checkEmptyClause(*new_state->sli_tree))
             {
                 successful_state = new_state;
-                // 打印操作路径
-                SLIOperation::printOperationPath(successful_state, kb);
+                std::vector<json> successful_samples;
+
+                // 回溯路径收集样本
+                auto current_state = successful_state;
+                while (current_state && current_state->parent)
+                {
+                    // std::cout << "current state " << std::endl;
+                    // SLIOperation::printCurrentState(current_state, kb);
+                    auto parent_state = current_state->parent;
+
+                    // 确保指针有效
+                    if (parent_state->sli_tree == nullptr)
+                    {
+                        std::cerr << "Invalid parent state!" << std::endl;
+                        break;
+                    }
+
+                    // 获取父状态生成时的所有可能操作
+                    auto &available_ops = current_state->parent_available_ops;
+                    std::cout << "available ops size " << available_ops.size() << std::endl;
+
+                    // 确定当前操作是父状态选择的那个
+                    auto it = std::find(available_ops.begin(), available_ops.end(), current_state->copy_state);
+                    if (it != available_ops.end())
+                    {
+                        std::cout << "find op" << std::endl;
+                        double reward = 1.0; // 可根据路径长度调整
+                        successful_samples.push_back(
+                            DataCollector::collectTrainingSample(*parent_state, available_ops, *it, reward, kb));
+                    }
+                    current_state = parent_state;
+                }
+
+                // 将成功路径的样本添加到总数据中（逆序）
+                training_samples.insert(training_samples.end(), successful_samples.rbegin(), successful_samples.rend());
+                std::cout << "training_samples size " << training_samples.size() << std::endl;
                 DataCollector::saveToFile(training_samples, "/home/adrin/Projects/fol-parser/data/training_data.json");
                 return true;
             }
@@ -200,6 +234,12 @@ namespace LogicSystem
             {
                 continue;
             }
+            // 记录父状态的可用操作到子状态中
+            for (auto &op : available_ops)
+            {
+                op->parent_available_ops = available_ops; // 关键修改
+            }
+            std::cout << "add availalbe_ops size " << available_ops.size() << std::endl;
             // 检查是否是特定的 state id
             // if (new_state->state_id == 19)
             // {
@@ -212,9 +252,9 @@ namespace LogicSystem
             //     // 这里可以进一步检查或记录当前状态的详细信息
             // }
             // 收集训练样本
-            double reward = 1.0;
-            training_samples.push_back(
-                DataCollector::collectTrainingSample(*new_state, available_ops, reward, kb));
+            // double reward = 1.0;
+            // training_samples.push_back(
+            //     DataCollector::collectTrainingSample(*new_state, available_ops, reward, kb));
         }
         // 保存训练数据
         SLIOperation::printOperationPath(last_state, kb);

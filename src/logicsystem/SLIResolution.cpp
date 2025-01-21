@@ -8,6 +8,7 @@ namespace LogicSystem
 
     bool SLIResolution::prove(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
     {
+        std::vector<json> training_samples;
         // 创建初始状态
         auto initialTree = std::make_shared<SLITree>(kb);
 
@@ -134,6 +135,7 @@ namespace LogicSystem
                 successful_state = new_state;
                 // 打印操作路径
                 SLIOperation::printOperationPath(successful_state, kb);
+                DataCollector::saveToFile(training_samples, "/home/adrin/Projects/fol-parser/data/training_data.json");
                 return true;
             }
 
@@ -158,49 +160,33 @@ namespace LogicSystem
             // std::cout << "Basic Condition Test " << std::endl;
             bool AC_result = new_state->sli_tree->check_all_nodes_AC();
             bool MC_result = new_state->sli_tree->check_all_nodes_MC();
-            // if (current_state->state_id == 24)
-            // {
-            //     std::cout << "===== Detected State ID: 24 =====" << std::endl;
-            //     SLIOperation::printOperationPath(current_state, kb); // 打印当前状态路径
-            //     std::cout << "After Perform Action " << SLI_Action_to_string(new_state->action) << std::endl;
-            //     std::cout << "Check AC " << AC_result << " MC " << MC_result << std::endl;
-            //     SLIOperation::printOperationPath(new_state, kb);
-            //     // if (!state_stack.empty())
-            //     // {
-            //     //     auto top_state = state_stack.top();
-            //     //     std::cout << "Next State Action: " << SLIOperation::getActionString(top_state->action) << std::endl;
-            //     //     SLIOperation::printOperationPath(top_state, kb);
-            //     // }
-            //     return false; // 根据需要决定是否继续或终止
-            // }
-            // std::cout << "After Perform Action " << SLI_Action_to_string(new_state->action) << std::endl;
-            // std::cout << "Check AC " << AC_result << " MC " << MC_result << std::endl;
-            // SLIOperation::printOperationPath(new_state, kb);
 
             auto b_lit_nodes = new_state->sli_tree->get_all_B_literals();
 
+            // 收集当前可用的操作
+            // 要添加到各个generateStates函数里面去
+            std::vector<std::shared_ptr<SLIOperation::OperationState>> available_ops;
+
             if (AC_result && MC_result)
             {
-                // std::cout << "Both AC MC Perform ALL in round " << count << std::endl;
-
                 // t-extension
-                generateExtensionStates(kb, b_lit_nodes, new_state, state_stack);
+                generateExtensionStates(kb, b_lit_nodes, new_state, state_stack, available_ops);
                 // t-factoring
-                generateFactoringStates(b_lit_nodes, new_state, state_stack);
+                generateFactoringStates(b_lit_nodes, new_state, state_stack, available_ops);
                 // t-ancestry
-                generateAncestryStates(b_lit_nodes, new_state, state_stack);
+                generateAncestryStates(b_lit_nodes, new_state, state_stack, available_ops);
                 // t-truncate
                 generateTruncateStates(new_state->sli_tree->get_all_active_nodes(),
-                                       new_state, state_stack);
+                                       new_state, state_stack, available_ops);
             }
 
             else if (MC_result)
             {
                 // std::cout << "Only MC Perform Factoring and Ancestry in round " << count << std::endl;
                 // t-factoring
-                generateFactoringStates(b_lit_nodes, new_state, state_stack);
+                generateFactoringStates(b_lit_nodes, new_state, state_stack, available_ops);
                 // t-ancestry
-                generateAncestryStates(b_lit_nodes, new_state, state_stack);
+                generateAncestryStates(b_lit_nodes, new_state, state_stack, available_ops);
             }
 
             else if (AC_result)
@@ -208,7 +194,7 @@ namespace LogicSystem
                 // std::cout << "Only AC Perform Truncate in round " << count << std::endl;
                 // t-truncate
                 generateTruncateStates(new_state->sli_tree->get_all_active_nodes(),
-                                       new_state, state_stack);
+                                       new_state, state_stack, available_ops);
             }
             else
             {
@@ -225,8 +211,14 @@ namespace LogicSystem
             //     return false;
             //     // 这里可以进一步检查或记录当前状态的详细信息
             // }
+            // 收集训练样本
+            double reward = 1.0;
+            training_samples.push_back(
+                DataCollector::collectTrainingSample(*new_state, available_ops, reward, kb));
         }
+        // 保存训练数据
         SLIOperation::printOperationPath(last_state, kb);
+        DataCollector::saveToFile(training_samples, "/home/adrin/Projects/fol-parser/data/training_data.json");
         return false;
     }
 
@@ -380,6 +372,8 @@ namespace LogicSystem
 
     bool SLIResolution::proveHeuristic(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
     {
+
+        std::vector<json> training_samples;
         // 创建初始状态
         auto initialTree = std::make_shared<SLITree>(kb);
 
@@ -923,7 +917,8 @@ namespace LogicSystem
         KnowledgeBase &kb,
         const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
         const std::shared_ptr<SLIOperation::OperationState> &current_state,
-        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack)
+        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>> &available_ops)
     {
         for (const auto &node : b_lit_nodes)
         {
@@ -946,6 +941,7 @@ namespace LogicSystem
                             kb_clause,
                             current_state);
                         state_stack.push(new_state);
+                        available_ops.push_back(new_state);
                     }
                 }
             }
@@ -957,7 +953,8 @@ namespace LogicSystem
     void SLIResolution::generateFactoringStates(
         const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
         const std::shared_ptr<SLIOperation::OperationState> &current_state,
-        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack)
+        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>> &available_ops)
     {
         auto factoring_pairs = findPotentialFactoringPairs(current_state->sli_tree);
         for (const auto &[upper_node, lower_node] : factoring_pairs)
@@ -968,6 +965,7 @@ namespace LogicSystem
                 lower_node,
                 current_state);
             state_stack.push(new_state);
+            available_ops.push_back(new_state);
         }
     }
 
@@ -975,7 +973,8 @@ namespace LogicSystem
     void SLIResolution::generateAncestryStates(
         const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
         const std::shared_ptr<SLIOperation::OperationState> &current_state,
-        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack)
+        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>> &available_ops)
     {
         auto ancestry_pairs = findPotentialAncestryPairs(current_state->sli_tree);
         for (const auto &[upper_node, lower_node] : ancestry_pairs)
@@ -986,6 +985,7 @@ namespace LogicSystem
                 lower_node,
                 current_state);
             state_stack.push(new_state);
+            available_ops.push_back(new_state);
         }
     }
 
@@ -994,11 +994,10 @@ namespace LogicSystem
     void SLIResolution::generateTruncateStates(
         const std::vector<std::shared_ptr<SLINode>> &active_nodes,
         const std::shared_ptr<SLIOperation::OperationState> &current_state,
-        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack)
+        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>> &available_ops)
     {
         auto truncate_nodes = findPotentialTruncateNodes(current_state->sli_tree);
-        // std::cout << "Find Truncate Nodes " << std::endl;
-        // std::cout << "potential truncate Nodes size " << truncate_nodes.size() << std::endl;
         for (const auto &node : truncate_nodes)
         {
             auto new_state = SLIOperation::createTruncateState(
@@ -1006,14 +1005,7 @@ namespace LogicSystem
                 node,
                 current_state);
             state_stack.push(new_state);
-            // std::cout << "Push truncate state" << std::endl;
-            // auto top_state = state_stack.top();
-            // std::cout << "Need Truncate Tree: " << std::endl;
-            // KnowledgeBase kb = top_state->sli_tree->getKB();
-            // top_state->sli_tree->print_tree(kb);
-            // std::cout << "Action " << SLIOperation::getActionString(top_state->action) << std::endl;
-            // std::cout << "Truncate Node " << std::endl;
-            // node->print(kb);
+            available_ops.push_back(new_state);
         }
     }
 

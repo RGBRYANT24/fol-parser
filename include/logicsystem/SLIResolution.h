@@ -7,6 +7,7 @@
 #include "SearchStrategy.h"
 #include "StateManager.h"
 #include "SLIOperation.h"
+#include "DataCollector.h"
 #include <optional>
 #include <vector>
 
@@ -30,25 +31,29 @@ namespace LogicSystem
             KnowledgeBase &kb,
             const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &current_state,
-            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>>& available_ops);
 
         // 辅助函数：生成t-factoring状态
         static void generateFactoringStates(
             const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &current_state,
-            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>>& available_ops);
 
         // 辅助函数：生成t-ancestry状态
         static void generateAncestryStates(
             const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &current_state,
-            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>>& available_ops);
 
         // 辅助函数：生成t-truncate状态
         static void generateTruncateStates(
             const std::vector<std::shared_ptr<SLINode>> &active_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &current_state,
-            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack);
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>>& available_ops);
 
         // 添加BFS版本的辅助函数
         static void generateExtensionStatesBFS(

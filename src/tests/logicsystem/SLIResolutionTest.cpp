@@ -194,9 +194,10 @@ namespace LogicSystem
         // 获取所有B-literals
         auto b_literals = initial_tree->get_all_B_literals();
         ASSERT_FALSE(b_literals.empty());
+        std::vector<std::shared_ptr<SLIOperation::OperationState>> available_ops;
 
         // 生成Extension状态
-        SLIResolution::generateExtensionStates(kb, b_literals, current_state, state_stack);
+        SLIResolution::generateExtensionStates(kb, b_literals, current_state, state_stack, available_ops);
 
         // 验证生成的状态
         ASSERT_FALSE(state_stack.empty());
@@ -245,20 +246,20 @@ namespace LogicSystem
         // 测试非活动节点
         b_literals[0]->is_active = false;
         state_stack = std::stack<std::shared_ptr<SLIOperation::OperationState>>();
-        SLIResolution::generateExtensionStates(kb, b_literals, current_state, state_stack);
+        SLIResolution::generateExtensionStates(kb, b_literals, current_state, state_stack, available_ops);
         EXPECT_LT(state_stack.size(), expected_states);
 
         // 测试A-literal节点
         b_literals[0]->is_active = true;
         b_literals[0]->is_A_literal = true;
         state_stack = std::stack<std::shared_ptr<SLIOperation::OperationState>>();
-        SLIResolution::generateExtensionStates(kb, b_literals, current_state, state_stack);
+        SLIResolution::generateExtensionStates(kb, b_literals, current_state, state_stack, available_ops);
         EXPECT_LT(state_stack.size(), expected_states);
 
         // 测试空的B-literals列表
         std::vector<std::shared_ptr<SLINode>> empty_b_literals;
         state_stack = std::stack<std::shared_ptr<SLIOperation::OperationState>>();
-        SLIResolution::generateExtensionStates(kb, empty_b_literals, current_state, state_stack);
+        SLIResolution::generateExtensionStates(kb, empty_b_literals, current_state, state_stack, available_ops);
         EXPECT_TRUE(state_stack.empty());
     }
 
@@ -744,14 +745,14 @@ namespace LogicSystem
         c4.addLiteral(l4a);
         auto nodes4 = tree->add_node(c4, Literal(), false, tree->getRoot());
         auto lit_A2 = nodes4[0];
-        //lit_A2->is_A_literal = true;
+        // lit_A2->is_A_literal = true;
 
         // 添加另一个 A(z) 有子节点
         Clause c5;
         Literal l5a(pred_A, {var_z}, true); // A(z)
         c5.addLiteral(l5a);
         auto nodes5 = tree->add_node(c5, l5a, false, lit_A2);
-        //auto lit_A3 = nodes5[0];
+        // auto lit_A3 = nodes5[0];
 
         // // 添加一个子节点到 A(z)
         // Clause c6;

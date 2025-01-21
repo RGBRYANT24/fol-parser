@@ -6,7 +6,7 @@
 #include "SLITree.h"
 #include "SLIOperation.h"
 #include <fstream>  // 用于 std::ofstream
-#include <json>     // 用于 json 操
+// #include <json>     // 用于 json 操作
 
 using json = nlohmann::json;
 
@@ -18,6 +18,7 @@ public:
     static json collectNodeData(const std::shared_ptr<SLINode>& node, const KnowledgeBase& kb) {
         json node_data;
         node_data["node_id"] = node->node_id;
+        node_data["node_lit"] = node->literal.toString(kb);
         node_data["depth"] = node->depth;
         node_data["is_A_literal"] = node->is_A_literal;
         node_data["is_active"] = node->is_active;
@@ -89,7 +90,8 @@ public:
         json op_data;
         op_data["state_id"] = op_state.state_id;
         op_data["action_type"] = SLI_Action_to_string(op_state.action);
-        op_data["node1_id"] = op_state.lit1_node ? op_state.lit1_node->node_id : -1;
+        // op_data["node1_id"] = op_state.lit1_node ? op_state.lit1_node->node_id : -1;
+        op_data["node1_lit"] = op_state.lit1_node ? op_state.lit1_node->literal.toString(kb) : "null";
         
         if (SLIOperation::isNode(op_state.second_op)) {
             auto node = SLIOperation::getNode(op_state.second_op);
@@ -135,7 +137,7 @@ public:
     static void saveToFile(const std::vector<json>& samples, const std::string& filename) {
         json output;
         output["samples"] = samples;
-        
+        std::cout << "Save to file" <<std::endl;
         std::ofstream file(filename);
         file << output.dump(4);
     }

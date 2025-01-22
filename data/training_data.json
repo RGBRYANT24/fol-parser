@@ -53,7 +53,7 @@
           "state_id": 3
         }
       ],
-      "reward": 1.0,
+      "reward": 0.030303030303030304,
       "selected_op": {
         "action": "Extension",
         "depth": 2,
@@ -392,7 +392,7 @@
           "state_id": 13
         }
       ],
-      "reward": 1.0,
+      "reward": 0.03125,
       "selected_op": {
         "action": "Extension",
         "depth": 3,
@@ -808,7 +808,7 @@
           "state_id": 24
         }
       ],
-      "reward": 1.0,
+      "reward": 0.03225806451612903,
       "selected_op": {
         "action": "Extension",
         "depth": 4,
@@ -1019,7 +1019,7 @@
           "state_id": 27
         }
       ],
-      "reward": 1.0,
+      "reward": 0.03333333333333333,
       "selected_op": {
         "action": "Ancestry",
         "depth": 5,
@@ -1723,7 +1723,7 @@
           "state_id": 43
         }
       ],
-      "reward": 1.0,
+      "reward": 0.034482758620689655,
       "selected_op": {
         "action": "Factoring",
         "depth": 6,
@@ -2192,7 +2192,7 @@
           "state_id": 52
         }
       ],
-      "reward": 1.0,
+      "reward": 0.03571428571428571,
       "selected_op": {
         "action": "Extension",
         "depth": 7,
@@ -2682,7 +2682,7 @@
           "state_id": 65
         }
       ],
-      "reward": 1.0,
+      "reward": 0.037037037037037035,
       "selected_op": {
         "action": "Extension",
         "depth": 8,
@@ -3250,7 +3250,7 @@
           "state_id": 77
         }
       ],
-      "reward": 1.0,
+      "reward": 0.038461538461538464,
       "selected_op": {
         "action": "Extension",
         "depth": 9,
@@ -3531,7 +3531,7 @@
           "state_id": 81
         }
       ],
-      "reward": 1.0,
+      "reward": 0.04,
       "selected_op": {
         "action": "Ancestry",
         "depth": 10,
@@ -4340,7 +4340,7 @@
           "state_id": 98
         }
       ],
-      "reward": 1.0,
+      "reward": 0.041666666666666664,
       "selected_op": {
         "action": "Extension",
         "depth": 11,
@@ -5210,7 +5210,7 @@
           "state_id": 118
         }
       ],
-      "reward": 1.0,
+      "reward": 0.043478260869565216,
       "selected_op": {
         "action": "Extension",
         "depth": 12,
@@ -5651,7 +5651,7 @@
           "state_id": 126
         }
       ],
-      "reward": 1.0,
+      "reward": 0.045454545454545456,
       "selected_op": {
         "action": "Ancestry",
         "depth": 13,
@@ -6831,7 +6831,7 @@
           "state_id": 152
         }
       ],
-      "reward": 1.0,
+      "reward": 0.047619047619047616,
       "selected_op": {
         "action": "Ancestry",
         "depth": 14,
@@ -7956,7 +7956,7 @@
           "state_id": 176
         }
       ],
-      "reward": 1.0,
+      "reward": 0.05,
       "selected_op": {
         "action": "Extension",
         "depth": 15,
@@ -8313,7 +8313,7 @@
           "state_id": 181
         }
       ],
-      "reward": 1.0,
+      "reward": 0.05263157894736842,
       "selected_op": {
         "action": "Truncate",
         "depth": 16,
@@ -8855,7 +8855,7 @@
           "state_id": 188
         }
       ],
-      "reward": 1.0,
+      "reward": 0.05555555555555555,
       "selected_op": {
         "action": "Extension",
         "depth": 17,
@@ -9154,7 +9154,7 @@
           "state_id": 191
         }
       ],
-      "reward": 1.0,
+      "reward": 0.058823529411764705,
       "selected_op": {
         "action": "Truncate",
         "depth": 18,
@@ -9528,7 +9528,7 @@
           "state_id": 195
         }
       ],
-      "reward": 1.0,
+      "reward": 0.0625,
       "selected_op": {
         "action": "Extension",
         "depth": 19,
@@ -9715,7 +9715,7 @@
           "state_id": 197
         }
       ],
-      "reward": 1.0,
+      "reward": 0.06666666666666667,
       "selected_op": {
         "action": "Ancestry",
         "depth": 20,
@@ -10055,7 +10055,7 @@
           "state_id": 202
         }
       ],
-      "reward": 1.0,
+      "reward": 0.07142857142857142,
       "selected_op": {
         "action": "Extension",
         "depth": 21,
@@ -10444,7 +10444,7 @@
           "state_id": 209
         }
       ],
-      "reward": 1.0,
+      "reward": 0.07692307692307693,
       "selected_op": {
         "action": "Extension",
         "depth": 22,
@@ -10745,7 +10745,7 @@
           "state_id": 214
         }
       ],
-      "reward": 1.0,
+      "reward": 0.08333333333333333,
       "selected_op": {
         "action": "Ancestry",
         "depth": 23,
@@ -11404,7 +11404,7 @@
           "state_id": 227
         }
       ],
-      "reward": 1.0,
+      "reward": 0.09090909090909091,
       "selected_op": {
         "action": "Extension",
         "depth": 24,
@@ -12117,7 +12117,7 @@
           "state_id": 244
         }
       ],
-      "reward": 1.0,
+      "reward": 0.1,
       "selected_op": {
         "action": "Extension",
         "depth": 25,
@@ -12603,7 +12603,7 @@
           "state_id": 255
         }
       ],
-      "reward": 1.0,
+      "reward": 0.1111111111111111,
       "selected_op": {
         "action": "Ancestry",
         "depth": 26,
@@ -13653,7 +13653,7 @@
           "state_id": 278
         }
       ],
-      "reward": 1.0,
+      "reward": 0.125,
       "selected_op": {
         "action": "Ancestry",
         "depth": 27,
@@ -14495,7 +14495,7 @@
           "state_id": 295
         }
       ],
-      "reward": 1.0,
+      "reward": 0.14285714285714285,
       "selected_op": {
         "action": "Factoring",
         "depth": 28,
@@ -14968,7 +14968,7 @@
           "state_id": 301
         }
       ],
-      "reward": 1.0,
+      "reward": 0.16666666666666666,
       "selected_op": {
         "action": "Extension",
         "depth": 29,
@@ -15239,7 +15239,7 @@
           "state_id": 303
         }
       ],
-      "reward": 1.0,
+      "reward": 0.2,
       "selected_op": {
         "action": "Truncate",
         "depth": 30,
@@ -15552,7 +15552,7 @@
           "state_id": 306
         }
       ],
-      "reward": 1.0,
+      "reward": 0.25,
       "selected_op": {
         "action": "Extension",
         "depth": 31,
@@ -15762,7 +15762,7 @@
           "state_id": 308
         }
       ],
-      "reward": 1.0,
+      "reward": 0.3333333333333333,
       "selected_op": {
         "action": "Truncate",
         "depth": 32,
@@ -15973,7 +15973,7 @@
           "state_id": 310
         }
       ],
-      "reward": 1.0,
+      "reward": 0.5,
       "selected_op": {
         "action": "Extension",
         "depth": 33,

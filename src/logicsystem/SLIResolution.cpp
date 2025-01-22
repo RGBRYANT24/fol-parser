@@ -135,6 +135,7 @@ namespace LogicSystem
                 successful_state = new_state;
                 SLIOperation::printOperationPath(successful_state, kb);
                 std::vector<json> successful_samples;
+                int max_depth = successful_state->depth;
 
                 // 回溯路径收集样本
                 auto current_state = successful_state;
@@ -154,6 +155,8 @@ namespace LogicSystem
                         break;
                     }
 
+                    double reward = 1.0/(1.0 + max_depth-current_state->depth);
+
                     // 获取父状态生成时的所有可能操作
                     auto &available_ops = current_state->parent_available_ops;
                     std::cout << "available ops size " << available_ops.size() << std::endl;
@@ -163,14 +166,13 @@ namespace LogicSystem
                     if (it != available_ops.end())
                     {
                         std::cout << "find op" << std::endl;
-                        double reward = 1.0; // 可根据路径长度调整
                                              // 收集样本时传入kb引用
                         successful_samples.push_back(
                             DataCollector::collectTrainingSample(
                                 *parent_state,
                                 available_ops,
                                 *it,
-                                1.0, // reward
+                                reward, // reward
                                 kb   // 传入KnowledgeBase
                                 ));
                     }

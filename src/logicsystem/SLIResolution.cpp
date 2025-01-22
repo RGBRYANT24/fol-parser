@@ -133,6 +133,7 @@ namespace LogicSystem
             if (checkEmptyClause(*new_state->sli_tree))
             {
                 successful_state = new_state;
+                SLIOperation::printOperationPath(successful_state, kb);
                 std::vector<json> successful_samples;
 
                 // 回溯路径收集样本
@@ -142,6 +143,9 @@ namespace LogicSystem
                     // std::cout << "current state " << std::endl;
                     // SLIOperation::printCurrentState(current_state, kb);
                     auto parent_state = current_state->parent;
+
+                    // 创建新的标准化上下文
+                    LogicSystem::DataCollector::NormalizationContext ctx;
 
                     // 确保指针有效
                     if (parent_state->sli_tree == nullptr)
@@ -160,8 +164,15 @@ namespace LogicSystem
                     {
                         std::cout << "find op" << std::endl;
                         double reward = 1.0; // 可根据路径长度调整
+                                             // 收集样本时传入kb引用
                         successful_samples.push_back(
-                            DataCollector::collectTrainingSample(*parent_state, available_ops, *it, reward, kb));
+                            DataCollector::collectTrainingSample(
+                                *parent_state,
+                                available_ops,
+                                *it,
+                                1.0, // reward
+                                kb   // 传入KnowledgeBase
+                                ));
                     }
                     current_state = parent_state;
                 }
@@ -258,7 +269,7 @@ namespace LogicSystem
         }
         // 保存训练数据
         SLIOperation::printOperationPath(last_state, kb);
-        DataCollector::saveToFile(training_samples, "/home/adrin/Projects/fol-parser/data/training_data.json");
+        DataCollector::saveToFile(training_samples, "/path/to/failed_data.json");
         return false;
     }
 

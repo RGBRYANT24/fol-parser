@@ -1,212 +1,175 @@
 import json
+import torch
+from torch.utils.data import Dataset, DataLoader
 from collections import defaultdict
+from collections import deque
 
-# ======================
-# 1. JSON数据加载与解析
-# ======================
-def load_data(file_path):
-    """加载并解析JSON数据"""
-    with open(file_path) as f:
-        data = json.load(f)
-    return data["samples"]
-
-# ======================
-# 2. 词汇表构建器（关键修改）
-# ======================
-class VocabularyBuilder:
+class CustomTokenizer:
+    """修复substitution为空的版本"""
     def __init__(self):
-        self.vocab = defaultdict(lambda: len(self.vocab))
-        self.special_tokens = [
-            "[PAD]", "[UNK]", "[CLS]", "[SEP]", "[NODE]",
-            "(", ")", ",", "¬", "∨"
-        ]
+        self.special_tokens = {
+            '[PAD]': 0,
+            '[UNK]': 1,
+            '[CLS]': 2,
+            '[SEP]': 3
+        }
+        self.vocab = defaultdict(lambda: len(self.vocab) + len(self.special_tokens))
+        for token, idx in self.special_tokens.items():
+            self.vocab[token] = idx
+
+    def add_tokens(self, tokens):
+        for token in tokens:
+            if token not in self.vocab:
+                self.vocab[token] = len(self.vocab)
+
+    def tokenize(self, text):
+        return text.split()
+
+    def convert_tokens_to_ids(self, tokens):
+        return [self.vocab.get(token, self.special_tokens['[UNK]']) for token in tokens]
+
+class SLIDataset(Dataset):
+    """修复空值问题的数据集类"""
+    def __init__(self, file_path, max_seq_length=512):
+        self.max_seq_length = max_seq_length
+        self.tokenizer = CustomTokenizer()
+        self.samples = []
         
-        # 初始化特殊标记（包括 [NODE]）
-        for token in self.special_tokens:
-            _ = self.vocab[token]
-    
-    def build_from_data(self, data):
-        """从数据中自动构建词汇表"""
-        action_types = set()  # 收集所有动作类型
+        with open(file_path) as f:
+            raw_data = json.load(f).get('samples', [])
         
-        for sample in data:
-            # 处理树节点
-            for node in sample["current_tree_state"]["nodes"]:
-                self._process_literal(node["node_lit"])
-                # 添加结构标记
-                _ = self.vocab[f"[DEPTH]{node['depth']}"]
-                _ = self.vocab[f"[ACTIVE]{int(node['is_active'])}"]
-                _ = self.vocab[f"[A_LIT]{int(node['is_A_literal'])}"]
+        self._build_vocab(raw_data)
+        self._process_samples(raw_data)
+
+    def _safe_get(self, data, key, default=None):
+        """安全获取字典值"""
+        return data.get(key, default) if data else default
+
+    def _build_vocab(self, raw_data):
+        all_tokens = set()
+        
+        for sample in raw_data:
+            tree = self._safe_get(sample, 'state', {}).get('tree', {})
+            tree_tokens = self._linearize_tree(tree)
             
-            # 处理操作
-            for op in sample["available_operations"] + [sample["selected_operation"]]:
-                action_types.add(op["action_type"])  # 收集动作类型
-                self._process_literal(op["node1_lit"])
-                if "second_operand" in op:
-                    self._process_operand(op["second_operand"])
-                if "kb_clause" in op:
-                    self._process_clause(op["kb_clause"])
+            ops = self._safe_get(sample, 'available_ops', [])
+            op_tokens = self._process_operations(ops)
+            
+            all_tokens.update(tree_tokens + op_tokens)
         
-        # 添加动作标记（与OperationEncoder中的action_map一致）
-        action_map = {
-            "EXTENSION": "[ACTION_EXT]",
-            "FACTORING": "[ACTION_FACT]",
-            "ANCESTRY": "[ACTION_ANC]",
-            "TRUNCATE": "[ACTION_TRUN]"
+        self.tokenizer.add_tokens(all_tokens)
+
+    def _linearize_tree(self, tree_data):
+        """添加空值检查的树线性化方法"""
+        if not tree_data:
+            return []
+            
+        nodes = {n['id']: n for n in tree_data.get('nodes', [])}
+        roots = [n for n in tree_data.get('nodes', []) if n.get('depth', -1) == 0]
+        if not roots:
+            return []
+        
+        sequence = []
+        stack = [(roots[0], 0)]
+        
+        while stack:
+            node, depth = stack.pop()
+            if not node:
+                continue
+                
+            # 安全获取各字段
+            node_type = self._safe_get(node, 'type', 'UNKNOWN')
+            literal = self._safe_get(node, 'literal', {})
+            substitution = self._safe_get(node, 'substitution', {})
+            children = self._safe_get(node, 'children', [])
+            
+            # 节点特征
+            node_features = [
+                f"[DEPTH_{depth}]",
+                f"[TYPE_{node_type}]",
+                f"[PRED_{literal.get('predicate', 'UNK')}]",
+                f"[NEG_{int(literal.get('negated', False))}]"
+            ]
+            
+            # 参数处理
+            for arg in literal.get('arguments', []):
+                if arg.startswith('VAR'):
+                    node_features.append("[VAR]")
+                elif arg.startswith('CONST'):
+                    node_features.append("[CONST]")
+                else:
+                    node_features.append(f"[ARG_{arg}]")
+            
+            # 替换关系（修复空值问题）
+            if substitution is not None:
+                for src, tgt in substitution.items():
+                    node_features += [f"[SUB_SRC_{src}]", f"[SUB_TGT_{tgt}]"]
+            
+            # 子节点处理
+            for child_id in reversed(children):
+                child_node = nodes.get(child_id)
+                if child_node:
+                    stack.append((child_node, depth+1))
+            
+            sequence.extend(node_features)
+        
+        return sequence
+
+    def _process_operations(self, operations):
+        """修复操作处理中的空值"""
+        op_tokens = []
+        for op in operations:
+            if not op:
+                continue
+                
+            action = op.get('action', 'UNKNOWN')
+            operand2 = op.get('operand2', {})
+            
+            op_tokens.append(f"[ACTION_{action}]")
+            op_tokens.append(f"[OP_TYPE_{operand2.get('type', 'UNKNOWN')}]")
+            
+            lit_info = operand2.get('literal', {})
+            if lit_info:
+                op_tokens.append(f"[LIT_PRED_{lit_info.get('predicate', 'UNK')}]")
+        
+        return op_tokens
+
+    def _process_samples(self, raw_data):
+        for sample in raw_data:
+            tree = self._safe_get(sample, 'state', {}).get('tree', {})
+            tree_tokens = self._linearize_tree(tree)
+            
+            ops = self._safe_get(sample, 'available_ops', [])
+            op_tokens = self._process_operations(ops)
+            
+            full_sequence = tree_tokens + op_tokens
+            token_ids = self.tokenizer.convert_tokens_to_ids(full_sequence)
+            token_ids = token_ids[:self.max_seq_length]
+            
+            self.samples.append({
+                'input_ids': token_ids,
+                'raw_data': sample
+            })
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        pad_id = self.tokenizer.special_tokens['[PAD]']
+        seq_len = len(sample['input_ids'])
+        
+        input_ids = sample['input_ids'] + [pad_id] * (self.max_seq_length - seq_len)
+        attention_mask = [1]*seq_len + [0]*(self.max_seq_length - seq_len)
+        
+        return {
+            'input_ids': torch.tensor(input_ids, dtype=torch.long),
+            'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
+            'reward': torch.tensor(self._safe_get(sample['raw_data'], 'reward', 0.0), dtype=torch.float)
         }
-        for action in action_types:
-            token = action_map.get(action, f"[ACTION_{action}]")
-            _ = self.vocab[token]
-    
-    def _process_literal(self, literal):
-        """处理文字字符串"""
-        parts = literal.replace("(", " ( ").replace(")", " ) ").split()
-        for part in parts:
-            if part not in ["(", ")", "¬"]:
-                self.vocab[part]
-    
-    def _process_clause(self, clause):
-        """处理子句字符串"""
-        parts = clause.replace("∨", " ∨ ").split()
-        for part in parts:
-            if part not in ["∨", "(", ")"]:
-                self.vocab[part]
-    
-    def _process_operand(self, operand):
-        """处理操作数字符串"""
-        if isinstance(operand, str):  # 如果是literal
-            self._process_literal(operand)
-    
-    def get_vocab(self):
-        """获取最终的词汇表字典"""
-        return dict(self.vocab)
 
-# ======================
-# 3. 树结构编码器
-# ======================
-class TreeEncoder:
-    def __init__(self, vocab, max_length=256):
-        self.vocab = vocab
-        self.max_length = max_length
-        self.unk_token = "[UNK]"
-    
-    def encode(self, tree_state):
-        """编码整个树结构"""
-        encoded_sequence = [self.vocab["[CLS]"]]
-        
-        # 按深度遍历节点
-        for depth_level in tree_state["depth_map"]:
-            for node_id in depth_level:
-                node = next(n for n in tree_state["nodes"] if n["node_id"] == node_id)
-                encoded_sequence += self._encode_node(node)
-        
-        # 截断并填充序列
-        return self._pad_sequence(encoded_sequence)
-    
-    def _encode_node(self, node):
-        """编码单个节点"""
-        tokens = []
-        tokens += self._tokenize_literal(node["node_lit"])
-        tokens.append(self.vocab[f"[DEPTH]{node['depth']}"])
-        tokens.append(self.vocab[f"[ACTIVE]{int(node['is_active'])}"])
-        tokens.append(self.vocab[f"[A_LIT]{int(node['is_A_literal'])}"])
-        return tokens
-    
-    def _tokenize_literal(self, literal):
-        """将文字转换为标记序列"""
-        tokens = []
-        parts = literal.replace("(", " ( ").replace(")", " ) ").split()
-        for part in parts:
-            tokens.append(self.vocab.get(part, self.vocab[self.unk_token]))
-        return tokens
-    
-    def _pad_sequence(self, sequence):
-        """处理序列长度"""
-        if len(sequence) >= self.max_length:
-            return sequence[:self.max_length-1] + [self.vocab["[SEP]"]]
-        else:
-            return sequence + [self.vocab["[SEP]"]] + [self.vocab["[PAD]"]] * (self.max_length - len(sequence) - 1)
-
-# ======================
-# 4. 操作编码器（关键修改）
-# ======================
-class OperationEncoder:
-    def __init__(self, vocab):
-        self.vocab = vocab
-        self.unk_token = "[UNK]"
-        self.action_map = {
-            "EXTENSION": "[ACTION_EXT]",
-            "FACTORING": "[ACTION_FACT]",
-            "ANCESTRY": "[ACTION_ANC]",
-            "TRUNCATE": "[ACTION_TRUN]"
-        }
-    
-    def encode(self, operation):
-        """编码单个操作"""
-        tokens = []
-        # 动作类型
-        action_token = self.action_map[operation["action_type"]]
-        tokens.append(self.vocab[action_token])
-        # 节点文字
-        tokens += self._tokenize_literal(operation["node1_lit"])
-        # 操作数
-        if operation["second_operand_type"] == "literal":
-            tokens += self._tokenize_literal(operation["second_operand"])
-        elif operation["second_operand_type"] == "node":
-            tokens.append(self.vocab["[NODE]"])
-            tokens.append(int(operation["second_operand_id"]))
-        # 知识库子句
-        if "kb_clause" in operation:
-            tokens += self._tokenize_clause(operation["kb_clause"])
-        return tokens
-    
-    def _tokenize_literal(self, literal):
-        """独立实现文字处理"""
-        tokens = []
-        parts = literal.replace("(", " ( ").replace(")", " ) ").split()
-        for part in parts:
-            tokens.append(self.vocab.get(part, self.vocab[self.unk_token]))
-        return tokens
-    
-    def _tokenize_clause(self, clause):
-        """处理子句"""
-        tokens = []
-        parts = clause.replace("∨", " ∨ ").split()
-        for part in parts:
-            tokens.append(self.vocab.get(part, self.vocab[self.unk_token]))
-        return tokens
-
-# ======================
-# 5. 主处理流程
-# ======================
-def process_data(input_file, output_file):
-    data = load_data(input_file)
-    vocab_builder = VocabularyBuilder()
-    vocab_builder.build_from_data(data)
-    vocab = vocab_builder.get_vocab()
-    
-    tree_encoder = TreeEncoder(vocab)
-    op_encoder = OperationEncoder(vocab)
-    
-    processed_data = []
-    for sample in data:
-        tree_tokens = tree_encoder.encode(sample["current_tree_state"])
-        available_ops_tokens = [op_encoder.encode(op) for op in sample["available_operations"]]
-        selected_op_tokens = op_encoder.encode(sample["selected_operation"])
-        processed_data.append({
-            "state_id": sample["state_id"],
-            "tree_tokens": tree_tokens,
-            "available_ops_tokens": available_ops_tokens,
-            "selected_op_tokens": selected_op_tokens,
-            "reward": sample["reward"]
-        })
-    
-    with open(output_file, "w") as f:
-        json.dump({"vocab": vocab, "data": processed_data}, f, indent=2)
-
+# 使用示例
 if __name__ == "__main__":
-    input_json = "../data/training_data.json"
-    output_json = "processed_sequences.json"
-    process_data(input_json, output_json)
-    print(f"数据处理完成，已保存到 {output_json}")
-    print("词汇表大小:", len(json.load(open(output_json))["vocab"]))
+    dataset = SLIDataset("../data/training_data.json")
+    print(f"数据集大小: {len(dataset)}")
+    print(f"第一个样本的输入ID: {dataset[0]['input_ids']}")

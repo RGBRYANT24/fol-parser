@@ -27,6 +27,15 @@ namespace LogicSystem
         static bool proveHeuristic(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy);
 
         // 辅助函数：生成t-extension状态
+        static void generateExtensionStates2(
+            KnowledgeBase &kb,
+            const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+            const std::shared_ptr<SLIOperation::OperationState> &current_state,
+            std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>>& available_ops);
+
+
+        // 辅助函数：生成t-extension状态
         static void generateExtensionStates(
             KnowledgeBase &kb,
             const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,

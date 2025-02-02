@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 import math
 from graph_transformer import GraphAwareTransformer
-from read_data import GraphSLIDataset
+from neural_network.data.read_data import GraphSLIDataset
 import torch.nn as nn
 def train():
     # 超参数配置

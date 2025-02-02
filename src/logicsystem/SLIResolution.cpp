@@ -76,7 +76,7 @@ namespace LogicSystem
                 return false; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 300000LL || current_state->depth >=25)
+            if (count >= 900000LL)
             {
                 SLIOperation::printOperationPath(last_state, kb);
                 // SLIOperation::printOperationPathAsClause(max_depth_state, kb);
@@ -192,17 +192,17 @@ namespace LogicSystem
             {
                 continue; // 跳过包含无效节点的状态
             }
-            // // 检查是否访问过
-            // size_t state_hash = new_state->sli_tree->computeStateHash();
-            // if (visited_states.find(state_hash) != visited_states.end())
-            // {
-            //     std::cout << "Skipping already visited state with hash: " << state_hash << std::endl;
-            //     continue;
-            // }
-            // else
-            // {
-            //     visited_states.insert(state_hash);
-            // }
+            // 检查是否访问过
+            size_t state_hash = new_state->sli_tree->computeStateHash();
+            if (visited_states.find(state_hash) != visited_states.end())
+            {
+                // std::cout << "Skipping already visited state with hash: " << state_hash << std::endl;
+                continue;
+            }
+            else
+            {
+                visited_states.insert(state_hash);
+            }
 
             // 基本条件检查
             // std::cout << "Basic Condition Test " << std::endl;
@@ -1048,6 +1048,7 @@ namespace LogicSystem
 
                     // 计算得分（添加权重调节）
                     double score = (N == 1 && K == 0) ? 1.0 : (K * 1.0 / N); // 如果是单子句 N == 1 && K == 0 显然是权重最大的
+                    if(score - 1.0 > 1e-5) score -= (N - 1 - K) * 0.2;
                     scored_states.emplace_back(score, new_state);
                 }
             }

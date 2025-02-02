@@ -124,16 +124,49 @@ class SLIDataset(Dataset):
         return op_tokens
 
     def _process_samples(self, raw_data):
-        for sample in raw_data:
-            tree = self._safe_get(sample, 'state', {}).get('tree', {})
-            tree_tokens = self._linearize_tree(tree)
-            ops = self._safe_get(sample, 'available_ops', [])
-            op_tokens = self._process_operations(ops)
-            full_sequence = self.tokenizer.convert_tokens_to_ids(tree_tokens + op_tokens)
+        for raw_sample in raw_data:
+            # 对图结构进行线性化（GraphSLIDataset 中会覆盖此方法）
+            tree_tokens = self._linearize_tree(raw_sample.get('state', {}).get('tree', {}))
+            ops = self._process_operations(raw_sample.get('available_ops', []))
+            # 如果有图信息，则在子类中会覆盖
+            full_sequence = self.tokenizer.convert_tokens_to_ids(tree_tokens + ops)
             full_sequence = full_sequence[:self.max_seq_length]
+            labels = None  # 第一阶段标签在此不作额外处理
+            
+            # 处理候选操作参数与连续标签（连续回归目标）
+            candidate_params = []
+            candidate_q_values = []  # 新增：存储每个候选的连续回归标签
+            for op in raw_sample.get('available_ops', []):
+                cand_tokens = self._linearize_candidate(op)
+                if len(cand_tokens) > self.max_seq_length:
+                    cand_tokens = cand_tokens[:self.max_seq_length]
+                else:
+                    cand_tokens += ["[PAD]"] * (self.max_seq_length - len(cand_tokens))
+                candidate_ids = self.tokenizer.convert_tokens_to_ids(cand_tokens)
+                candidate_params.append(candidate_ids)
+                
+                # 计算连续标签 q_value: q = reward - λ * op_depth
+                reward = raw_sample.get('reward', 0.0)
+                op_depth = op.get("depth", 0)
+                lamda = 0.1  # 超参数，可根据情况调整
+                q_value = reward - lamda * op_depth
+                candidate_q_values.append(q_value)
+            
+            # 转换 candidate_params 和 candidate_q_values 为 tensor
+            if candidate_params:
+                candidate_params = torch.tensor(candidate_params, dtype=torch.long)
+                candidate_q_values = torch.tensor(candidate_q_values, dtype=torch.float)
+            else:
+                # 如果没有候选参数，则创建空 tensor
+                candidate_params = torch.empty((0, self.max_seq_length), dtype=torch.long)
+                candidate_q_values = torch.empty((0,), dtype=torch.float)
+            
             self.samples.append({
                 'input_ids': full_sequence,
-                'raw_data': sample
+                'raw_data': raw_sample,
+                'labels': labels,
+                'candidate_param_ids': candidate_params,  # 候选参数 token id
+                'candidate_q_values': candidate_q_values   # 候选参数对应的连续标签
             })
     
     def __len__(self):
@@ -148,7 +181,9 @@ class SLIDataset(Dataset):
         return {
             'input_ids': torch.tensor(input_ids, dtype=torch.long),
             'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
-            'reward': torch.tensor(self._safe_get(sample['raw_data'], 'reward', 0.0), dtype=torch.float)
+            'reward': torch.tensor(self._safe_get(sample['raw_data'], 'reward', 0.0), dtype=torch.float),
+            'candidate_param_ids': sample['candidate_param_ids'],  # [num_candidates, max_seq_length]
+            'candidate_q_values': sample['candidate_q_values']       # [num_candidates]
         }
 
 #########################################
@@ -276,7 +311,6 @@ class GraphSLIDataset(SLIDataset):
         return tokens
 
     def _process_samples(self, raw_data):
-        """处理样本时整合：图结构、SLITree、操作 tokens 以及候选参数 tokens"""
         graph_tokens = self._linearize_graph()
         graph_ids = self.tokenizer.convert_tokens_to_ids(graph_tokens)
         
@@ -288,8 +322,8 @@ class GraphSLIDataset(SLIDataset):
             full_sequence = full_sequence[:self.max_seq_length]
             labels = self._generate_action_labels(raw_sample)
             
-            # 针对候选参数部分，分别处理每个 available_op 到固定长度的 token id 序列
             candidate_params = []
+            candidate_q_values = []  # 新增：连续回归标签
             for op in raw_sample.get('available_ops', []):
                 cand_tokens = self._linearize_candidate(op)
                 if len(cand_tokens) > self.max_param_seq_length:
@@ -298,15 +332,23 @@ class GraphSLIDataset(SLIDataset):
                     cand_tokens += ["[PAD]"] * (self.max_param_seq_length - len(cand_tokens))
                 candidate_ids = self.tokenizer.convert_tokens_to_ids(cand_tokens)
                 candidate_params.append(candidate_ids)
+                
+                # 计算 Q 值：reward - λ * depth
+                reward = raw_sample.get('reward', 0.0)
+                op_depth = op.get("depth", 0)
+                lamda = 0.1  # 超参数
+                q_value = reward - lamda * op_depth
+                candidate_q_values.append(q_value)
             
-            # 使用 tensor 存储候选参数，形状为 [num_candidates, max_param_seq_length]
             candidate_params = torch.tensor(candidate_params, dtype=torch.long)
+            candidate_q_values = torch.tensor(candidate_q_values, dtype=torch.float)
             
             self.samples.append({
                 'input_ids': full_sequence,
                 'raw_data': raw_sample,
                 'labels': labels,
-                'candidate_param_ids': candidate_params  # 候选参数 token id
+                'candidate_param_ids': candidate_params,    # [num_candidates, max_param_seq_length]
+                'candidate_q_values': candidate_q_values      # [num_candidates]
             })
 
     def _generate_action_labels(self, raw_sample):
@@ -335,7 +377,8 @@ class GraphSLIDataset(SLIDataset):
             'graph_mask': graph_mask,
             'labels': torch.tensor(sample['labels'], dtype=torch.float),
             'reward': torch.tensor(self._safe_get(sample['raw_data'], 'reward', 0.0), dtype=torch.float),
-            'candidate_param_ids': sample['candidate_param_ids']  # 形状: [num_candidates, max_param_seq_length]
+            'candidate_param_ids': sample['candidate_param_ids'],   # [num_candidates, max_param_seq_length]
+            'candidate_q_values': sample['candidate_q_values']          # [num_candidates]
         }
     
     def _create_graph_mask(self, input_ids):
@@ -357,10 +400,10 @@ class GraphSLIDataset(SLIDataset):
 def collate_fn(batch, tokenizer):
     """
     此 collate_fn 除了对全局 input_ids、attention_mask、graph_mask、labels、reward 进行 padding 外，
-    还针对候选操作参数 candidate_param_ids 做额外的 padding，
-    确保整个 batch 内每个样本的候选数量一致，以便输入到第二阶段神经网络中。
+    还针对候选操作参数 candidate_param_ids 以及候选的连续标签 candidate_q_values 做额外的 padding，
+    确保整个 batch 内每个样本的候选数量一致。
     """
-    # 1. 全局部分 padding：input_ids, attention_mask, graph_mask
+    # 全局部分 padding：input_ids, attention_mask, graph_mask
     max_global_len = max(item['input_ids'].size(0) for item in batch)
     input_ids = torch.stack([
         F.pad(item['input_ids'], (0, max_global_len - item['input_ids'].size(0)), value=tokenizer.special_tokens['[PAD]'])
@@ -377,11 +420,10 @@ def collate_fn(batch, tokenizer):
     labels = torch.stack([item['labels'] for item in batch])
     reward = torch.stack([item['reward'] for item in batch])
     
-    # 2. 对候选参数 candidate_param_ids 维度 padding
-    # 每个样本中 candidate_param_ids 的形状为 [num_candidates, max_param_seq_length]
-    # 不同样本中候选操作数量可能不同，需 pad 至当前 batch 中的最大候选数量
+    # 对候选参数 candidate_param_ids 进行 padding
     max_candidates = max(item['candidate_param_ids'].size(0) for item in batch)
     candidate_param_ids_list = []
+    candidate_q_values_list = []  # 针对连续标签
     for item in batch:
         cand_tensor = item['candidate_param_ids']  # [num_candidates, max_param_seq_length]
         num_candidates = cand_tensor.size(0)
@@ -391,7 +433,16 @@ def collate_fn(batch, tokenizer):
                                       dtype=cand_tensor.dtype)
             cand_tensor = torch.cat([cand_tensor, pad_tensor], dim=0)
         candidate_param_ids_list.append(cand_tensor)
-    candidate_param_ids = torch.stack(candidate_param_ids_list, dim=0)  # [batch_size, max_candidates, max_param_seq_length]
+        
+        # 对 candidate_q_values 进行 padding
+        q_tensor = item['candidate_q_values']  # [num_candidates]
+        if q_tensor.size(0) < max_candidates:
+            pad_q = torch.zeros(max_candidates - q_tensor.size(0), dtype=q_tensor.dtype)
+            q_tensor = torch.cat([q_tensor, pad_q], dim=0)
+        candidate_q_values_list.append(q_tensor)
+    
+    candidate_param_ids = torch.stack(candidate_param_ids_list, dim=0)  # [B, max_candidates, max_param_seq_length]
+    candidate_q_values = torch.stack(candidate_q_values_list, dim=0)        # [B, max_candidates]
     
     return {
         'input_ids': input_ids,
@@ -399,7 +450,8 @@ def collate_fn(batch, tokenizer):
         'graph_mask': graph_mask,
         'labels': labels,
         'reward': reward,
-        'candidate_param_ids': candidate_param_ids
+        'candidate_param_ids': candidate_param_ids,
+        'candidate_q_values': candidate_q_values
     }
 
 #########################################
@@ -408,7 +460,7 @@ def collate_fn(batch, tokenizer):
 
 if __name__ == "__main__":
     # 假设 training_data.json 中包含提供的样例数据，
-    # k3_graph.json 为上述图数据文件（与内容一致）
+    # k3_graph.json 为图数据文件
     sli_file = "../data/training_data.json"  # 要求文件中有 "samples" 字段
     graph_file = "../data/k3_graph.json"
     dataset = GraphSLIDataset(sli_file, graph_file, max_seq_length=512, max_param_seq_length=30)
@@ -427,6 +479,8 @@ if __name__ == "__main__":
     print(sample0['labels'])
     print("单个样本候选参数 candidate_param_ids, 形状:", sample0['candidate_param_ids'].shape)
     print(sample0['candidate_param_ids'])
+    print("单个候选参数连续标签 candidate_q_values, 形状:", sample0['candidate_q_values'].shape)
+    print(sample0['candidate_q_values'])
     
     # 使用 DataLoader 以及 collate_fn 构造 batch，打印 batch 信息
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False,
@@ -437,7 +491,4 @@ if __name__ == "__main__":
     print("Batch graph_mask shape:", batch_sample['graph_mask'].shape)
     print("Batch labels shape:", batch_sample['labels'].shape)
     print("Batch candidate_param_ids shape:", batch_sample['candidate_param_ids'].shape)
-    
-    # 打印 candidate_param_ids 的具体内容（部分）
-    print("Batch candidate_param_ids:")
-    print(batch_sample['candidate_param_ids'])
+    print("Batch candidate_q_values shape:", batch_sample['candidate_q_values'].shape)

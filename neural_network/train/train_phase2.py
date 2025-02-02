@@ -72,7 +72,8 @@ def train_phase2():
     model.to(device)
     
     optimizer = optim.AdamW(model.parameters(), lr=config['lr'])
-    criterion = nn.BCEWithLogitsLoss()
+    # 损失函数改为 MSELoss 用于回归
+    criterion = nn.MSELoss()
     
     best_loss = float('inf')
     for epoch in range(config['epochs']):
@@ -83,27 +84,8 @@ def train_phase2():
             attention_mask = batch['attention_mask'].to(device)
             graph_mask = batch['graph_mask'].to(device)
             candidate_param_ids = batch['candidate_param_ids'].to(device)  # [B, num_candidates, param_seq_length]
-            
-            # 获取每个样本的 ground truth 操作
-            gt_actions = []
-            if "raw_data" in batch:
-                for sample in batch["raw_data"]:
-                    gt_actions.append(sample.get("selected_op", {}).get("action", "UNK"))
-            else:
-                gt_actions = ["UNK"] * input_ids.size(0)
-            
-            gt_action_ids = []
-            for action in gt_actions:
-                token = f"[ACTION_{action}]"
-                gt_action_ids.append(train_dataset.tokenizer.vocab.get(token, -1))
-            gt_action_ids = torch.tensor(gt_action_ids, device=device)  # [B]
-            
-            # 候选参数中第 2 个 token 为操作类型
-            candidate_types = candidate_param_ids[:, :, 1]  # [B, num_candidates]
-            B, num_candidates = candidate_types.shape
-            gt_labels = torch.zeros(B, num_candidates, device=device, dtype=torch.float)
-            for i in range(B):
-                gt_labels[i] = (candidate_types[i] == gt_action_ids[i]).float()
+            # 使用连续回归标签
+            candidate_q_values = batch['candidate_q_values'].to(device)      # [B, num_candidates]
             
             optimizer.zero_grad()
             scores = model(
@@ -111,8 +93,9 @@ def train_phase2():
                 candidate_param_ids,
                 graph_mask=generate_square_subsequent_mask(input_ids.size(1)).to(device),
                 src_key_padding_mask=(attention_mask == 0)
-            )
-            loss = criterion(scores, gt_labels)
+            )  # scores 的形状为 [B, num_candidates]，连续数值输出
+            
+            loss = criterion(scores, candidate_q_values)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             optimizer.step()

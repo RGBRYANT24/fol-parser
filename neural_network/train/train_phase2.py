@@ -4,23 +4,24 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-# 假设你已有 read_data 模块
+# 假设你已有数据读取模块
 from neural_network.data.read_data import GraphSLIDataset, collate_fn
 
-# 从第二阶段模型模块中导入
-from neural_network.models.second_stage_model import GlobalEncoder, CandidateEncoder, CrossTransformer, SecondStageModel
+# 导入改进后的第二阶段模型
+from neural_network.models.second_stage_model import SecondStageModel
 
 def generate_square_subsequent_mask(sz):
     mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    mask = mask.float().masked_fill(mask == 0, float('-inf'))\
+                .masked_fill(mask == 1, float(0.0))
     return mask
 
 def train_phase2():
     config = {
-        'batch_size': 8,
+        'batch_size': 2,
         'lr': 1e-4,
         'epochs': 15,
-        'd_model': 512,
+        'd_model': 128,
         'nhead': 8,
         'num_layers': 6,
         'max_param_seq_length': 30,
@@ -29,6 +30,7 @@ def train_phase2():
         'save_path': 'second_stage_model.pth'
     }
     
+    # 构建数据集，注意数据文件路径及 tokenizer 的初始化由 GraphSLIDataset 内部实现
     train_dataset = GraphSLIDataset(
         sli_file="data/training_data.json",
         graph_file="data/k3_graph.json",
@@ -43,26 +45,12 @@ def train_phase2():
         collate_fn=lambda batch: collate_fn(batch, train_dataset.tokenizer)
     )
     
-    global_encoder = GlobalEncoder(
+    # 实例化模型：注意这里采用了改进后的融合分支结构
+    model = SecondStageModel(
         vocab_size=len(train_dataset.tokenizer.vocab),
         d_model=config['d_model'],
         nhead=config['nhead'],
-        num_layers=config['num_layers']
-    )
-    
-    candidate_encoder = CandidateEncoder(
-        vocab_size=len(train_dataset.tokenizer.vocab),
-        d_model=config['d_model'],
-        max_param_seq_length=config['max_param_seq_length']
-    )
-    
-    cross_transformer = CrossTransformer(d_model=config['d_model'], nhead=4, num_layers=1)
-    
-    model = SecondStageModel(
-        global_encoder,
-        candidate_encoder,
-        cross_transformer,
-        d_model=config['d_model'],
+        num_layers=config['num_layers'],
         branch_hidden_dim=config['branch_hidden_dim'],
         fusion_hidden_dim=config['fusion_hidden_dim'],
         tokenizer=train_dataset.tokenizer
@@ -72,7 +60,7 @@ def train_phase2():
     model.to(device)
     
     optimizer = optim.AdamW(model.parameters(), lr=config['lr'])
-    # 损失函数改为 MSELoss 用于回归
+    # 候选参数得分作为连续回归输出，这里使用 MSELoss
     criterion = nn.MSELoss()
     
     best_loss = float('inf')
@@ -80,12 +68,14 @@ def train_phase2():
         model.train()
         total_loss = 0.0
         for batch_idx, batch in enumerate(train_loader):
-            input_ids = batch['input_ids'].to(device)              # [B, global_seq_length]
+            # 全局输入 [B, global_seq_length]
+            input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             graph_mask = batch['graph_mask'].to(device)
-            candidate_param_ids = batch['candidate_param_ids'].to(device)  # [B, num_candidates, param_seq_length]
-            # 使用连续回归标签
-            candidate_q_values = batch['candidate_q_values'].to(device)      # [B, num_candidates]
+            # 候选操作参数 [B, num_candidates, param_seq_length]
+            candidate_param_ids = batch['candidate_param_ids'].to(device)
+            # 连续回归标签 [B, num_candidates]
+            candidate_q_values = batch['candidate_q_values'].to(device)
             
             optimizer.zero_grad()
             scores = model(
@@ -93,7 +83,7 @@ def train_phase2():
                 candidate_param_ids,
                 graph_mask=generate_square_subsequent_mask(input_ids.size(1)).to(device),
                 src_key_padding_mask=(attention_mask == 0)
-            )  # scores 的形状为 [B, num_candidates]，连续数值输出
+            )  # scores 的形状为 [B, num_candidates]
             
             loss = criterion(scores, candidate_q_values)
             loss.backward()

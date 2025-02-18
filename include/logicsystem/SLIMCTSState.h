@@ -1,3 +1,4 @@
+// SLIMCTSState.h (部分摘录)
 #ifndef LOGIC_SYSTEM_SLI_MCTS_STATE_H
 #define LOGIC_SYSTEM_SLI_MCTS_STATE_H
 
@@ -27,20 +28,14 @@ namespace LogicSystem
     public:
         // 当前 SLI 算法搜索状态，由 SLITree 表示（保存部分证明状态）
         std::shared_ptr<SLITree> sli_tree;
-        /**
-         * @brief 深拷贝构造函数：调用 SLITree::deepCopy 实现状态独立性。
-         *
-         * @param other 原状态
-         */
+
+        // 拷贝构造函数，确保深拷贝 SLITree
         SLIMCTSState(const SLIMCTSState &other)
         {
             sli_tree = other.sli_tree->deepCopy();
+            // std::cout<< "SLIMCTSSTATE DEEPCOPY USED " << std::endl;
         }
-        /**
-         * @brief 新增构造函数，接受一个 SLITree 的 shared_ptr，并深拷贝该树。
-         *
-         * @param tree 需要深拷贝的 SLITree
-         */
+        // 构造函数：从给定 SLITree 创建状态（深拷贝）
         SLIMCTSState(std::shared_ptr<SLITree> tree)
         {
             if (tree)
@@ -49,62 +44,57 @@ namespace LogicSystem
             }
         }
 
-        /**
-         * @brief 判断是否为终局状态。
-         *
-         * 根据具体的 SLI 算法，当 SLITree 中没有扩展候选（例如 get_all_B_literals() 返回空）
-         * 或者验证节点合法性失败（例如出现自环）时，可认为当前状态为终局状态。
-         *
-         * @return true 如果当前状态为终局状态；false 否则
-         */
+        SLIMCTSState &operator=(const SLIMCTSState &other)
+        {
+            if (this != &other)
+            {
+                // 如果 other 的 sli_tree 非空，则调用 deepCopy()；否则，置空当前的 sli_tree
+                if (other.sli_tree)
+                    sli_tree = other.sli_tree->deepCopy();
+                else
+                    sli_tree.reset();
+            }
+            return *this;
+        }
+
+        // 新增方法：根据当前状态和动作生成下一个状态，保证深拷贝
+        SLIMCTSState next_state(const SLIMCTSAction &action) const
+        {
+            // 利用拷贝构造函数进行深拷贝
+            SLIMCTSState new_state(*this);
+            // 在新状态上应用动作
+            new_state.apply_action(action);
+            return new_state;
+        }
+
+        // 判断是否为终局状态
         bool is_terminal() const
         {
-            // 1. 首先可以判断基本条件，比如候选扩展是否为空、节点是否合法
             bool basic_check = (this->sli_tree->get_all_B_literals().empty() && this->sli_tree->validateAllNodes());
-
-            // 如果基本条件不满足，则直接返回 false（状态还可继续扩展）
             if (!basic_check)
             {
                 return false;
             }
-
-            // 2. 再生成当前状态下所有可执行的候选动作
             std::vector<SLIMCTSAction> actions;
             get_actions(actions);
-
-            // 3. 根据候选动作集是否为空来判断是否处于终局状态
             return actions.empty();
         }
 
-        /**
-         * @brief 返回决策者 id。
-         *
-         * 对于证明问题通常只有一方，返回 0 即可。
-         *
-         * @return int 决策者 id
-         */
         int agent_id() const
         {
             return 0;
         }
 
-        /**
-         * @brief 应用动作，将当前状态根据传入的 SLIMCTSAction 更新为新的状态。
-         *
-         * 为了保证父状态不被修改，扩展子节点时应在深拷贝后的状态上执行动作。
-         * 注意不同操作对应的参数类型：
-         * - EXTENSION 操作要求 second_op 为 Literal 类型
-         * - FACTORING / ANCESTRY 操作要求 second_op 为 std::shared_ptr<SLINode>
-         * - TRUNCATE 操作通常只依赖 lit1_node（此处参数为空）
-         *
-         * @param action 组合动作，包含 action、lit1_node、second_op 和 kb_clause
-         */
+        // 修改 apply_action，不再在原状态上“逐步”修改状态，而应当通过 next_state 创建新状态
         void apply_action(const SLIMCTSAction &action)
         {
+            auto kb = sli_tree->getKB();
             switch (action.action)
             {
             case SLIActionType::EXTENSION:
             {
+                // std::cout << "before apply_action specifically extension " << std::endl;
+                // sli_tree->print_tree(kb);
                 if (SLIOperation::isLiteral(action.second_op))
                 {
                     auto kb_lit = SLIOperation::getLiteral(action.second_op);
@@ -113,14 +103,21 @@ namespace LogicSystem
                                                         true,
                                                         action.lit1_node);
                 }
+                // std::cout << "after apply_action specifically extension " << std::endl;
+                // sli_tree->print_tree(kb);
                 break;
             }
             case SLIActionType::FACTORING:
             {
                 if (SLIOperation::isNode(action.second_op))
                 {
+                    std::cout << "before apply_action specifically factoring " << std::endl;
+                    std::cout << action.to_string(kb) << std::endl;
+                    sli_tree->print_tree(kb);
                     auto second_node = SLIOperation::getNode(action.second_op);
                     sli_tree->t_factoring(action.lit1_node, second_node);
+                    std::cout << "after apply_action specifically factoring " << std::endl;
+                    sli_tree->print_tree(kb);
                 }
                 break;
             }
@@ -142,66 +139,23 @@ namespace LogicSystem
                 break;
             }
         }
-        // 此处还可以更新 sli_tree 其他状态信息（例如深度、节点计数等）
 
-        /**
-         * @brief 生成当前状态下所有可选的组合动作集合 A(s) = {(op,p) | op ∈ 𝒪, p ∈ P₍op₎(s)}.
-         *
-         * 本方法分别调用扩展、factoring、ancestry、truncate 对应的候选生成逻辑：
-         *
-         * 1. 对于 EXTENSION：
-         *    遍历 sli_tree->get_all_B_literals() 得到候选 b-lit 节点，
-         *    若节点活跃且不是 A-literal，再遍历 KnowledgeBase 中所有 Clause 及其 Literals，
-         *    对满足 Resolution::isComplementary 与 Unifier::findMGU 条件的候选，
-         *    生成动作，参数为：
-         *      - action: EXTENSION
-         *      - lit1_node: 候选 b-lit 节点
-         *      - second_op: Literal（目标文字）
-         *      - kb_clause: 对应 Clause
-         *
-         * 2. 对于 FACTORING：
-         *    调用 SLIResolution::findPotentialFactoringPairs(sli_tree) 得到候选对，
-         *    对于每个候选对 (upper, lower)，生成动作：
-         *      - action: FACTORING
-         *      - lit1_node: upper
-         *      - second_op: lower
-         *      - kb_clause: 空 Clause()
-         *
-         * 3. 对于 ANCESTRY：
-         *    类似于 FACTORING，调用 SLIResolution::findPotentialAncestryPairs(sli_tree)；
-         *
-         * 4. 对于 TRUNCATE：
-         *    调用 SLIResolution::findPotentialTruncateNodes(sli_tree) 得到候选节点，
-         *    对每个候选生成动作：
-         *      - action: TRUNCATE
-         *      - lit1_node: 该节点
-         *      - second_op: 空（即 nullptr）
-         *      - kb_clause: 空 Clause()
-         *
-         * @param actions 用传引用方式返回所有生成的 SLIMCTSAction 动作
-         */
-        // 生成 EXTENSION 操作的状态
+        // 生成候选动作（原有代码）
         void generateMCTSExtensionStates(std::vector<SLIMCTSAction> &actions) const
         {
-            // 从 SLITree 获取 KnowledgeBase
             KnowledgeBase kb = sli_tree->getKB();
-            // 获取所有候选 b-lit 节点
             auto b_lit_nodes = sli_tree->get_all_B_literals();
             for (auto &node : b_lit_nodes)
             {
                 if (!node->is_active || node->is_A_literal)
                     continue;
-                // 遍历知识库中的所有 Clause
                 for (const auto &kb_clause : kb.getClauses())
                 {
-                    // 遍历 Clause 中所有 Literal
                     for (const auto &lit : kb_clause.getLiterals())
                     {
                         if (Resolution::isComplementary(node->literal, lit) &&
                             Unifier::findMGU(node->literal, lit, kb))
                         {
-                            // 生成 EXTENSION 操作：用候选 b-lit 节点作为 lit1_node，
-                            // 目标文字作为 second_op，kb_clause 为当前的 Clause
                             actions.emplace_back(SLIActionType::EXTENSION,
                                                  node,
                                                  SecondOperand(lit),
@@ -212,20 +166,19 @@ namespace LogicSystem
             }
         }
 
-        // 生成 FACTORING 操作的状态
+        // 生成 FACTORING、ANCESTRY、TRUNCATE 的候选状态方法同原代码...
         void generateMCTSFactoringStates(std::vector<SLIMCTSAction> &actions) const
         {
             auto factoring_pairs = SLIResolution::findPotentialFactoringPairs(sli_tree);
             for (const auto &pair : factoring_pairs)
             {
                 actions.emplace_back(SLIActionType::FACTORING,
-                                     pair.first,                 // upper_node 作为 lit1_node
-                                     SecondOperand(pair.second), // lower_node 作为 second_op
-                                     Clause());                  // kb_clause 为空
+                                     pair.first,
+                                     SecondOperand(pair.second),
+                                     Clause());
             }
         }
 
-        // 生成 ANCESTRY 操作的状态
         void generateMCTSAncestryStates(std::vector<SLIMCTSAction> &actions) const
         {
             auto ancestry_pairs = SLIResolution::findPotentialAncestryPairs(sli_tree);
@@ -238,11 +191,10 @@ namespace LogicSystem
             }
         }
 
-        // 针对 MCTS 的 TRUNCATE 操作生成函数，采用所有 active 节点作为候选
         void generateMCTSTruncateStates(std::vector<SLIMCTSAction> &actions) const
         {
-            auto active_nodes = sli_tree->get_all_active_nodes();
-            for (auto &node : active_nodes)
+            auto truncate_nodes = SLIResolution::findPotentialTruncateNodes(sli_tree);
+            for (auto &node : truncate_nodes)
             {
                 actions.emplace_back(SLIActionType::TRUNCATE,
                                      node,
@@ -251,16 +203,13 @@ namespace LogicSystem
             }
         }
 
-        // 根据当前状态的 AC 与 MC 条件生成所有候选操作
         void get_actions(std::vector<SLIMCTSAction> &actions) const
         {
-            // 检查所有节点的 AC 与 MC 条件
             bool AC_result = sli_tree->check_all_nodes_AC();
             bool MC_result = sli_tree->check_all_nodes_MC();
-
             if (AC_result && MC_result)
             {
-                // 同时满足 AC 与 MC 条件：生成 EXTENSION、FACTORING、ANCESTRY 与 MCTS-TRUNCATE 操作
+                // std::cout << "AC && MC" << std::endl;
                 generateMCTSExtensionStates(actions);
                 generateMCTSFactoringStates(actions);
                 generateMCTSAncestryStates(actions);
@@ -268,18 +217,14 @@ namespace LogicSystem
             }
             else if (MC_result)
             {
-                // 仅满足 MC 条件：只生成 FACTORING 与 ANCESTRY 操作
+                // std::cout << "MC" << std::endl;
                 generateMCTSFactoringStates(actions);
                 generateMCTSAncestryStates(actions);
             }
             else if (AC_result)
             {
-                // 仅满足 AC 条件：只生成 MCTS-TRUNCATE 操作
+                // std::cout << "AC" << std::endl;
                 generateMCTSTruncateStates(actions);
-            }
-            else
-            {
-                // 当既不满足 AC 也不满足 MC 条件时，不生成任何操作
             }
         }
 
@@ -302,14 +247,6 @@ namespace LogicSystem
             return true;
         }
 
-        /**
-         * @brief 返回叶子状态的原始评价（奖励向量）。
-         *
-         * 例如，在证明成功时返回 +1，在证明失败时返回 -1，其它情况返回 0
-         * （奖励向量大小为 1）。
-         *
-         * @return std::vector<float> 奖励向量
-         */
         std::vector<float> evaluate() const
         {
             std::vector<float> rewards(1, 0.0f);
@@ -320,11 +257,6 @@ namespace LogicSystem
             return rewards;
         }
 
-        /**
-         * @brief 返回状态的字符串描述，用于调试输出。
-         *
-         * @return std::string 状态描述字符串
-         */
         std::string to_string() const
         {
             return "SLIMCTSState: " + sli_tree->printBLiteralsAsClause();

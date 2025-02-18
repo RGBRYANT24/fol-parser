@@ -43,31 +43,35 @@ namespace LogicSystem
         // 2. 配置 MCTS 搜索
         // ----------------------------
         msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
-        mcts_search.max_iterations = 100; // 最大迭代次数
-        mcts_search.max_millis = 10000;     // 最大搜索时间（毫秒）
-        mcts_search.simulation_depth = 40;  // 模拟阶段的最大深度
-        mcts_search.uct_k = std::sqrt(2);   // UCT 中的探索系数
+        mcts_search.max_iterations = 100;  // 最大迭代次数
+        mcts_search.max_millis = 10000;    // 最大搜索时间（毫秒）
+        mcts_search.simulation_depth = 3; // 模拟阶段的最大深度
+        mcts_search.uct_k = std::sqrt(2);  // UCT 中的探索系数
 
         // ----------------------------
         // 3. 逐步扩展证明过程
         // ----------------------------
         // 通过循环不断执行动作直到达到证明目的或判断为终局状态
+        int count = 0;
         while (!checkEmptyClause(*(current_state.sli_tree)) && !current_state.is_terminal())
         {
+            // if(count ++ > 2) return false;
             // 使用 MCTS 搜索来选择一条最佳的动作路径
             LogicSystem::SLIMCTSAction best_action = mcts_search.run(current_state);
 
-            std::cout << "current State " << std::endl;
+            std::cout << "Current State:" << std::endl;
             current_state.sli_tree->print_tree(kb);
-            std::cout << "Best Action" << best_action.to_string(kb) << std::endl;
-            // 更新当前状态（注意：apply_action 内部已经保证了状态的深拷贝逻辑）
-            current_state.apply_action(best_action);
+            std::cout << "Best Action: " << best_action.to_string(kb) << std::endl;
 
-            // 采集当前状态的训练样本，方便后续训练神经网络
+            // return false;
+
+            // 生成新状态，该状态为当前状态的深拷贝，并在其上应用动作
+            current_state = current_state.next_state(best_action);
+
+            // 可选：采集训练样本
             // collectTrainingSamples(current_state);
 
-            // 可选：在每一步中打印状态，便于调试跟踪证明进展
-            std::cout << "Current state: " << current_state.to_string() << std::endl;
+            std::cout << "Updated State: " << current_state.to_string() << std::endl;
         }
 
         // ----------------------------

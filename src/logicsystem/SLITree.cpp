@@ -416,6 +416,9 @@ namespace LogicSystem
             // 保存整棵树当前状态用于可能的回滚
             std::vector<std::pair<std::shared_ptr<SLINode>, Literal>> previous_literals;
             std::vector<std::pair<std::shared_ptr<SLINode>, Substitution>> previous_substitutions;
+            
+            std::cout << "before factoring in SLITree::t_factoring " << std::endl;
+            this->print_tree(kb);
 
             // 对整棵树应用MGU替换
             for (auto &level : depth_map)
@@ -452,6 +455,8 @@ namespace LogicSystem
             operation_stack.push(std::move(op));
 
             upper_node->rule_applied = "t_factoring";
+            std::cout << "after factoring in SLITree::t_factoring " << std::endl;
+            this->print_tree(kb);
             return true;
         }
         catch (const std::exception &e)
@@ -474,6 +479,10 @@ namespace LogicSystem
         if (!upper_node || !lower_node || !upper_node->is_active || !lower_node->is_active || !upper_node->is_A_literal || lower_node->is_A_literal)
         {
             std::cout << "basic check failed in t-ancestry" << std::endl;
+            if(!upper_node->is_A_literal)
+            {
+                std::cout << "upper node is not A lit " << std::endl;
+            }
             return false;
         }
 
@@ -885,7 +894,7 @@ namespace LogicSystem
 
         // 复制根节点
         root = std::make_shared<SLINode>(other.root->literal,
-                                         other.root->is_active,
+                                         other.root->is_A_literal,
                                          other.root->node_id);
         root->depth = 0;
         root->is_active = other.root->is_active;
@@ -907,6 +916,7 @@ namespace LogicSystem
                 newNode->is_active = oldNode->is_active;
                 newNode->substitution = oldNode->substitution;
                 newNode->rule_applied = oldNode->rule_applied;
+                newNode->is_A_literal = oldNode->is_A_literal;
 
                 // 设置父节点
                 if (auto oldParent = oldNode->parent.lock())

@@ -41,10 +41,10 @@ namespace LogicSystem
         // 2. 配置 MCTS 搜索
         // ----------------------------
         msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
-        mcts_search.max_iterations = 1000;  // 最大迭代次数
-        mcts_search.max_millis = 1000;    // 最大搜索时间（毫秒）
-        mcts_search.simulation_depth = 100; // 模拟阶段的最大深度
-        mcts_search.uct_k = std::sqrt(2);  // UCT 中的探索系数
+        mcts_search.max_iterations = 15000;  // 最大迭代次数
+        mcts_search.max_millis = 3000;    // 最大搜索时间（毫秒）
+        mcts_search.simulation_depth = 400; // 模拟阶段的最大深度
+        mcts_search.uct_k = std::sqrt(6);  // UCT 中的探索系数
 
         // ----------------------------
         // 3. 逐步扩展证明过程
@@ -83,6 +83,14 @@ namespace LogicSystem
         else
         {
             std::cout << "Proof failed." << std::endl;
+            current_state.sli_tree->print_tree(kb);
+            bool AC_result = current_state.sli_tree->check_all_nodes_AC();
+            bool MC_result = current_state.sli_tree->check_all_nodes_MC();
+            std::cout << "AC " << AC_result << " MC " << MC_result << std::endl;
+            std::vector<SLIMCTSAction> actions;
+            current_state.get_actions(actions);
+            std::cout << "action size " << actions.size() << std::endl;
+            std::cout << "has selfloop " << !current_state.sli_tree->validateAllNodes() <<std::endl;
             return false;
         }
     }

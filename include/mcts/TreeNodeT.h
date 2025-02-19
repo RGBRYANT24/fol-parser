@@ -108,8 +108,8 @@ namespace msa
             // 更新节点统计量
             void update(const std::vector<float> &rewards)
             {
-                value += rewards[agent_id];
                 num_visits++;
+                value = value + (rewards[agent_id] - value)/ num_visits;
             }
 
             //--------------------------------------------------------------

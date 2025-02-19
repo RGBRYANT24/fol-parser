@@ -90,13 +90,13 @@ namespace LogicSystem
             auto active_nodes = this->sli_tree->get_all_active_nodes();
             if (active_nodes.empty())
             {
-                return 1.0f;
+                return 100.0f;
             }
 
             // 条件2：节点不合法 → 奖励 -1
             if (!this->sli_tree->validateAllNodes())
             {
-                return -1.0f;
+                return -10.0f;
             }
 
             // 条件3：无候选动作 → 奖励 -1
@@ -104,7 +104,7 @@ namespace LogicSystem
             get_actions(actions);
             if (actions.empty())
             {
-                return -1.0f;
+                return -10.0f;
             }
 
             // 非终局状态

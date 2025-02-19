@@ -156,34 +156,34 @@ TEST_F(SLITreeTest, AddNode)
     tree.print_tree(kb);
 }
 
-// 测试撤销操作
-TEST_F(SLITreeTest, UndoOperation)
-{
-    SLITree tree(kb);
+// // 测试撤销操作
+// TEST_F(SLITreeTest, UndoOperation)
+// {
+//     SLITree tree(kb);
 
-    // P(x,a)
-    Literal l1(pred_P, {var_x, const_a}, false);
-    // Q(b)
-    Literal l2(pred_Q, {const_b}, false);
+//     // P(x,a)
+//     Literal l1(pred_P, {var_x, const_a}, false);
+//     // Q(b)
+//     Literal l2(pred_Q, {const_b}, false);
 
-    // 添加初始节点
-    Clause c1;
-    c1.addLiteral(l1);
-    c1.addLiteral(l2);
-    auto nodes1 = tree.add_node(c1, Literal(), false, tree.getRoot());
+//     // 添加初始节点
+//     Clause c1;
+//     c1.addLiteral(l1);
+//     c1.addLiteral(l2);
+//     auto nodes1 = tree.add_node(c1, Literal(), false, tree.getRoot());
 
-    std::cout << "Before Undo:" << std::endl;
-    tree.print_tree(kb);
+//     std::cout << "Before Undo:" << std::endl;
+//     tree.print_tree(kb);
 
-    // 执行撤销
-    tree.rollback();
+//     // 执行撤销
+//     tree.rollback();
 
-    std::cout << "After Undo:" << std::endl;
-    tree.print_tree(kb);
+//     std::cout << "After Undo:" << std::endl;
+//     tree.print_tree(kb);
 
-    // 验证树恢复到之前状态
-    ASSERT_EQ(tree.getDepthMap().size(), 1); // 只有根节点层
-}
+//     // 验证树恢复到之前状态
+//     ASSERT_EQ(tree.getDepthMap().size(), 1); // 只有根节点层
+// }
 
 // // 测试深度限制
 // TEST_F(SLITreeTest, DepthLimit)
@@ -291,7 +291,7 @@ TEST_F(SLITreeTest, TFactoring)
     std::cout << "After t-factoring" << std::endl;
     tree.print_tree(kb);
 
-    tree.rollback();
+    // tree.rollback();
 
     // 验证状态恢复
     EXPECT_EQ(nodes3[0]->literal, original_lit1);
@@ -429,7 +429,7 @@ TEST_F(SLITreeTest, TAncestry)
     std::cout << "after t-ancestry" << std::endl;
     tree.print_tree(kb);
 
-    tree.rollback();
+    // tree.rollback();
     std::cout << "after rollback()" << std::endl;
     tree.print_tree(kb);
 
@@ -529,7 +529,7 @@ TEST_F(SLITreeTest, TTruncate)
     // 测试场景3：撤销truncate操作
     std::cout << "\nTest Scenario 3: Undo T-Truncate" << std::endl;
 
-    tree.rollback();
+    // tree.rollback();
 
     std::cout << "After rollback:" << std::endl;
     tree.print_tree(kb);

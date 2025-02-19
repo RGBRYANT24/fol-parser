@@ -4,33 +4,33 @@
 #include <stdexcept>
 #include <algorithm>
 
-namespace LogicSystem
+// 以下与 Operation 相关的代码已删除/注释掉
+/*
+void AddOperation::undo()
 {
-
-    // 操作撤销：无需修改
-    void AddOperation::undo()
+    for (const auto &node : added_nodes)
     {
-        for (const auto &node : added_nodes)
+        if (auto parent = node->parent.lock())
         {
-            // 从父节点的children中移除
-            if (auto parent = node->parent.lock())
-            {
-                auto &children = parent->children;
-                children.erase(
-                    std::remove(children.begin(), children.end(), node),
-                    children.end());
-            }
+            auto &children = parent->children;
+            children.erase(
+                std::remove(children.begin(), children.end(), node),
+                children.end());
+        }
 
-            // 从深度图中移除
-            if (node->depth < depth_map.size())
-            {
-                auto &depth_level = depth_map[node->depth];
-                depth_level.erase(
-                    std::remove(depth_level.begin(), depth_level.end(), node),
-                    depth_level.end());
-            }
+        if (node->depth < depth_map.size())
+        {
+            auto &depth_level = depth_map[node->depth];
+            depth_level.erase(
+                std::remove(depth_level.begin(), depth_level.end(), node),
+                depth_level.end());
         }
     }
+}
+*/
+
+namespace LogicSystem
+{
 
     std::vector<std::shared_ptr<SLINode>> SLITree::add_node(const Clause &input_clause, const Literal &resolving_literal,
                                                             bool is_A_literal, std::shared_ptr<SLINode> parent)
@@ -39,7 +39,6 @@ namespace LogicSystem
         {
             throw std::invalid_argument("Parent node must be specified");
         }
-        // 使用节点唯一标识符进行匹配：转换传入的父节点到当前状态中对应的节点
         parent = this->findNodeById(parent->node_id);
         if (!parent)
         {
@@ -52,9 +51,7 @@ namespace LogicSystem
             return {};
         }
 
-        // 为防止变量重命名后丢失，先记录解析文字的索引
         int resolbing_literal_index = input_clause.findLiteralIndex(resolving_literal);
-        // 进行变量重命名
         Clause renamed_clause = VariableRenamer::renameClauseVariables(input_clause, *this, kb);
 
         Literal renamed_resolving_literal;
@@ -66,7 +63,6 @@ namespace LogicSystem
         std::optional<Substitution> mgu;
         Literal substituted_parent_lit = parent->literal;
 
-        // 对消解文字进行处理
         if (!resolving_literal.isEmpty())
         {
             mgu = Unifier::findMGU(renamed_resolving_literal, parent->literal, kb);
@@ -78,7 +74,6 @@ namespace LogicSystem
 
             try
             {
-                // 保存整棵树状态用于可能的回滚并应用MGU替换
                 std::vector<std::pair<std::shared_ptr<SLINode>, Literal>> previous_literals;
                 std::vector<std::pair<std::shared_ptr<SLINode>, Substitution>> previous_substitutions;
                 for (size_t depth = 0; depth < depth_map.size(); ++depth)
@@ -98,8 +93,6 @@ namespace LogicSystem
                         }
                     }
                 }
-
-                // 标记参与消解的节点为 A-literal
                 parent->is_A_literal = true;
             }
             catch (const std::exception &e)
@@ -113,7 +106,6 @@ namespace LogicSystem
         }
 
         std::vector<std::shared_ptr<SLINode>> added_nodes;
-        // 添加节点（跳过消解文字）
         for (const Literal &lit : renamed_clause.getLiterals())
         {
             if (lit != renamed_resolving_literal)
@@ -130,7 +122,7 @@ namespace LogicSystem
                     }
                     auto child = std::make_shared<SLINode>(substituted_lit,
                                                            false,
-                                                           SLINode::next_node_id++); // 使用 SLINode 静态计数器
+                                                           SLINode::next_node_id++);
                     child->parent = parent;
                     child->depth = parent->depth + 1;
                     child->substitution = *mgu;
@@ -158,7 +150,6 @@ namespace LogicSystem
     bool SLITree::is_ancestor(std::shared_ptr<SLINode> potential_ancestor,
                               std::shared_ptr<SLINode> potential_descendant)
     {
-        // 将传入的节点转换为当前状态中的对应节点
         if (potential_ancestor)
             potential_ancestor = this->findNodeById(potential_ancestor->node_id);
         if (potential_descendant)
@@ -174,7 +165,6 @@ namespace LogicSystem
         {
             if (auto parent = current->parent.lock())
             {
-                // 转换父节点到当前状态中的对应节点
                 parent = this->findNodeById(parent->node_id);
                 current = parent;
             }
@@ -188,45 +178,44 @@ namespace LogicSystem
 
     void SLITree::truncate(std::shared_ptr<SLINode> node)
     {
-        // 使用唯一标识符匹配，转换为当前树中的节点
         node = this->findNodeById(node->node_id);
         if (!node || !node->is_active)
         {
             std::cout << "not active node or nullptr in slitree::truncate " << std::endl;
             return;
         }
-        std::cout << "slitree::truncate slitree " << std::endl;
-        this->print_tree(kb);
-        bool flag = true;
-        for (const auto &nodes : this->depth_map)
-        {
-            for (const auto &n : nodes)
-            {
-                std::cout << n << "  " << node << " " << int(n == node) << std::endl;
-                if (n == node)
-                {
-                    std::cout << "find truncate node" << std::endl;
-                    flag = false;
-                    break;
-                }
-            }
-        }
-        if (flag)
-        {
-            std::cout << "cannot find truncate node in this tree " << node << std::endl;
-            return;
-        }
+        // std::cout << "slitree::truncate slitree " << std::endl;
+        // this->print_tree(kb);
+        // bool flag = true;
+        // for (const auto &nodes : this->depth_map)
+        // {
+        //     for (const auto &n : nodes)
+        //     {
+        //         std::cout << n << "  " << node << " " << int(n == node) << std::endl;
+        //         if (n == node)
+        //         {
+        //             std::cout << "find truncate node" << std::endl;
+        //             flag = false;
+        //             break;
+        //         }
+        //     }
+        // }
+        // if (flag)
+        // {
+        //     std::cout << "cannot find truncate node in this tree " << node << std::endl;
+        //     return;
+        // }
 
-        auto op = std::make_unique<TruncateOperation>();
+        // 删除操作相关的压栈代码
+        // auto op = std::make_unique<TruncateOperation>();
         bool truncation_performed = false;
 
         std::shared_ptr<SLINode> current = node;
         while (current && current->is_active)
         {
-            // 如果是叶节点则进行截断
             if (current->children.empty())
             {
-                dynamic_cast<TruncateOperation *>(op.get())->save_state(current);
+                // 不再保存状态：之前为 dynamic_cast<TruncateOperation *>(op.get())->save_state(current);
                 current->is_active = false;
                 current->rule_applied = "t-truncate";
                 truncation_performed = true;
@@ -249,7 +238,6 @@ namespace LogicSystem
                     current = nullptr;
                 }
             }
-            // 如果当前节点的所有子节点均为非活跃，并且是 A-literal，则继续截断
             else if (!current->children.empty())
             {
                 bool all_children_inactive = true;
@@ -264,7 +252,7 @@ namespace LogicSystem
 
                 if (all_children_inactive && current->is_A_literal)
                 {
-                    dynamic_cast<TruncateOperation *>(op.get())->save_state(current);
+                    // 不再保存状态：之前为 dynamic_cast<TruncateOperation *>(op.get())->save_state(current);
                     current->is_active = false;
                     current->rule_applied = "t-truncate";
                     truncation_performed = true;
@@ -301,14 +289,14 @@ namespace LogicSystem
 
         if (truncation_performed)
         {
-            operation_stack.push(std::move(op));
+            // 删除操作堆栈的压栈操作
+            // operation_stack.push(std::move(op));
             cleanup_empty_depths();
         }
     }
 
     bool SLITree::t_factoring(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node)
     {
-        // 转换为当前状态中的节点
         upper_node = this->findNodeById(upper_node->node_id);
         lower_node = this->findNodeById(lower_node->node_id);
         if (!upper_node || !lower_node || !upper_node->is_active || !lower_node->is_active || upper_node->is_A_literal || lower_node->is_A_literal)
@@ -370,17 +358,10 @@ namespace LogicSystem
                     }
                 }
             }
-            // 注意这里对 lower_node 调用 truncate() 前，需要先进行转换
+            // 调用 truncate() 时依然执行树剪枝，移除操作回溯代码
             truncate(lower_node);
 
-            auto op = std::make_unique<FactoringOperation>(
-                upper_node,
-                lower_node,
-                previous_literals,
-                previous_substitutions,
-                *mgu);
-            operation_stack.push(std::move(op));
-
+            // 已删除 FactoringOperation 及其压栈操作
             upper_node->rule_applied = "t_factoring";
             std::cout << "after factoring in SLITree::t_factoring " << std::endl;
             this->print_tree(kb);
@@ -395,7 +376,6 @@ namespace LogicSystem
 
     bool SLITree::t_ancestry(std::shared_ptr<SLINode> upper_node, std::shared_ptr<SLINode> lower_node)
     {
-        // 转换外部传入的节点为当前状态中的对应节点
         upper_node = this->findNodeById(upper_node->node_id);
         lower_node = this->findNodeById(lower_node->node_id);
 
@@ -462,14 +442,7 @@ namespace LogicSystem
 
             truncate(lower_node);
 
-            auto op = std::make_unique<AncestryOperation>(
-                upper_node,
-                lower_node,
-                previous_literals,
-                previous_substitutions,
-                *mgu);
-            operation_stack.push(std::move(op));
-
+            // 已删除 AncestryOperation 及其压栈操作
             upper_node->rule_applied = "t_ancestry";
             return true;
         }
@@ -480,6 +453,8 @@ namespace LogicSystem
         }
     }
 
+    // 删除 rollback 方法，因为不再需要通过操作栈回滚
+    /*
     void SLITree::rollback()
     {
         if (!operation_stack.empty())
@@ -488,6 +463,7 @@ namespace LogicSystem
             operation_stack.pop();
         }
     }
+    */
 
     void SLITree::print_tree(const KnowledgeBase &kb) const
     {
@@ -517,7 +493,6 @@ namespace LogicSystem
 
     std::vector<std::shared_ptr<SLINode>> SLITree::get_gamma_L(std::shared_ptr<SLINode> L_node) const
     {
-        // 转换为当前状态中的对应节点
         L_node = this->findNodeById(L_node->node_id);
         if (!L_node)
             return {};
@@ -540,7 +515,6 @@ namespace LogicSystem
 
     std::vector<std::shared_ptr<SLINode>> SLITree::get_delta_L(std::shared_ptr<SLINode> L_node) const
     {
-        // 根据节点ID匹配当前树中的节点
         L_node = this->findNodeById(L_node->node_id);
         if (!L_node)
             return {};
@@ -560,14 +534,12 @@ namespace LogicSystem
 
     bool SLITree::check_AC(std::shared_ptr<SLINode> L_node) const
     {
-        // 将外部节点转换为当前树中的对应节点
         L_node = this->findNodeById(L_node->node_id);
         if (!L_node)
             return false;
         auto gamma_L = get_gamma_L(L_node);
         auto delta_L = get_delta_L(L_node);
 
-        // 检查 γL ∪ {L} 中是否有重复原子（仅针对 B-literal）
         if (!L_node->is_A_literal)
         {
             gamma_L.push_back(L_node);
@@ -583,7 +555,6 @@ namespace LogicSystem
             }
         }
 
-        // 检查 δL ∪ {L} 中是否有重复原子
         delta_L.push_back(L_node);
         for (size_t i = 0; i < delta_L.size(); i++)
         {
@@ -601,7 +572,6 @@ namespace LogicSystem
 
     bool SLITree::check_MC(const std::shared_ptr<SLINode> &node) const
     {
-        // 将外部节点转换为当前树中的对应节点
         auto cur = this->findNodeById(node->node_id);
         if (!cur)
             return false;

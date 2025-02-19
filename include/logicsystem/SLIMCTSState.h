@@ -132,6 +132,7 @@ namespace LogicSystem
             }
             case SLIActionType::TRUNCATE:
             {
+                // std::cout << "apply action truncate " << std::endl;
                 sli_tree->truncate(action.lit1_node);
                 break;
             }

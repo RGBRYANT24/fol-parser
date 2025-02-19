@@ -118,9 +118,9 @@ namespace LogicSystem
         //    此处我们使用 TRUNCATE 操作，目标节点选取根节点
         SLIMCTSAction action;
         action.action = SLIActionType::TRUNCATE;
-        action.lit1_node = children[0];
+        action.lit1_node_id = children[0]->node_id;
         // 第二个操作数设为 nullptr（封装在 SecondOperand 中）
-        action.second_op = SecondOperand(std::shared_ptr<SLINode>(nullptr));
+        action.second_op = MCTSSecondOperand{0};
         // kb_clause 保持默认（空）状态
         action.kb_clause = Clause();
 

@@ -338,8 +338,8 @@ namespace LogicSystem
             std::vector<std::pair<std::shared_ptr<SLINode>, Literal>> previous_literals;
             std::vector<std::pair<std::shared_ptr<SLINode>, Substitution>> previous_substitutions;
             
-            std::cout << "before factoring in SLITree::t_factoring " << std::endl;
-            this->print_tree(kb);
+            // std::cout << "before factoring in SLITree::t_factoring " << std::endl;
+            // this->print_tree(kb);
 
             for (auto &level : depth_map)
             {
@@ -363,8 +363,8 @@ namespace LogicSystem
 
             // 已删除 FactoringOperation 及其压栈操作
             upper_node->rule_applied = "t_factoring";
-            std::cout << "after factoring in SLITree::t_factoring " << std::endl;
-            this->print_tree(kb);
+            // std::cout << "after factoring in SLITree::t_factoring " << std::endl;
+            // this->print_tree(kb);
             return true;
         }
         catch (const std::exception &e)

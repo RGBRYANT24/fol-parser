@@ -18,9 +18,7 @@ namespace LogicSystem
     bool checkEmptyClause(const SLITree &sli_tree)
     {
         // 根据 SLITree 的实际实现编写具体空子句判断逻辑
-        // 例如： return sli_tree.containsEmptyClause();
-        // 目前仅为示例
-        return false;
+        return sli_tree.get_all_active_nodes().size() == 0 ? true : false;
     }
 
     SLIMCTSProver::SLIMCTSProver(KnowledgeBase &kb, const Clause &goal)
@@ -43,9 +41,9 @@ namespace LogicSystem
         // 2. 配置 MCTS 搜索
         // ----------------------------
         msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
-        mcts_search.max_iterations = 100;  // 最大迭代次数
-        mcts_search.max_millis = 10000;    // 最大搜索时间（毫秒）
-        mcts_search.simulation_depth = 3; // 模拟阶段的最大深度
+        mcts_search.max_iterations = 1000;  // 最大迭代次数
+        mcts_search.max_millis = 1000;    // 最大搜索时间（毫秒）
+        mcts_search.simulation_depth = 100; // 模拟阶段的最大深度
         mcts_search.uct_k = std::sqrt(2);  // UCT 中的探索系数
 
         // ----------------------------
@@ -59,9 +57,9 @@ namespace LogicSystem
             // 使用 MCTS 搜索来选择一条最佳的动作路径
             LogicSystem::SLIMCTSAction best_action = mcts_search.run(current_state);
 
-            std::cout << "Current State:" << std::endl;
-            current_state.sli_tree->print_tree(kb);
-            std::cout << "Best Action: " << best_action.to_string(kb) << std::endl;
+            // std::cout << "Current State:" << std::endl;
+            // current_state.sli_tree->print_tree(kb);
+            // std::cout << "Best Action: " << best_action.to_string(kb) << std::endl;
 
             // return false;
 

@@ -47,7 +47,9 @@ namespace msa
                 // 首次扩展时从状态中获取所有可能动作
                 if (actions.empty())
                 {
+                    // std::cout << "actions.empty() actions size " << actions.size() << std::endl;
                     state.get_actions(actions);
+                    // std::cout << "after get_actions actions size " << actions.size() << std::endl;
                     // 打乱动作顺序，防止搜索策略过于固定
                     std::random_device rd;
                     std::mt19937 g(rd());
@@ -56,17 +58,49 @@ namespace msa
 
                 // 注意：add_child_with_action 内部会利用当前节点保存的 state 构造子节点，
                 // 因此 State 的拷贝构造函数要确保深拷贝
-                std::cout << "actions in expand, actions size " << actions.size() << " children size " << children.size() << std::endl;
-                if(actions.size() == 0)
+                // std::cout << "actions in expand, actions size " << actions.size() << " children size " << children.size() << std::endl;
+                // bool AC_result = state.sli_tree->check_all_nodes_AC();
+                // bool MC_result = state.sli_tree->check_all_nodes_MC();
+                // std::cout << "AC " << AC_result << " MC " << MC_result << std::endl;
+                if (actions.size() == 0)
                 {
                     std::cout << "actions size == 0, sli tree" << std::endl;
                     state.sli_tree->print_tree(state.sli_tree->getKB());
-                    
+                    bool AC_result = state.sli_tree->check_all_nodes_AC();
+                    bool MC_result = state.sli_tree->check_all_nodes_MC();
+                    std::cout << "AC " << AC_result << " MC " << MC_result << std::endl;
+
+                    // std::cout << "extension actions " << std::endl;
+                    // auto kb = state.sli_tree->getKB();
+                    // auto b_lit_nodes = state.sli_tree->get_all_B_literals();
+                    // int count = 1;
+                    // for (auto &node : b_lit_nodes)
+                    // {
+                    //     if (!node->is_active || node->is_A_literal)
+                    //         continue;
+                    //     for (const auto &kb_clause : kb.getClauses())
+                    //     {
+                    //         for (const auto &lit : kb_clause.getLiterals())
+                    //         {
+                    //             // std::cout << "sli node " << std::endl;
+                    //             // node->print(kb);
+                    //             // std::cout << "kb lit " << lit.toString(kb) << " clause " << kb_clause.toString(kb) << std::endl;
+                    //             if (LogicSystem::Resolution::isComplementary(node->literal, lit) &&
+                    //                 LogicSystem::Unifier::findMGU(node->literal, lit, kb))
+                    //             {
+                    //                 std::cout << "found complementary count " << count++ << std::endl;
+                    //                 std::cout << "sli node " << std::endl;
+                    //                 node->print(kb);
+                    //                 std::cout << "kb lit " << lit.toString(kb) << " clause " << kb_clause.toString(kb) << std::endl;
+                    //             }
+                    //         }
+                    //     }
+                    // }
                 }
-                for (const auto &action : actions)
-                {
-                    std::cout << action.to_string(state.sli_tree->getKB()) << std::endl;
-                }
+                // for (const auto &action : actions)
+                // {
+                //     std::cout << action.to_string(state.sli_tree->getKB()) << std::endl;
+                // }
                 return add_child_with_action(actions[children.size()]);
             }
 
@@ -134,6 +168,12 @@ namespace msa
             {
                 // 生成子节点时以当前节点的 state 为基础进行深拷贝
                 Ptr child_node = std::make_shared<TreeNodeT>(state, this->shared_from_this());
+                // if(new_action.lit1_node == nullptr)
+                // {
+                //     std::cerr<<"lit1 node == nullptr" << std::endl;
+                // }
+                // auto lit1_node = state.sli_tree->findNodeById(new_action.lit1_node->node_id);
+                // child_node->action = Action(new_action.action, lit1_node, new_action.second_op, new_action.kb_clause);
                 child_node->action = new_action;
                 // 在子节点上应用动作，从而得到新的（深拷贝后的）状态
                 child_node->state.apply_action(new_action);

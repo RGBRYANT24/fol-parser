@@ -108,8 +108,8 @@ namespace msa
                 iterations = 0;
                 while (true)
                 {
-                    if (iterations >= 5)
-                        break;
+                    // if (iterations >= 5)
+                    //     break;
                     timer.loop_start();
 
                     // 1. SELECT：从根开始沿着最佳路径前进，直至遇到非完全扩展或终端节点
@@ -144,13 +144,13 @@ namespace msa
                                 break;
                             if (state.get_random_action(action))
                             {
-                                std::cout << "simution deepth " << t << std::endl;
-                                std::cout << "random action " << action.to_string(KB) << std::endl;
-                                std::cout << "before apply action" << std::endl;
-                                state.sli_tree->print_tree(KB);
+                                // std::cout << "simution deepth " << t << std::endl;
+                                // std::cout << "random action " << action.to_string(KB) << std::endl;
+                                // std::cout << "before apply action" << std::endl;
+                                // state.sli_tree->print_tree(KB);
                                 state.apply_action(action);
-                                std::cout << "after apply action" << std::endl;
-                                state.sli_tree->print_tree(KB);
+                                // std::cout << "after apply action" << std::endl;
+                                // state.sli_tree->print_tree(KB);
                             }
                             else
                                 break;

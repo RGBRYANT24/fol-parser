@@ -115,7 +115,7 @@ namespace LogicSystem
         std::cout << "SLI Resolution with MCTS proves that K3 graph cannot be two-colored." << std::endl;
     }
 
-    TEST_F(ColoringSLIMCTSTest, K4GraphCannotBeTwoColoredMCTS)
+    TEST_F(ColoringSLIMCTSTest, K4GraphCannotBeThereColoredMCTS)
     {
         // 1. 相邻顶点不能同色（红色）
         // ¬E(x,y)∨ ¬R(x)∨ ¬R(y)∨ uncol

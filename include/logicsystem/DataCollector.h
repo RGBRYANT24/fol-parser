@@ -2,177 +2,199 @@
 #ifndef DATA_COLLECTOR_H
 #define DATA_COLLECTOR_H
 
-#include <nlohmann/json.hpp> // 使用nlohmann/json库处理JSON
+#include <nlohmann/json.hpp>
 #include "SLITree.h"
 #include "SLIOperation.h"
-#include <fstream> // 用于 std::ofstream
-// #include <json>     // 用于 json 操作
+#include "SymbolType.h"
+#include <fstream>
+#include <unordered_map>
 
 using json = nlohmann::json;
 
-namespace LogicSystem
-{
+namespace LogicSystem {
 
-    class DataCollector
-    {
-    public:
-        // 收集单个SLI节点的数据
-        static json collectNodeData(const std::shared_ptr<SLINode> &node, const KnowledgeBase &kb)
-        {
-            json node_data;
-            node_data["node_id"] = node->node_id;
-            node_data["node_lit"] = node->literal.toString(kb);
-            node_data["depth"] = node->depth;
-            node_data["is_A_literal"] = node->is_A_literal;
-            node_data["is_active"] = node->is_active;
+class DataCollector {
+public:
+    // 变量标准化上下文（每个样本独立）
+    struct NormalizationContext {
+        std::unordered_map<SymbolId, std::string> var_map;
+        std::unordered_map<SymbolId, std::string> const_map;
+        int var_counter = 0;
+        int const_counter = 0;
 
-            // 收集文字信息
-            json literal_data;
-            literal_data["predicate"] = kb.getPredicateName(node->literal.getPredicateId());
-            literal_data["is_negated"] = node->literal.isNegated();
-
-            std::vector<std::string> args;
-            for (const auto &arg : node->literal.getArgumentIds())
-            {
-                args.push_back(kb.getSymbolName(arg));
-            }
-            literal_data["arguments"] = args;
-
-            node_data["literal"] = literal_data;
-
-            // 收集替换信息
-            json subst;
-            for (const auto &[var, val] : node->substitution)
-            {
-                subst[kb.getSymbolName(var)] = kb.getSymbolName(val);
-            }
-            node_data["substitution"] = subst;
-
-            // 收集父子节点关系
-            node_data["parent_id"] = node->parent.lock() ? node->parent.lock()->node_id : -1;
-            std::vector<int> child_ids;
-            for (const auto &child : node->children)
-            {
-                child_ids.push_back(child->node_id);
-            }
-            node_data["children_ids"] = child_ids;
-
-            return node_data;
-        }
-
-        // 收集树状态数据
-        static json collectTreeState(const SLITree &tree, const KnowledgeBase &kb)
-        {
-            json tree_state;
-
-            // 收集所有节点信息
-            std::vector<json> nodes;
-            for (const auto &level : tree.getDepthMap())
-            {
-                for (const auto &node : level)
-                {
-                    if (node)
-                    {
-                        nodes.push_back(collectNodeData(node, kb));
-                    }
+        std::string normalizeSymbol(SymbolId id) {
+            if(id.type == SymbolType::VARIABLE) {
+                if(!var_map.count(id)) {
+                    var_map[id] = "VAR" + std::to_string(var_counter++);
                 }
-            }
-            tree_state["nodes"] = nodes;
-
-            // 收集深度映射
-            std::vector<std::vector<int>> depth_map;
-            for (const auto &level : tree.getDepthMap())
-            {
-                std::vector<int> level_ids;
-                for (const auto &node : level)
-                {
-                    if (node)
-                    {
-                        level_ids.push_back(node->node_id);
-                    }
+                return var_map[id];
+            } else {
+                if(!const_map.count(id)) {
+                    const_map[id] = "CONST" + std::to_string(const_counter++);
                 }
-                depth_map.push_back(level_ids);
+                return const_map[id];
             }
-            tree_state["depth_map"] = depth_map;
-
-            return tree_state;
-        }
-
-        // 收集操作数据
-        static json collectOperationData(const SLIOperation::OperationState &op_state, const KnowledgeBase &kb)
-        {
-            json op_data;
-            op_data["state_id"] = op_state.state_id;
-            op_data["action_type"] = SLI_Action_to_string(op_state.action);
-            // op_data["node1_id"] = op_state.lit1_node ? op_state.lit1_node->node_id : -1;
-            op_data["node1_lit"] = op_state.lit1_node ? op_state.lit1_node->literal.toString(kb) : "null";
-
-            if (SLIOperation::isNode(op_state.second_op))
-            {
-                auto node = SLIOperation::getNode(op_state.second_op);
-                op_data["second_operand_type"] = "node";
-                op_data["second_operand_id"] = node ? node->node_id : -1;
-            }
-            else
-            {
-                auto lit = SLIOperation::getLiteral(op_state.second_op);
-                op_data["second_operand_type"] = "literal";
-                op_data["second_operand"] = lit.toString(kb);
-            }
-
-            if (!op_state.kb_clause.isEmpty())
-            {
-                op_data["kb_clause"] = op_state.kb_clause.toString(kb);
-            }
-
-            return op_data;
-        }
-
-        // 收集完整的训练样本
-        static json collectTrainingSample(
-            const SLIOperation::OperationState &state,
-            const std::vector<std::shared_ptr<SLIOperation::OperationState>> &available_ops,
-            const std::shared_ptr<SLIOperation::OperationState> &selected_op, // 新增参数
-            double reward,
-            const KnowledgeBase &kb)
-        {
-            json sample;
-            sample["state_id"] = state.state_id;
-            sample["current_tree_state"] = collectTreeState(*state.sli_tree, kb);
-
-            // 收集可用操作
-            json available_operations;
-            for (const auto &op : available_ops)
-            {
-                available_operations.push_back(collectOperationData(*op, kb));
-            }
-            sample["available_operations"] = available_operations;
-
-            // 记录实际选择的操作
-            if (selected_op)
-            {
-                sample["selected_operation"] = collectOperationData(*selected_op, kb);
-            }
-            else
-            {
-                sample["selected_operation"] = nullptr;
-            }
-
-            sample["reward"] = reward;
-            return sample;
-        }
-
-        // 保存数据到文件
-        static void saveToFile(const std::vector<json> &samples, const std::string &filename)
-        {
-            json output;
-            output["samples"] = samples;
-            std::cout << "Save to file" << std::endl;
-            std::ofstream file(filename);
-            file << output.dump(4);
         }
     };
 
-} // namespace LogicSystem
+    // 序列化单个节点
+    static json serializeNode(const std::shared_ptr<SLINode>& node, 
+                             KnowledgeBase& kb,
+                             NormalizationContext& ctx) {
+        json node_json;
+        
+        // 基础信息
+        node_json["id"] = node->node_id;
+        node_json["active"] = node->is_active;
+        node_json["depth"] = node->depth;
+        node_json["type"] = node->is_A_literal ? "A" : "B";
 
+        // 文字信息
+        json lit_json;
+        lit_json["predicate"] = kb.getPredicateName(node->literal.getPredicateId());
+        lit_json["negated"] = node->literal.isNegated();
+        
+        // 参数标准化
+        std::vector<std::string> args;
+        for(auto arg : node->literal.getArgumentIds()) {
+            args.push_back(ctx.normalizeSymbol(arg));
+        }
+        lit_json["arguments"] = args;
+        node_json["literal"] = lit_json;
+
+        // 替换关系
+        json subst_json;
+        for(auto& [var, val] : node->substitution) {
+            subst_json[ctx.normalizeSymbol(var)] = ctx.normalizeSymbol(val);
+        }
+        node_json["substitution"] = subst_json;
+
+        // 子节点ID
+        std::vector<int> children_ids;
+        for(auto& child : node->children) {
+            children_ids.push_back(child->node_id);
+        }
+        node_json["children"] = children_ids;
+
+        return node_json;
+    }
+
+    // 序列化整棵树
+    static json serializeTree(const SLITree& tree, 
+                             KnowledgeBase& kb,
+                             NormalizationContext& ctx) {
+        json tree_json;
+        
+        // 广度优先遍历
+        std::queue<std::shared_ptr<SLINode>> q;
+        q.push(tree.getRoot());
+        
+        while(!q.empty()) {
+            auto node = q.front();
+            q.pop();
+            
+            tree_json["nodes"].push_back(serializeNode(node, kb, ctx));
+            
+            for(auto& child : node->children) {
+                q.push(child);
+            }
+        }
+
+        // 全局特征
+        tree_json["global"] = {
+            {"depth", tree.getDepthMap().size()},
+            {"active_nodes", tree.get_all_active_nodes().size()},
+            {"has_self_loop", tree.hasSelfLoop()}
+        };
+
+        return tree_json;
+    }
+
+    // 序列化操作
+    static json serializeOperation(const SLIOperation::OperationState& op,
+                                  KnowledgeBase& kb,
+                                  NormalizationContext& ctx) {
+        json op_json;
+        
+        op_json["state_id"] = op.state_id;
+        op_json["action"] = SLIOperation::getActionString(op.action);
+        op_json["depth"] = op.depth;
+
+        // 节点1信息
+        if(op.lit1_node) {
+            op_json["node1"] = serializeNode(op.lit1_node, kb, ctx);
+        }
+
+        // 操作数2
+        if(SLIOperation::isNode(op.second_op)) {
+            auto node = SLIOperation::getNode(op.second_op);
+            op_json["operand2"]["type"] = "node";
+            op_json["operand2"]["id"] = node ? node->node_id : -1;
+        } else {
+            auto lit = SLIOperation::getLiteral(op.second_op);
+            json lit_json;
+            lit_json["predicate"] = kb.getPredicateName(lit.getPredicateId());
+            
+            // 标准化参数
+            std::vector<std::string> args;
+            for(auto arg : lit.getArgumentIds()) {
+                args.push_back(ctx.normalizeSymbol(arg));
+            }
+            lit_json["arguments"] = args;
+            
+            op_json["operand2"] = {
+                {"type", "literal"},
+                {"literal", lit_json}
+            };
+        }
+
+        return op_json;
+    }
+
+    // 收集训练样本
+    static json collectTrainingSample(
+        const SLIOperation::OperationState& state,
+        const std::vector<std::shared_ptr<SLIOperation::OperationState>>& available_ops,
+        const std::shared_ptr<SLIOperation::OperationState>& selected_op,
+        double reward,
+        KnowledgeBase& kb) 
+    {
+        json sample;
+        NormalizationContext ctx; // 每个样本独立上下文
+
+        // 当前状态
+        sample["state"] = {
+            {"id", state.state_id},
+            {"tree", serializeTree(*state.sli_tree, kb, ctx)},
+            {"depth", state.depth}
+        };
+
+        // 可用操作
+        json ops_json;
+        for(auto& op : available_ops) {
+            ops_json.push_back(serializeOperation(*op, kb, ctx));
+        }
+        sample["available_ops"] = ops_json;
+
+        // 选择的操作
+        if(selected_op) {
+            sample["selected_op"] = serializeOperation(*selected_op, kb, ctx);
+        }
+
+        sample["reward"] = reward;
+
+        return sample;
+    }
+
+    // 保存到文件
+    static void saveToFile(const std::vector<json>& samples, const std::string& filename) {
+        json output;
+        output["samples"] = samples;
+        
+        std::ofstream file(filename);
+        file << output.dump(2); // 缩进2个空格
+    }
+};
+
+} // namespace LogicSystem
 #endif // DATA_COLLECTOR_H

@@ -311,6 +311,17 @@ namespace LogicSystem
             kb.addClause(edgeClauseReverse);
         }
 
+        // //添加单个子句
+        // Clause notR;
+        // notR.addLiteral(Literal(pred_R, {var_x}, true));
+        // kb.addClause(notR);
+        // Clause notG;
+        // notR.addLiteral(Literal(pred_G, {var_x}, true));
+        // kb.addClause(notG);
+        // Clause notB;
+        // notR.addLiteral(Literal(pred_B, {var_x}, true));
+        // kb.addClause(notB);
+
         // 打印知识库内容
         std::cout << "K4 Three-Coloring Knowledge Base:" << std::endl;
         kb.print();

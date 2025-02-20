@@ -1,0 +1,99 @@
+{
+  "graphs": [
+    {
+      "graph_id": "K3_demo",
+      "type": "complete",
+      "nodes": [
+        {
+          "id": "VAR0",
+          "type": "variable",
+          "alias": "a"
+        },
+        {
+          "id": "VAR1",
+          "type": "variable",
+          "alias": "b"
+        },
+        {
+          "id": "VAR2",
+          "type": "variable",
+          "alias": "c"
+        }
+      ],
+      "edges": [
+        {
+          "type": "directed",
+          "literals": [
+            {
+              "predicate": "E",
+              "arguments": [
+                "a",
+                "b"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directed",
+          "literals": [
+            {
+              "predicate": "E",
+              "arguments": [
+                "a",
+                "c"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directed",
+          "literals": [
+            {
+              "predicate": "E",
+              "arguments": [
+                "b",
+                "a"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directed",
+          "literals": [
+            {
+              "predicate": "E",
+              "arguments": [
+                "b",
+                "c"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directed",
+          "literals": [
+            {
+              "predicate": "E",
+              "arguments": [
+                "c",
+                "a"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directed",
+          "literals": [
+            {
+              "predicate": "E",
+              "arguments": [
+                "c",
+                "b"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

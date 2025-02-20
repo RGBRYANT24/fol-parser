@@ -4,13 +4,15 @@
 
 #include "SLINode.h"
 #include "KnowledgeBase.h"
-#include "operation/Operations.h"
+// #include "operation/Operations.h"  // 已删除操作相关的头文件
 #include "Unifier.h"
 #include "VariableRenamer.h"
 #include "Resolution.h"
 #include <unordered_map>
-#include <stack>
+// #include <stack>   // 不再需要操作堆栈
 #include <memory>
+#include <vector>
+#include <optional>
 
 namespace LogicSystem
 {
@@ -27,7 +29,7 @@ namespace LogicSystem
             }
             depth_map[0].push_back(root);
         }
-        // 添加获取根节点的函数
+        // 获取根节点
         std::shared_ptr<SLINode> getRoot() const
         {
             return root;
@@ -37,7 +39,7 @@ namespace LogicSystem
         {
             return std::make_shared<SLITree>(*this, root); // 使用拷贝构造函数
         }
-        // 添加拷贝构造函数声明
+        // 拷贝构造函数声明
         SLITree(const SLITree &other, std::shared_ptr<SLINode> startNode);
         // 核心操作
         std::vector<std::shared_ptr<SLINode>> add_node(const Clause &input_clause, const Literal &resolving_literal,
@@ -45,7 +47,8 @@ namespace LogicSystem
         bool is_ancestor(std::shared_ptr<SLINode> potential_ancestor,
                          std::shared_ptr<SLINode> potential_descendant);
         void truncate(std::shared_ptr<SLINode> node);
-        void rollback();
+        // 不需要 rollback 操作，已删除或注释掉
+        // void rollback();
 
         // 获取δL集合
         std::vector<std::shared_ptr<SLINode>> get_delta_L(std::shared_ptr<SLINode> L_node) const;
@@ -86,7 +89,7 @@ namespace LogicSystem
             return Unifier::applySubstitutionToLiteral(lit1, *mgu, kb);
         }
 
-        // 添加通过ID查找节点的方法
+        // 通过ID查找节点的方法
         std::shared_ptr<SLINode> findNodeById(int id) const
         {
             for (const auto &level : depth_map)
@@ -104,8 +107,7 @@ namespace LogicSystem
 
         std::vector<std::shared_ptr<SLINode>> get_all_B_literals();
 
-        const std::vector<std::vector<std::shared_ptr<SLINode>>> &getDepthMap() const { return this->depth_map; };
-        // std::unordered_map<size_t, std::shared_ptr<SLINode>> getLitMap() { return this->literal_map; };
+        const std::vector<std::vector<std::shared_ptr<SLINode>>> &getDepthMap() const { return this->depth_map; }
 
         // 获取所有活动节点
         std::vector<std::shared_ptr<SLINode>> get_all_active_nodes() const;
@@ -126,41 +128,35 @@ namespace LogicSystem
                     if (node && node->is_active)
                     { // 只检查活跃节点
                         const auto &lit = node->literal;
-                        // 检查是否为边关系谓词
                         auto predId = kb.getPredicateId("E");
                         if (predId && lit.getPredicateId() == *predId)
                         {
                             const auto &args = lit.getArgumentIds();
-                            // 检查是否有两个参数且参数相同（自环）
                             if (args.size() == 2 && args[0] == args[1])
                             {
-                                this->has_self_loop = true; // 设置标志
-                                return false;         // 发现无效节点，返回false
+                                this->has_self_loop = true;
+                                return false;
                             }
                         }
                     }
                 }
             }
-            return true; // 所有节点都有效
+            return true;
         }
         std::string printBLiteralsAsClause() const;
 
     private:
         KnowledgeBase &kb;
-        // std::unordered_map<size_t, std::shared_ptr<SLINode>> literal_map;
         std::vector<std::vector<std::shared_ptr<SLINode>>> depth_map;
-        std::stack<std::unique_ptr<Operation>> operation_stack;
+        // 已删除操作堆栈以免引起内存泄漏
+        // std::stack<std::unique_ptr<Operation>> operation_stack;
         std::shared_ptr<SLINode> root;
-        bool has_self_loop = false; // 判定是否产生E(x,x)这样的自环
-        // 删除静态 next_node_id，因为现在在 SLINode 中维护
+        bool has_self_loop = false;
 
-        // 清理depth_map中的空层
         void cleanup_empty_depths();
 
-        // 辅助函数 检查是否有两个原子
         bool have_same_atom(const std::shared_ptr<SLINode> &node1, const std::shared_ptr<SLINode> &node2) const;
 
-        // 检查两个节点是否等价
         bool areNodesEquivalent(const std::shared_ptr<SLINode> &node1,
                                 const std::shared_ptr<SLINode> &node2) const;
 
@@ -175,15 +171,12 @@ namespace LogicSystem
             return is_last ? "\\-" : "|-";
         }
 
-        // 添加用于拷贝的辅助函数
         std::shared_ptr<SLINode> copySubtree(std::shared_ptr<SLINode> node,
                                              std::shared_ptr<SLINode> parent,
                                              std::unordered_map<std::shared_ptr<SLINode>,
                                                                 std::shared_ptr<SLINode>> &nodeMap);
-        // 用于树复制的辅助函数
         std::shared_ptr<SLINode> copyNode(const std::shared_ptr<SLINode> &node);
 
-        // 将 join 函数作为私有成员函数
         std::string join(const std::vector<std::string> &elements,
                          const std::string &delimiter) const
         {
@@ -199,11 +192,9 @@ namespace LogicSystem
 
         bool isValidLiteral(const Literal &lit) const
         {
-            // 检查是否为边关系谓词
             if (lit.getPredicateId() == kb.getPredicateId("E"))
             {
                 const auto &args = lit.getArgumentIds();
-                // 检查是否有两个参数且参数相同（自环）
                 if (args.size() == 2 && args[0] == args[1])
                 {
                     return false;

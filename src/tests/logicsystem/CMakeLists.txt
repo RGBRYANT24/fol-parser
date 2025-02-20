@@ -13,6 +13,8 @@ add_executable(logicsystem_tests
     LiteralHashTest.cpp
     SLITreeHashTest.cpp
     VariableRenamerTest.cpp
+    ColoringSLIMCTSTest.cpp
+    SLIMCTSDeepCopyTest.cpp
     # KnowledgeBaseBuilderTest.cpp
 )
 # 对于测试可执行文件

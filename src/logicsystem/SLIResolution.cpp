@@ -76,10 +76,11 @@ namespace LogicSystem
                 return false; // 根据需要决定是否跳过或终止
             }
 
-            if (count >= 200LL)
+            if (count >= 900000LL)
             {
-                // SLIOperation::printOperationPath(current_state, kb);
-                SLIOperation::printOperationPathAsClause(max_depth_state, kb);
+                SLIOperation::printOperationPath(last_state, kb);
+                // SLIOperation::printOperationPathAsClause(max_depth_state, kb);
+                SLIOperation::printOperationPathAsClause(last_state, kb);
                 return false;
             }
             // std::cout << "Current State " << std::endl;
@@ -133,7 +134,9 @@ namespace LogicSystem
             if (checkEmptyClause(*new_state->sli_tree))
             {
                 successful_state = new_state;
+                SLIOperation::printOperationPath(successful_state, kb);
                 std::vector<json> successful_samples;
+                int max_depth = successful_state->depth;
 
                 // 回溯路径收集样本
                 auto current_state = successful_state;
@@ -143,12 +146,17 @@ namespace LogicSystem
                     // SLIOperation::printCurrentState(current_state, kb);
                     auto parent_state = current_state->parent;
 
+                    // 创建新的标准化上下文
+                    LogicSystem::DataCollector::NormalizationContext ctx;
+
                     // 确保指针有效
                     if (parent_state->sli_tree == nullptr)
                     {
                         std::cerr << "Invalid parent state!" << std::endl;
                         break;
                     }
+
+                    double reward = 1.0 / (1.0 + max_depth - current_state->depth);
 
                     // 获取父状态生成时的所有可能操作
                     auto &available_ops = current_state->parent_available_ops;
@@ -159,9 +167,15 @@ namespace LogicSystem
                     if (it != available_ops.end())
                     {
                         std::cout << "find op" << std::endl;
-                        double reward = 1.0; // 可根据路径长度调整
+                        // 收集样本时传入kb引用
                         successful_samples.push_back(
-                            DataCollector::collectTrainingSample(*parent_state, available_ops, *it, reward, kb));
+                            DataCollector::collectTrainingSample(
+                                *parent_state,
+                                available_ops,
+                                *it,
+                                reward, // reward
+                                kb      // 传入KnowledgeBase
+                                ));
                     }
                     current_state = parent_state;
                 }
@@ -178,17 +192,17 @@ namespace LogicSystem
             {
                 continue; // 跳过包含无效节点的状态
             }
-            // // 检查是否访问过
-            // size_t state_hash = new_state->sli_tree->computeStateHash();
-            // if (visited_states.find(state_hash) != visited_states.end())
-            // {
-            //     std::cout << "Skipping already visited state with hash: " << state_hash << std::endl;
-            //     continue;
-            // }
-            // else
-            // {
-            //     visited_states.insert(state_hash);
-            // }
+            // 检查是否访问过
+            size_t state_hash = new_state->sli_tree->computeStateHash();
+            if (visited_states.find(state_hash) != visited_states.end())
+            {
+                // std::cout << "Skipping already visited state with hash: " << state_hash << std::endl;
+                continue;
+            }
+            else
+            {
+                visited_states.insert(state_hash);
+            }
 
             // 基本条件检查
             // std::cout << "Basic Condition Test " << std::endl;
@@ -204,8 +218,9 @@ namespace LogicSystem
             if (AC_result && MC_result)
             {
                 // t-extension
-                generateExtensionStates(kb, b_lit_nodes, new_state, state_stack, available_ops);
-                // t-factoring
+                // generateExtensionStates(kb, b_lit_nodes, new_state, state_stack, available_ops);
+                generateExtensionStates2(kb, b_lit_nodes, new_state, state_stack, available_ops);
+                //  t-factoring
                 generateFactoringStates(b_lit_nodes, new_state, state_stack, available_ops);
                 // t-ancestry
                 generateAncestryStates(b_lit_nodes, new_state, state_stack, available_ops);
@@ -239,7 +254,7 @@ namespace LogicSystem
             {
                 op->parent_available_ops = available_ops; // 关键修改
             }
-            std::cout << "add availalbe_ops size " << available_ops.size() << std::endl;
+            // std::cout << "add availalbe_ops size " << available_ops.size() << std::endl;
             // 检查是否是特定的 state id
             // if (new_state->state_id == 19)
             // {
@@ -258,7 +273,8 @@ namespace LogicSystem
         }
         // 保存训练数据
         SLIOperation::printOperationPath(last_state, kb);
-        DataCollector::saveToFile(training_samples, "/home/adrin/Projects/fol-parser/data/training_data.json");
+        std::cout << "last state is above" <<std::endl;
+        DataCollector::saveToFile(training_samples, "/path/to/failed_data.json");
         return false;
     }
 
@@ -949,6 +965,119 @@ namespace LogicSystem
             { // 没有孩子节点
                 tree.truncate(node);
             }
+        }
+    }
+
+    void SLIResolution::generateExtensionStates2(
+        KnowledgeBase &kb,
+        const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
+        const std::shared_ptr<SLIOperation::OperationState> &current_state,
+        std::stack<std::shared_ptr<SLIOperation::OperationState>> &state_stack,
+        std::vector<std::shared_ptr<SLIOperation::OperationState>> &available_ops)
+    {
+        std::vector<std::pair<double, std::shared_ptr<SLIOperation::OperationState>>> scored_states;
+        auto tree = current_state->sli_tree;
+
+        for (const auto &node : b_lit_nodes)
+        {
+            if (!node->is_active || node->is_A_literal)
+                continue;
+
+            // 预计算当前节点的Gamma集合和祖先集合
+            auto gamma_nodes = tree->get_gamma_L(node);
+            std::unordered_set<std::shared_ptr<SLINode>> ancestors;
+            std::shared_ptr<SLINode> ancestor = node->parent.lock();
+            while (ancestor)
+            {
+                ancestors.insert(ancestor);
+                ancestor = ancestor->parent.lock();
+            }
+
+            for (const auto &kb_clause : kb.getClauses())
+            {
+                for (const auto &lit : kb_clause.getLiterals())
+                {
+                    if (!Resolution::isComplementary(node->literal, lit) ||
+                        !Unifier::findMGU(node->literal, lit, kb))
+                        continue;
+
+                    // 创建新状态
+                    auto new_state = std::make_shared<SLIOperation::OperationState>(
+                        tree, SLIActionType::EXTENSION, node, SecondOperand(lit), kb_clause, current_state);
+
+                    // 计算K值 -------------------------------------------------
+                    int K = 0;
+                    int N = kb_clause.getLiterals().size();
+                    if (N == 0)
+                        continue;
+
+                    for (const auto &other_lit : kb_clause.getLiterals())
+                    {
+                        if (other_lit == lit)
+                            continue;
+
+                        // 检查该文字是否可被factoring（Gamma集合中存在可因子化节点）
+                        bool can_factor = false;
+                        for (const auto &gamma_node : gamma_nodes)
+                        {
+                            if (gamma_node->literal.getPredicateId() == other_lit.getPredicateId() &&
+                                gamma_node->literal.isNegated() == other_lit.isNegated() &&
+                                Unifier::findMGU(gamma_node->literal, other_lit, kb))
+                            {
+                                can_factor = true;
+                                break;
+                            }
+                        }
+
+                        // 检查该文字是否可被ancestry（祖先中存在互补节点）
+                        bool can_ancestry = false;
+                        for (const auto &ancestor_node : ancestors)
+                        {
+                            if (ancestor_node->literal.getPredicateId() == other_lit.getPredicateId() &&
+                                ancestor_node->literal.isNegated() != other_lit.isNegated() &&
+                                Unifier::findMGU(ancestor_node->literal, other_lit, kb))
+                            {
+                                can_ancestry = true;
+                                break;
+                            }
+                        }
+
+                        if (can_factor || can_ancestry)
+                            K++;
+                    }
+
+                    // 计算得分（添加权重调节）
+                    double score = (N == 1 && K == 0) ? 1.0 : (K * 1.0 / N); // 如果是单子句 N == 1 && K == 0 显然是权重最大的
+                    if(score - 1.0 > 1e-5) score -= (N - 1 - K) * 0.2;
+                    scored_states.emplace_back(score, new_state);
+                }
+            }
+        }
+
+        // 按得分降序排序并压栈
+        std::sort(scored_states.begin(), scored_states.end(),
+                  [](const auto &a, const auto &b)
+                  { return a.first < b.first; }); // 要升序排序，因为后面要顺序入栈，让分低的先入栈
+
+        // // 在排序后添加日志
+        // std::cout << "=== K/N Scores for Extension States ===" << std::endl;
+        // int rank = 1;
+        // for (const auto &[score, state] : scored_states)
+        // {
+        //     std::cout << "Rank " << rank++ << std::endl
+        //               << "Score: " << score
+        //               << " | Clause: " << state->kb_clause.toString(kb)
+        //               << " | Resolving Lit: " << state->lit1_node->literal.toString(kb)
+        //               << std::endl
+        //               << "SLITree "
+        //               << std::endl;
+        //     current_state->sli_tree->print_tree(kb);
+        // }
+
+        for (const auto &[score, state] : scored_states)
+        {
+            state_stack.push(state);
+            available_ops.push_back(state);
         }
     }
 

@@ -13,6 +13,7 @@ add_library(logicsystem
     SLINode.cpp
     SLIResolution.cpp
     VariableRenamer.cpp
+    SLIMCTSProver.cpp
     # KnowledgeBaseBuilder.cpp
 )
 

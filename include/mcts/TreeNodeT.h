@@ -58,10 +58,6 @@ namespace msa
 
                 // 注意：add_child_with_action 内部会利用当前节点保存的 state 构造子节点，
                 // 因此 State 的拷贝构造函数要确保深拷贝
-                // std::cout << "actions in expand, actions size " << actions.size() << " children size " << children.size() << std::endl;
-                // bool AC_result = state.sli_tree->check_all_nodes_AC();
-                // bool MC_result = state.sli_tree->check_all_nodes_MC();
-                // std::cout << "AC " << AC_result << " MC " << MC_result << std::endl;
                 if (actions.size() == 0)
                 {
                     std::cout << "actions size == 0, sli tree" << std::endl;
@@ -69,38 +65,8 @@ namespace msa
                     bool AC_result = state.sli_tree->check_all_nodes_AC();
                     bool MC_result = state.sli_tree->check_all_nodes_MC();
                     std::cout << "AC " << AC_result << " MC " << MC_result << std::endl;
-
-                    // std::cout << "extension actions " << std::endl;
-                    // auto kb = state.sli_tree->getKB();
-                    // auto b_lit_nodes = state.sli_tree->get_all_B_literals();
-                    // int count = 1;
-                    // for (auto &node : b_lit_nodes)
-                    // {
-                    //     if (!node->is_active || node->is_A_literal)
-                    //         continue;
-                    //     for (const auto &kb_clause : kb.getClauses())
-                    //     {
-                    //         for (const auto &lit : kb_clause.getLiterals())
-                    //         {
-                    //             // std::cout << "sli node " << std::endl;
-                    //             // node->print(kb);
-                    //             // std::cout << "kb lit " << lit.toString(kb) << " clause " << kb_clause.toString(kb) << std::endl;
-                    //             if (LogicSystem::Resolution::isComplementary(node->literal, lit) &&
-                    //                 LogicSystem::Unifier::findMGU(node->literal, lit, kb))
-                    //             {
-                    //                 std::cout << "found complementary count " << count++ << std::endl;
-                    //                 std::cout << "sli node " << std::endl;
-                    //                 node->print(kb);
-                    //                 std::cout << "kb lit " << lit.toString(kb) << " clause " << kb_clause.toString(kb) << std::endl;
-                    //             }
-                    //         }
-                    //     }
-                    // }
                 }
-                // for (const auto &action : actions)
-                // {
-                //     std::cout << action.to_string(state.sli_tree->getKB()) << std::endl;
-                // }
+
                 return add_child_with_action(actions[children.size()]);
             }
 
@@ -109,7 +75,7 @@ namespace msa
             void update(const std::vector<float> &rewards)
             {
                 num_visits++;
-                value = value + (rewards[agent_id] - value)/ num_visits;
+                value = value + (rewards[agent_id] - value) / num_visits;
             }
 
             //--------------------------------------------------------------
@@ -145,6 +111,10 @@ namespace msa
 
             // 返回父节点（如果存在）
             Ptr get_parent() const { return parent.lock(); }
+
+            std::vector<Ptr> get_children() { return children; }
+
+            std::vector<Action> get_actions() { return actions; }
 
         private:
             // 此处的 state 需确保在拷贝时进行深拷贝

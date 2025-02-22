@@ -34,6 +34,8 @@ namespace LogicSystem
         // 当前状态的搜索深度（根状态初始化为0）
         int depth;
 
+        int getDepth() {return this->depth;}
+
         // 拷贝构造函数，确保深拷贝 SLITree，并复制深度信息
         SLIMCTSState(const SLIMCTSState &other) : depth(other.depth)
         {

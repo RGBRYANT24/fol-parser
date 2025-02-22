@@ -22,6 +22,8 @@ namespace LogicSystem
      *
      * 该状态类封装了整个证明问题的搜索状态，通过内部持有独立的 SLITree
      * 实例表示。状态转换时采用深拷贝策略，保证子状态与父状态独立。
+     *
+     * 新增：状态深度信息，用于记录当前状态在搜索树中的层数。
      */
     class SLIMCTSState /* : public IState */
     {
@@ -29,13 +31,18 @@ namespace LogicSystem
         // 当前 SLI 算法搜索状态，由 SLITree 表示（保存部分证明状态）
         std::shared_ptr<SLITree> sli_tree;
 
-        // 拷贝构造函数，确保深拷贝 SLITree
-        SLIMCTSState(const SLIMCTSState &other)
+        // 当前状态的搜索深度（根状态初始化为0）
+        int depth;
+
+        // 拷贝构造函数，确保深拷贝 SLITree，并复制深度信息
+        SLIMCTSState(const SLIMCTSState &other) : depth(other.depth)
         {
-            sli_tree = other.sli_tree->deepCopy();
+            if (other.sli_tree)
+                sli_tree = other.sli_tree->deepCopy();
         }
-        // 构造函数：从给定 SLITree 创建状态（深拷贝）
-        SLIMCTSState(std::shared_ptr<SLITree> tree)
+
+        // 构造函数：从给定 SLITree 创建状态（深拷贝），并允许指定初始深度，默认为0
+        SLIMCTSState(std::shared_ptr<SLITree> tree, int init_depth = 0) : depth(init_depth)
         {
             if (tree)
             {
@@ -43,6 +50,7 @@ namespace LogicSystem
             }
         }
 
+        // 赋值操作符，保证深拷贝和深度信息的正确赋值
         SLIMCTSState &operator=(const SLIMCTSState &other)
         {
             if (this != &other)
@@ -51,14 +59,21 @@ namespace LogicSystem
                     sli_tree = other.sli_tree->deepCopy();
                 else
                     sli_tree.reset();
+                depth = other.depth;
             }
             return *this;
         }
 
-        // 新增方法：根据当前状态和动作生成下一个状态，保证深拷贝
+        /**
+         * @brief 根据当前状态和动作生成下一个状态
+         *
+         * 这里利用拷贝构造函数生成当前状态的拷贝，然后深度+1，再应用动作
+         */
         SLIMCTSState next_state(const SLIMCTSAction &action) const
         {
             SLIMCTSState new_state(*this);
+            // 生成下一个状态，深度加1
+            new_state.depth = this->depth + 1;
             new_state.apply_action(action);
             return new_state;
         }
@@ -79,27 +94,27 @@ namespace LogicSystem
          * @brief 计算当前状态是否为终局，并返回对应的奖励（如果不是终局则返回空值）
          *
          * 逻辑为：
-         * - 如果没有活动节点，则认为终局，奖励为 +1；
-         * - 如果节点不合法，则认为终局，奖励为 -1；
-         * - 如果无候选动作，则认为终局，奖励为 -1；
+         * - 如果没有活动节点，则认为终局，奖励为 +100；
+         * - 如果节点不合法，则认为终局，奖励为 -10；
+         * - 如果无候选动作，则认为终局，奖励为 -10；
          * - 否则返回空值，表示非终局状态。
          */
         std::optional<float> compute_terminal_reward() const
         {
-            // 条件1：没有活动节点 → 奖励 +1
+            // 条件1：没有活动节点 → 奖励 +100
             auto active_nodes = this->sli_tree->get_all_active_nodes();
             if (active_nodes.empty())
             {
                 return 100.0f;
             }
 
-            // 条件2：节点不合法 → 奖励 -1
+            // 条件2：节点不合法 → 奖励 -10
             if (!this->sli_tree->validateAllNodes())
             {
                 return -10.0f;
             }
 
-            // 条件3：无候选动作 → 奖励 -1
+            // 条件3：无候选动作 → 奖励 -10
             std::vector<SLIMCTSAction> actions;
             get_actions(actions);
             if (actions.empty())
@@ -180,11 +195,7 @@ namespace LogicSystem
                     auto second_node = sli_tree->findNodeById(node_id);
                     if (second_node)
                     {
-                        // std::cout << "before apply_action (factoring): " << action.to_string(kb) << std::endl;
-                        // sli_tree->print_tree(kb);
                         sli_tree->t_factoring(parent_node, second_node);
-                        // std::cout << "after apply_action (factoring): " << std::endl;
-                        // sli_tree->print_tree(kb);
                     }
                 }
                 break;
@@ -229,12 +240,6 @@ namespace LogicSystem
                         if (Resolution::isComplementary(node->literal, lit) &&
                             Unifier::findMGU(node->literal, lit, kb))
                         {
-
-                            // std::cout << "generateMCTSExtensionStates found complementary count " << count++ << std::endl;
-                            //         std::cout << "generateMCTSExtensionStates sli node " << std::endl;
-                            //         node->print(kb);
-                            //         std::cout << "generateMCTSExtensionStates kb lit " << lit.toString(kb) << " clause " << kb_clause.toString(kb) << std::endl;
-                            // 改为使用节点ID进行传递, 同时构造时传入 MCTSSecondOperand（后者底层类型为 std::variant<int, Literal>）
                             actions.emplace_back(SLIActionType::EXTENSION,
                                                  node->node_id,
                                                  MCTSSecondOperand(lit),
@@ -322,7 +327,7 @@ namespace LogicSystem
 
         std::string to_string() const
         {
-            return "SLIMCTSState: " + sli_tree->printBLiteralsAsClause();
+            return "SLIMCTSState: " + sli_tree->printBLiteralsAsClause() + " | depth: " + std::to_string(depth);
         }
     };
 

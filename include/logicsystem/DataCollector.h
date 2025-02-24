@@ -225,25 +225,39 @@ namespace LogicSystem
             // 1. 按操作类型聚合的期望奖励
             std::unordered_map<std::string, std::pair<double, double>> reward_map;
             auto children = node->get_children(); // 已扩展的子节点
+
+            // 遍历所有已扩展的子节点
             for (const auto &child : children)
             {
-                // 获取扩展该子节点时使用的动作的操作类型字符串（例如 "EXTENSION", "FACTORING" 等）
+                // 获取扩展该子节点时使用的动作的操作类型字符串（例如 "EXTENSION", "FACTORING", "ANCESTRY"）
                 std::string op_type = SLI_Action_to_string(child->get_action().action);
+                // 如果操作类型是 "TRUNCATE"，则不需要处理，直接跳过
+                if (op_type == "TRUNCATE")
+                    continue;
+
                 // 归一化奖励：例如用子节点累计评价除以 (深度+1)
                 double normalized_reward = child->get_value() / (child->get_depth() + 1.0);
                 double visits = child->get_num_visits();
                 reward_map[op_type].first += visits * normalized_reward; // 累加加权奖励
                 reward_map[op_type].second += visits;                    // 累加访问次数
             }
+
+            // 定义需要输出的操作类型（只包含 3 种）
+            std::vector<std::string> required_ops = {"EXTENSION", "FACTORING", "ANCESTRY"};
             nlohmann::json expected_by_type;
-            for (auto &entry : reward_map)
+            for (const auto &op : required_ops)
             {
-                double exp_reward = (entry.second.second > 0) ? (entry.second.first / entry.second.second) : 0.0;
-                expected_by_type[entry.first] = exp_reward;
+                double exp_reward = 0.0;
+                // 如果该操作类型有累积记录，则计算加权平均奖励；否则保持为 0.0
+                if (reward_map.find(op) != reward_map.end() && reward_map[op].second > 0)
+                {
+                    exp_reward = reward_map[op].first / reward_map[op].second;
+                }
+                expected_by_type[op] = exp_reward;
             }
 
             // 2. 每个候选动作的奖励信息
-            // 获取当前节点中所有候选动作，这个顺序在扩展时已经经过随机打乱，但后续扩展时始终按该顺序进行的下标对应
+            // 获取当前节点中的所有候选动作，这个顺序在扩展时已经经过随机打乱，但后续扩展时始终按该顺序进行对应
             auto available_actions = node->get_actions();
             nlohmann::json action_rewards = nlohmann::json::array();
             // 遍历所有候选动作
@@ -256,7 +270,7 @@ namespace LogicSystem
                     auto child = children[i];
                     reward = child->get_value() / (child->get_depth() + 1.0);
                 }
-                // 否则该候选动作还没有被扩展，默认奖励可以设为 0
+                // 否则该候选动作还没有被扩展，默认奖励设为 0
                 nlohmann::json action_reward_info;
                 action_reward_info["index"] = i;
                 action_reward_info["op_type"] = SLI_Action_to_string(available_actions[i].action);
@@ -264,7 +278,7 @@ namespace LogicSystem
                 action_rewards.push_back(action_reward_info);
             }
 
-            // 3. 组合返回结果：包含按操作类型聚合的奖励和逐动作的奖励信息
+            // 组合返回结果：包含按操作类型聚合的奖励和逐动作的奖励信息
             nlohmann::json result;
             result["expected_by_type"] = expected_by_type;
             result["action_rewards"] = action_rewards;
@@ -307,6 +321,8 @@ namespace LogicSystem
                     args.push_back(ctx.normalizeSymbol(arg));
                 }
                 lit_json["arguments"] = args;
+                // 添加 literal 的否定信息
+                lit_json["negated"] = lit.isNegated();
                 operand2["type"] = "literal";
                 operand2["literal"] = lit_json;
             }
@@ -317,6 +333,24 @@ namespace LogicSystem
                 operand2["id"] = node_id;
             }
             op_json["operand2"] = operand2;
+
+            // 新增：序列化 kb_clause，将其中每个 literal 转换为 JSON 对象
+            json clause_literals = json::array();
+            // 假设 op.kb_clause.getLiterals() 返回 Literal 的 vector
+            for (const Literal &lit : op.kb_clause.getLiterals())
+            {
+                json lit_json;
+                lit_json["predicate"] = kb.getPredicateName(lit.getPredicateId());
+                std::vector<std::string> args;
+                for (auto arg : lit.getArgumentIds())
+                {
+                    args.push_back(ctx.normalizeSymbol(arg));
+                }
+                lit_json["arguments"] = args;
+                lit_json["negated"] = lit.isNegated();
+                clause_literals.push_back(lit_json);
+            }
+            op_json["kb_clause"] = clause_literals;
 
             return op_json;
         }
@@ -368,7 +402,7 @@ namespace LogicSystem
             sample["available_ops"] = ops_json;
 
             // 同时将全局汇聚奖励 expected_by_type 保留到 reward 字段下作为全局信息
-            sample["reward"] = {{"expected_by_type", reward_info["expected_by_type"]}};
+            sample["global_reward"] = {{"expected_by_type", reward_info["expected_by_type"]}};
 
             // MCTS中暂未使用选中操作，设为 null
             sample["selected_op"] = nullptr;

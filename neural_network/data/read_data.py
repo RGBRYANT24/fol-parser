@@ -73,7 +73,10 @@ class SLIDataset(Dataset):
             tree_tokens = self._linearize_tree(tree)
             ops = self._safe_get(sample, 'available_ops', [])
             op_tokens = self._process_operations(ops)
-            all_tokens.update(tree_tokens + op_tokens)
+            candidate_tokens = []
+            for op in ops:
+                candidate_tokens += self._linearize_candidate(op)
+            all_tokens.update(tree_tokens + op_tokens + candidate_tokens)
         self.tokenizer.add_tokens(all_tokens)
     
     def _linearize_tree(self, tree_data):
@@ -247,16 +250,27 @@ class SLIDataset(Dataset):
         sample = self.samples[idx]
         pad_id = self.tokenizer.special_tokens['[PAD]']
         seq_len = len(sample['input_ids'])
-        input_ids = sample['input_ids'] + [pad_id] * (self.max_seq_length - seq_len)
+        global_input_ids = sample['input_ids'] + [pad_id] * (self.max_seq_length - seq_len)
         attention_mask = [1] * seq_len + [0] * (self.max_seq_length - seq_len)
+        graph_mask = self._create_graph_mask(torch.tensor(global_input_ids, dtype=torch.long))
+    
+        # 处理 reward 信息（若 reward 为字典则取其中 EXTENSION 对应的值）
+        raw_reward = self._safe_get(sample['raw_data'], 'reward', 0.0)
+        if isinstance(raw_reward, dict):
+            raw_reward = raw_reward.get("expected_by_type", {}).get("EXTENSION", 0.0)
+        
+        # 同时将 global_reward 字段传递到输出中（方便 collate_fn 使用）
+        global_reward = self._safe_get(sample['raw_data'], 'global_reward', None)
+    
         return {
-            'input_ids': torch.tensor(input_ids, dtype=torch.long),
+            'input_ids': torch.tensor(global_input_ids, dtype=torch.long),
             'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
-            # 若全局 reward 为字典，则提取 "expected_by_type" 下 EXTENSION 对应的值
-            'reward': torch.tensor(self._process_reward(self._safe_get(sample['raw_data'], 'reward', 0.0)),
-                                   dtype=torch.float),
+            'graph_mask': graph_mask,
+            'labels': torch.tensor(sample['labels'], dtype=torch.float) if sample['labels'] is not None else None,
+            'reward': torch.tensor(raw_reward, dtype=torch.float),
             'candidate_param_ids': sample['candidate_param_ids'],  # [num_candidates, max_seq_length]
-            'candidate_q_values': sample['candidate_q_values']       # [num_candidates]
+            'candidate_q_values': sample['candidate_q_values'],      # [num_candidates]
+            'global_reward': global_reward
         }
     
     def _process_reward(self, reward):
@@ -422,6 +436,7 @@ class GraphSLIDataset(SLIDataset):
             # 全局输入：图 tokens + 分隔符 [SEP] + 树 tokens + 可用操作 tokens
             full_sequence = graph_ids + [sep_id] + self.tokenizer.convert_tokens_to_ids(tree_tokens + op_tokens)
             full_sequence = full_sequence[:self.max_seq_length]
+            # 调用修改后的 _generate_action_labels 方法，直接依据 global_reward 生成标签
             labels = self._generate_action_labels(raw_sample)
             
             candidate_params = []
@@ -455,16 +470,19 @@ class GraphSLIDataset(SLIDataset):
             })
 
     def _generate_action_labels(self, raw_sample):
-        """生成动作奖励标签（1x3）"""
-        num_actions = len(self.ACTION_MAP)
-        labels = [0.0] * num_actions
-        selected_op = raw_sample.get('selected_op', {})
-        selected_action = selected_op.get('action') if selected_op else None
-        reward = raw_sample.get('reward', 0.0)
-        action_idx = self.ACTION_MAP.get(selected_action, -1)
-        if 0 <= action_idx < num_actions:
-            labels[action_idx] = reward if not isinstance(reward, dict) else reward.get("expected_by_type", {}).get("EXTENSION", 0.0)
-        return labels
+        """
+        生成动作奖励标签（1x3）。
+        本修改版本直接使用 global_reward 中 expected_by_type 信息，
+        按照固定顺序 ["EXTENSION", "FACTORING", "ANCESTRY"] 返回奖励列表，
+        若 global_reward 不存在则返回全零向量。
+        """
+        op_seq = ["EXTENSION", "FACTORING", "ANCESTRY"]
+        global_reward = raw_sample.get("global_reward", {})
+        if isinstance(global_reward, dict) and "expected_by_type" in global_reward:
+            exp_reward = global_reward["expected_by_type"]
+            return [exp_reward.get(op, 0.0) for op in op_seq]
+        else:
+            return [0.0 for _ in op_seq]
 
     def __getitem__(self, idx):
         sample = self.samples[idx]
@@ -478,14 +496,17 @@ class GraphSLIDataset(SLIDataset):
         if isinstance(raw_reward, dict):
             raw_reward = raw_reward.get("expected_by_type", {}).get("EXTENSION", 0.0)
     
+        global_reward = self._safe_get(sample['raw_data'], 'global_reward', None)
+    
         return {
             'input_ids': torch.tensor(global_input_ids, dtype=torch.long),
             'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
             'graph_mask': graph_mask,
-            'labels': torch.tensor(sample['labels'], dtype=torch.float),
+            'labels': torch.tensor(sample['labels'], dtype=torch.float) if sample['labels'] is not None else None,
             'reward': torch.tensor(raw_reward, dtype=torch.float),
             'candidate_param_ids': sample['candidate_param_ids'],   # [num_candidates, max_param_seq_length]
-            'candidate_q_values': sample['candidate_q_values']          # [num_candidates]
+            'candidate_q_values': sample['candidate_q_values'],         # [num_candidates]
+            'global_reward': global_reward  # 新增：将 global_reward 一并输出
         }
     
     def _create_graph_mask(self, input_ids):
@@ -508,27 +529,25 @@ def collate_fn(batch, tokenizer):
     """
     此 collate_fn 主要完成三部分工作：
     1. 对全局输入（input_ids、attention_mask、graph_mask）进行 padding。
-    2. 从每个样本中 global_reward 下的 expected_by_type 提取奖励值，
-       并按照顺序 ["EXTENSION", "FACTORING", "ANCESTRY"] 生成一个 [3] 的 tensor，
+    2. 从每个样本中优先使用 labels 字段，如果不存在则从 global_reward 中提取奖励值，
+       按照顺序 ["EXTENSION", "FACTORING", "ANCESTRY"] 生成一个 [3] 的 tensor，
        作为 labels 字段。
     3. 对候选操作参数 candidate_param_ids 和候选连续标签 candidate_q_values 进行 padding，
        保证整个 batch 内候选数量一致。
     """
     # --- 1. 提取 labels ---
-    # 定义操作类型顺序
-    op_seq = ["EXTENSION", "FACTORING", "ANCESTRY"]
     labels_list = []
     for item in batch:
-        # 从 global_reward 下提取 expected_by_type 的奖励数据
-        if isinstance(item.get("global_reward"), dict) and "expected_by_type" in item["global_reward"]:
+        if item.get("labels") is not None:
+            labels_list.append(item["labels"])
+        elif isinstance(item.get("global_reward"), dict) and "expected_by_type" in item["global_reward"]:
+            op_seq = ["EXTENSION", "FACTORING", "ANCESTRY"]
             exp_reward = item["global_reward"]["expected_by_type"]
-            # 按照固定顺序提取奖励值
             label = torch.tensor([exp_reward.get(op, 0.0) for op in op_seq], dtype=torch.float)
+            labels_list.append(label)
         else:
-            # 如果找不到，则用零向量代替
-            label = torch.zeros(len(op_seq), dtype=torch.float)
-        labels_list.append(label)
-    labels = torch.stack(labels_list)  # 最终 shape: [B, 3]，B 是 batch 大小
+            labels_list.append(torch.zeros(3, dtype=torch.float))
+    labels = torch.stack(labels_list)  # shape: [B, 3]
 
     # --- 2. 全局输入（input_ids, attention_mask, graph_mask）的 padding ---
     max_global_len = max(item["input_ids"].size(0) for item in batch)
@@ -600,21 +619,15 @@ if __name__ == "__main__":
     # k3_graph.json 为图数据文件
     sli_file = "../../data/training_data_0.json"  # 要求文件中有 "samples" 字段
     graph_file = "../../data/k3_graph.json"
-    # # 当前脚本所在目录
-    # script_dir = os.path.dirname(os.path.abspath(__file__))
-    # target_file = os.path.join(script_dir, '../../data/training_data0.json')
-    # target_file = os.path.abspath(target_file)
 
-    # print("目标文件绝对路径：", target_file)
     dataset = GraphSLIDataset(sli_file, graph_file, max_seq_length=512, max_param_seq_length=30)
     
     print("样本总数：", len(dataset))
     
     # 查看单个样本的处理结果
-    sample0 = dataset[0]
+    sample0 = dataset[2]
     print("单个样本全局 input_ids (长度 {}):".format(len(sample0['input_ids'])))
     print(sample0['input_ids'])
-    # 假设 sample0 是一个样本
     tokens = dataset.tokenizer.convert_ids_to_tokens(sample0['input_ids'].tolist())
     print("对应的 token 序列：")
     print(tokens)
@@ -626,9 +639,15 @@ if __name__ == "__main__":
     print(sample0['labels'])
     print("单个样本候选参数 candidate_param_ids, 形状:", sample0['candidate_param_ids'].shape)
     print(sample0['candidate_param_ids'])
-    tokens = dataset.tokenizer.convert_ids_to_tokens(sample0['candidate_param_ids'])
-    print("对应的 token 序列：")
-    print(tokens)
+    # 对每个候选参数的 id 序列进行转换，并打印对应的 token 序列
+    num_candidates = sample0['candidate_param_ids'].shape[0]
+    for i in range(num_candidates):
+        # 将 tensor 转换为 Python 列表
+        candidate_ids = sample0['candidate_param_ids'][i].tolist()
+        # 使用 tokenizer 的 convert_ids_to_tokens 方法转换
+        candidate_tokens = dataset.tokenizer.convert_ids_to_tokens(candidate_ids)
+        print(f"候选参数 {i} 对应的 token 序列:")
+        print(candidate_tokens)
     print("单个候选参数连续标签 candidate_q_values, 形状:", sample0['candidate_q_values'].shape)
     print(sample0['candidate_q_values'])
     

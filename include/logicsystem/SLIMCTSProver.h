@@ -17,7 +17,7 @@ namespace LogicSystem
             SLIMCTSProver(KnowledgeBase &kb, const Clause &goal);
         
             // 证明函数，返回证明是否成功
-            bool prove();
+            bool prove(const std::string &save_dir="");
         
         private:
             KnowledgeBase &kb;

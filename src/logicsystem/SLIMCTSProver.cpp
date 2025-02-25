@@ -3,6 +3,8 @@
 #include <vector>
 #include <memory>
 #include <cmath>
+#include <string> // 用于 std::string 和 std::to_string
+#include <filesystem> // C++17 文件系统
 
 #include "SLIMCTSState.h"
 #include "SLIMCTSAction.h"
@@ -22,56 +24,65 @@ namespace LogicSystem
     {
     }
 
-    bool SLIMCTSProver::prove()
+    // 修改 prove 函数接口，传入文件保存路径。如果传入空字符串，则不保存数据。
+    bool SLIMCTSProver::prove(const std::string &save_dir)
     {
-        // 1. Construct initial state
+        // 1. 构造初始状态
         auto initialTree = std::make_shared<SLITree>(kb);
         initialTree->add_node(goal, Literal(), false, initialTree->getRoot());
         LogicSystem::SLIMCTSState current_state(initialTree);
         current_state.sli_tree = initialTree;
 
-        // 2. Configure MCTS search
+        // 2. 配置 MCTS 搜索
         msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
-        mcts_search.max_iterations = 3000;
-        mcts_search.max_millis = 3000;
+        mcts_search.max_iterations = 2000;
+        mcts_search.max_millis = 2000;
         mcts_search.simulation_depth = 1000;
         mcts_search.uct_k = std::sqrt(2);
 
-        // 3. Initialize data collection
+        // 3. 初始化数据收集容器
         std::vector<json> training_samples;
 
-        // 4. Run MCTS iteratively
+        // 4. 迭代执行 MCTS 搜索过程
         while (!checkEmptyClause(*(current_state.sli_tree)) && !current_state.is_terminal())
         {
-            // Perform MCTS search
+            // 执行一次 MCTS 搜索
             auto mcts_result = mcts_search.run(current_state);
             auto node = mcts_result.root_node;
 
-            // Collect training sample using DataCollect
+            // 通过 DataCollector 收集训练样本
             json sample = DataCollector::collectTrainingSampleMCTS(node, kb);
             training_samples.push_back(sample);
-            std::cout << "SLIMCTSProver::prove get training sample node by node " << std::endl;
-            std::cout << sample << std::endl;
 
-            // get reward
-            auto reward_sample = DataCollector::computeExpectedOpRewards(node);
-            std::cout << "SLIMCTSProver::prove get training sample reward " << std::endl;
-            std::cout << reward_sample << std::endl;
-
-
-            // // Get and apply the best action
-            // LogicSystem::SLIMCTSAction best_action = mcts_search.get_best_uct_child(); // Assumes this exists
+            // 获取最佳动作并更新状态
             LogicSystem::SLIMCTSAction best_action = mcts_result.best_action;
             current_state = current_state.next_state(best_action);
             std::cout << "Updated State: " << current_state.to_string() << std::endl;
         }
 
-        // 5. Check proof result and save data if successful
+        // 5. 检查证明结果，如果成功则保存数据（当且仅当传入的保存路径不为空）
         if (checkEmptyClause(*(current_state.sli_tree)))
         {
             std::cout << "Proof successful!" << std::endl;
-            // Save collected samples to file
-            DataCollector::saveToFile(training_samples, "training_data.json");
+            if (!save_dir.empty())
+            {
+                // 生成唯一文件名：使用静态计数器生成不同的文件名
+                static int test_counter = 0;
+                std::string fileName = save_dir;
+                // 确保目录路径以斜杠结尾
+                if (!fileName.empty() && fileName.back() != '/' && fileName.back() != '\\')
+                {
+                    fileName += "/";
+                }
+                fileName += "training_data_" + std::to_string(test_counter++) + ".json";
+
+                // 如果需要，可以利用 <filesystem> 检查或创建目录
+                std::filesystem::create_directories(save_dir);
+
+                // 保存收集的样本数据到文件
+                DataCollector::saveToFile(training_samples, fileName);
+                std::cout << "Saved training samples to file: " << fileName << std::endl;
+            }
             return true;
         }
         else
@@ -87,14 +98,5 @@ namespace LogicSystem
             std::cout << "has selfloop " << !current_state.sli_tree->validateAllNodes() << std::endl;
             return false;
         }
-    }
-
-    void SLIMCTSProver::collectTrainingSamples(const LogicSystem::SLIMCTSState &state)
-    {
-        // Placeholder implementation remains unchanged
-        std::vector<json> training_samples;
-        std::string state_str = state.to_string();
-        std::cout << "Collecting training sample for state: " << state_str << std::endl;
-        DataCollector::saveToFile(training_samples, "training_samples.json");
     }
 }

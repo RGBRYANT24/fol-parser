@@ -8,7 +8,7 @@ namespace LogicSystem
 
     bool SLIResolution::prove(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
     {
-        std::vector<json> training_samples;
+        // std::vector<json> training_samples;
         // 创建初始状态
         auto initialTree = std::make_shared<SLITree>(kb);
 
@@ -133,57 +133,57 @@ namespace LogicSystem
             // std::cout << "Check Empty Clause " << std::endl;
             if (checkEmptyClause(*new_state->sli_tree))
             {
-                successful_state = new_state;
-                SLIOperation::printOperationPath(successful_state, kb);
-                std::vector<json> successful_samples;
-                int max_depth = successful_state->depth;
+                // successful_state = new_state;
+                // SLIOperation::printOperationPath(successful_state, kb);
+                // std::vector<json> successful_samples;
+                // int max_depth = successful_state->depth;
 
-                // 回溯路径收集样本
-                auto current_state = successful_state;
-                while (current_state && current_state->parent)
-                {
-                    // std::cout << "current state " << std::endl;
-                    // SLIOperation::printCurrentState(current_state, kb);
-                    auto parent_state = current_state->parent;
+                // // 回溯路径收集样本
+                // auto current_state = successful_state;
+                // while (current_state && current_state->parent)
+                // {
+                //     // std::cout << "current state " << std::endl;
+                //     // SLIOperation::printCurrentState(current_state, kb);
+                //     auto parent_state = current_state->parent;
 
-                    // 创建新的标准化上下文
-                    LogicSystem::DataCollector::NormalizationContext ctx;
+                //     // 创建新的标准化上下文
+                //     LogicSystem::DataCollector::NormalizationContext ctx;
 
-                    // 确保指针有效
-                    if (parent_state->sli_tree == nullptr)
-                    {
-                        std::cerr << "Invalid parent state!" << std::endl;
-                        break;
-                    }
+                //     // 确保指针有效
+                //     if (parent_state->sli_tree == nullptr)
+                //     {
+                //         std::cerr << "Invalid parent state!" << std::endl;
+                //         break;
+                //     }
 
-                    double reward = 1.0 / (1.0 + max_depth - current_state->depth);
+                //     double reward = 1.0 / (1.0 + max_depth - current_state->depth);
 
-                    // 获取父状态生成时的所有可能操作
-                    auto &available_ops = current_state->parent_available_ops;
-                    std::cout << "available ops size " << available_ops.size() << std::endl;
+                //     // 获取父状态生成时的所有可能操作
+                //     auto &available_ops = current_state->parent_available_ops;
+                //     std::cout << "available ops size " << available_ops.size() << std::endl;
 
-                    // 确定当前操作是父状态选择的那个
-                    auto it = std::find(available_ops.begin(), available_ops.end(), current_state->copy_state);
-                    if (it != available_ops.end())
-                    {
-                        std::cout << "find op" << std::endl;
-                        // 收集样本时传入kb引用
-                        successful_samples.push_back(
-                            DataCollector::collectTrainingSample(
-                                *parent_state,
-                                available_ops,
-                                *it,
-                                reward, // reward
-                                kb      // 传入KnowledgeBase
-                                ));
-                    }
-                    current_state = parent_state;
-                }
+                //     // 确定当前操作是父状态选择的那个
+                //     auto it = std::find(available_ops.begin(), available_ops.end(), current_state->copy_state);
+                //     if (it != available_ops.end())
+                //     {
+                //         std::cout << "find op" << std::endl;
+                //         // 收集样本时传入kb引用
+                //         successful_samples.push_back(
+                //             DataCollector::collectTrainingSample(
+                //                 *parent_state,
+                //                 available_ops,
+                //                 *it,
+                //                 reward, // reward
+                //                 kb      // 传入KnowledgeBase
+                //                 ));
+                //     }
+                //     current_state = parent_state;
+                // }
 
-                // 将成功路径的样本添加到总数据中（逆序）
-                training_samples.insert(training_samples.end(), successful_samples.rbegin(), successful_samples.rend());
-                std::cout << "training_samples size " << training_samples.size() << std::endl;
-                DataCollector::saveToFile(training_samples, "/home/adrin/Projects/fol-parser/data/training_data.json");
+                // // 将成功路径的样本添加到总数据中（逆序）
+                // training_samples.insert(training_samples.end(), successful_samples.rbegin(), successful_samples.rend());
+                // std::cout << "training_samples size " << training_samples.size() << std::endl;
+                // DataCollector::saveToFile(training_samples, "/home/adrin/Projects/fol-parser/data/training_data.json");
                 return true;
             }
 
@@ -274,7 +274,7 @@ namespace LogicSystem
         // 保存训练数据
         SLIOperation::printOperationPath(last_state, kb);
         std::cout << "last state is above" <<std::endl;
-        DataCollector::saveToFile(training_samples, "/path/to/failed_data.json");
+        // DataCollector::saveToFile(training_samples, "/path/to/failed_data.json");
         return false;
     }
 
@@ -429,7 +429,7 @@ namespace LogicSystem
     bool SLIResolution::proveHeuristic(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
     {
 
-        std::vector<json> training_samples;
+        // std::vector<json> training_samples;
         // 创建初始状态
         auto initialTree = std::make_shared<SLITree>(kb);
 

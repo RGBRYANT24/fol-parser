@@ -95,16 +95,17 @@ class SLIDataset(Dataset):
                 continue
             node_type = self._safe_get(node, 'type', 'UNKNOWN')
             literal = self._safe_get(node, 'literal', {}) or {}
-            # 如果 substitution 为 None，则转换为空字典
+            # substitution 可能为 None时转换为空字典
             substitution = self._safe_get(node, 'substitution', {}) or {}
             children = self._safe_get(node, 'children', [])
             node_features = [
-                f"[DEPTH_{depth}]",
+                # f"[DEPTH_{depth}]",
                 f"[TYPE_{node_type}]",
                 f"[PRED_{literal.get('predicate', 'UNK')}]",
                 f"[NEG_{int(literal.get('negated', False))}]"
             ]
             for arg in literal.get('arguments', []):
+                # 统一变量和常量的表示
                 if arg.startswith('VAR'):
                     node_features.append("[VAR]")
                 elif arg.startswith('CONST'):
@@ -112,7 +113,7 @@ class SLIDataset(Dataset):
                 else:
                     node_features.append(f"[ARG_{arg}]")
             for src, tgt in substitution.items():
-                node_features += [f"[SUB_SRC_{src}]", f"[SUB_TGT_{tgt}]"]
+                node_features += [f"[{src}]", f"[{tgt}]"]
             for child_id in reversed(children):
                 child_node = nodes.get(child_id)
                 if child_node:
@@ -131,22 +132,22 @@ class SLIDataset(Dataset):
             op_tokens.append(f"[ACTION_{action}]")
             op_tokens.append(f"[OP_TYPE_{operand2.get('type', 'UNKNOWN')}]")
             lit_info = operand2.get('literal', {})
-            if lit_info:
-                op_tokens.append(f"[LIT_PRED_{lit_info.get('predicate', 'UNK')}]")
+            # if lit_info:
+            #     op_tokens.append(f"[LIT_PRED_{lit_info.get('predicate', 'UNK')}]")
         return op_tokens
 
     def _process_samples(self, raw_data):
         for raw_sample in raw_data:
-            # 对图结构进行线性化（GraphSLIDataset 中会覆盖此方法）
+            # 对树结构进行线性化
             tree_tokens = self._linearize_tree(self._safe_get(raw_sample.get('state', {}), 'tree', {}))
             ops = self._process_operations(raw_sample.get('available_ops', []))
             full_sequence = self.tokenizer.convert_tokens_to_ids(tree_tokens + ops)
             full_sequence = full_sequence[:self.max_seq_length]
             labels = None  # 第一阶段标签在此不作额外处理
             
-            # 处理候选操作参数与连续标签（连续回归目标）
+            # 处理候选操作参数与连续标签
             candidate_params = []
-            candidate_q_values = []  # 新增：存储每个候选的连续回归标签
+            candidate_q_values = []  # 每个候选的连续回归标签
             for op in raw_sample.get('available_ops', []):
                 cand_tokens = self._linearize_candidate(op)
                 if len(cand_tokens) > self.max_seq_length:
@@ -156,12 +157,11 @@ class SLIDataset(Dataset):
                 candidate_ids = self.tokenizer.convert_tokens_to_ids(cand_tokens)
                 candidate_params.append(candidate_ids)
                 
-                # 如果 op 中有 reward 字段则直接使用（适用于 MCTS 生成的数据）
                 if "reward" in op:
                     q_value = op.get("reward", 0.0)
                 else:
                     reward = raw_sample.get('reward', 0.0)
-                    lamda = 0.1  # 超参数，可根据情况调整
+                    lamda = 0.1  # 可调整的超参数
                     q_value = reward - lamda * op.get("depth", 0)
                 candidate_q_values.append(q_value)
             
@@ -170,7 +170,6 @@ class SLIDataset(Dataset):
                 candidate_params = torch.tensor(candidate_params, dtype=torch.long)
                 candidate_q_values = torch.tensor(candidate_q_values, dtype=torch.float)
             else:
-                # 如果没有候选参数，则创建空 tensor
                 candidate_params = torch.empty((0, self.max_seq_length), dtype=torch.long)
                 candidate_q_values = torch.empty((0,), dtype=torch.float)
             
@@ -178,8 +177,8 @@ class SLIDataset(Dataset):
                 'input_ids': full_sequence,
                 'raw_data': raw_sample,
                 'labels': labels,
-                'candidate_param_ids': candidate_params,  # 候选参数 token id
-                'candidate_q_values': candidate_q_values   # 候选参数对应的连续标签
+                'candidate_param_ids': candidate_params,
+                'candidate_q_values': candidate_q_values
             })
     
     def _linearize_candidate(self, op):
@@ -187,32 +186,38 @@ class SLIDataset(Dataset):
         线性化单个候选操作参数，将其转换为 token 序列。
         默认格式：
         [OP_START] [ACTION_Extension] [DEPTH_2] [NODE1] ... [OP_END]
-        如果存在 kb_clause，则附加 KB 子句的 token
+        如存在 kb_clause，则附加 KB 子句 token
         """
         tokens = []
         tokens.append("[OP_START]")
         action = op.get("action", "UNK")
         tokens.append(f"[ACTION_{action}]")
         depth = op.get("depth", 0)
-        tokens.append(f"[DEPTH_{depth}]")
+        # tokens.append(f"[DEPTH_{depth}]")
         node1 = op.get("node1", {})
         tokens.append("[NODE1]")
         if node1:
             node_id = node1.get("id", -1)
-            tokens.append(f"[NODE_ID_{node_id}]")
+            # tokens.append(f"[NODE_ID_{node_id}]")
             node_type = node1.get("type", "UNK")
             tokens.append(f"[NODE_TYPE_{node_type}]")
             node_depth = node1.get("depth", 0)
-            tokens.append(f"[NODE_DEPTH_{node_depth}]")
+            # tokens.append(f"[NODE_DEPTH_{node_depth}]")
             literal = node1.get("literal", {}) or {}
             pred = literal.get("predicate", "UNK")
             tokens.append(f"[PRED_{pred}]")
             for arg in literal.get("arguments", []):
-                tokens.append(f"[ARG_{arg}]")
-            substitution = node1.get("substitution", {}) or {}
-            if substitution:
-                for k, v in substitution.items():
-                    tokens.append(f"[SUB_{k}_{v}]")
+                # 将 VAR 和 CONST 统一处理
+                if arg.startswith("VAR"):
+                    tokens.append("[VAR]")
+                elif arg.startswith("CONST"):
+                    tokens.append("[CONST]")
+                else:
+                    tokens.append(f"[ARG_{arg}]")
+            # substitution = node1.get("substitution", {}) or {}
+            # if substitution:
+            #     for k, v in substitution.items():
+            #         tokens.append(f"[SUB_{k}_{v}]")
         else:
             tokens.append("[NO_NODE1]")
         operand2 = op.get("operand2", {})
@@ -223,7 +228,12 @@ class SLIDataset(Dataset):
             pred2 = lit.get("predicate", "UNK")
             tokens.append(f"[PRED_{pred2}]")
             for arg in lit.get("arguments", []):
-                tokens.append(f"[ARG_{arg}]")
+                if arg.startswith("VAR"):
+                    tokens.append("[VAR]")
+                elif arg.startswith("CONST"):
+                    tokens.append("[CONST]")
+                else:
+                    tokens.append(f"[ARG_{arg}]")
         elif op2_type == "node":
             tokens.append("[OPERAND2_NODE]")
             node_id2 = operand2.get("id", -1)
@@ -232,15 +242,21 @@ class SLIDataset(Dataset):
             tokens.append("[OPERAND2_UNK]")
         tokens.append("[OP_END]")
 
-        # 针对 MCTS 数据，处理 kb_clause 字段（附加 KB 子句 token）
+        # 处理 kb_clause 字段（若存在）
         if "kb_clause" in op:
             for clause in op["kb_clause"]:
                 predicate = clause.get("predicate", "UNK")
-                tokens.append(f"[KB_PRED_{predicate}]")
+                # tokens.append(f"[KB_PRED_{predicate}]")
                 for arg in clause.get("arguments", []):
-                    tokens.append(f"[KB_ARG_{arg}]")
+                    if arg.startswith("VAR"):
+                        tokens.append("[VAR]")
+                    elif arg.startswith("CONST"):
+                        tokens.append("[CONST]")
+                    else:
+                        tokens.append(f"[KB_ARG_{arg}]")
                 negated = clause.get("negated", False)
-                tokens.append(f"[KB_NEG_{int(negated)}]")
+                # tokens.append(f"[KB_NEG_{int(negated)}]")
+                tokens.append(f"[NEG]")
         return tokens
 
     def __len__(self):
@@ -254,12 +270,10 @@ class SLIDataset(Dataset):
         attention_mask = [1] * seq_len + [0] * (self.max_seq_length - seq_len)
         graph_mask = self._create_graph_mask(torch.tensor(global_input_ids, dtype=torch.long))
     
-        # 处理 reward 信息（若 reward 为字典则取其中 EXTENSION 对应的值）
         raw_reward = self._safe_get(sample['raw_data'], 'reward', 0.0)
         if isinstance(raw_reward, dict):
             raw_reward = raw_reward.get("expected_by_type", {}).get("EXTENSION", 0.0)
         
-        # 同时将 global_reward 字段传递到输出中（方便 collate_fn 使用）
         global_reward = self._safe_get(sample['raw_data'], 'global_reward', None)
     
         return {
@@ -268,15 +282,22 @@ class SLIDataset(Dataset):
             'graph_mask': graph_mask,
             'labels': torch.tensor(sample['labels'], dtype=torch.float) if sample['labels'] is not None else None,
             'reward': torch.tensor(raw_reward, dtype=torch.float),
-            'candidate_param_ids': sample['candidate_param_ids'],  # [num_candidates, max_seq_length]
-            'candidate_q_values': sample['candidate_q_values'],      # [num_candidates]
+            'candidate_param_ids': sample['candidate_param_ids'],
+            'candidate_q_values': sample['candidate_q_values'],
             'global_reward': global_reward
         }
     
-    def _process_reward(self, reward):
-        if isinstance(reward, dict):
-            return reward.get("expected_by_type", {}).get("EXTENSION", 0.0)
-        return reward
+    def _create_graph_mask(self, input_ids):
+        """生成图结构注意力掩码，根据 [GRAPH_START] 和 [GRAPH_END] 标记"""
+        mask = torch.zeros_like(input_ids)
+        token_list = input_ids.tolist()
+        try:
+            start = token_list.index(self.tokenizer.vocab["[GRAPH_START]"])
+            end = token_list.index(self.tokenizer.vocab["[GRAPH_END]"])
+            mask[start:end+1] = 1
+        except ValueError:
+            pass
+        return mask
 
 #########################################
 # 增强分词器与图结构及候选参数处理
@@ -307,23 +328,19 @@ class GraphSLIDataset(SLIDataset):
         "Ancestry": 2,
     }
     def __init__(self, sli_file, graph_file, max_seq_length=768, max_param_seq_length=30):
-        # 先加载图数据
         with open(graph_file, "r", encoding="utf-8") as f:
             self.graph_data = json.load(f)["graphs"][0]
         self.max_param_seq_length = max_param_seq_length
         
-        # 创建 EnhancedTokenizer 实例，并提前构建图的词汇表
         tokenizer = EnhancedTokenizer()
         self.tokenizer = tokenizer
-        self._build_graph_vocab()  # 在处理样本前补充图结构 token
+        self._build_graph_vocab()
         
-        # 再加载 SLI 文件，构建样本并同时构建其它词汇
         with open(sli_file, "r", encoding="utf-8") as f:
             raw_data = json.load(f).get('samples', [])
         
-        # 调用父类中的方法进行 vocab 构建和样本处理，但不要重新创建 tokenizer
         self.max_seq_length = max_seq_length * 2
-        self.samples = []  # 清空之前的 samples，确保重新构建
+        self.samples = []  # 重新构建
         self._build_vocab(raw_data)
         self._process_samples(raw_data)
 
@@ -374,25 +391,30 @@ class GraphSLIDataset(SLIDataset):
         action = op.get("action", "UNK")
         tokens.append(f"[ACTION_{action}]")
         depth = op.get("depth", 0)
-        tokens.append(f"[DEPTH_{depth}]")
+        # tokens.append(f"[DEPTH_{depth}]")
         node1 = op.get("node1", {})
         tokens.append("[NODE1]")
         if node1:
             node_id = node1.get("id", -1)
-            tokens.append(f"[NODE_ID_{node_id}]")
+            # tokens.append(f"[NODE_ID_{node_id}]")
             node_type = node1.get("type", "UNK")
             tokens.append(f"[NODE_TYPE_{node_type}]")
             node_depth = node1.get("depth", 0)
-            tokens.append(f"[NODE_DEPTH_{node_depth}]")
+            # tokens.append(f"[NODE_DEPTH_{node_depth}]")
             literal = node1.get("literal", {}) or {}
             pred = literal.get("predicate", "UNK")
             tokens.append(f"[PRED_{pred}]")
             for arg in literal.get("arguments", []):
-                tokens.append(f"[ARG_{arg}]")
-            substitution = node1.get("substitution", {}) or {}
-            if substitution:
-                for k, v in substitution.items():
-                    tokens.append(f"[SUB_{k}_{v}]")
+                if arg.startswith("VAR"):
+                    tokens.append("[VAR]")
+                elif arg.startswith("CONST"):
+                    tokens.append("[CONST]")
+                else:
+                    tokens.append(f"[ARG_{arg}]")
+            # substitution = node1.get("substitution", {}) or {}
+            # if substitution:
+            #     for k, v in substitution.items():
+            #         tokens.append(f"[SUB_{k}_{v}]")
         else:
             tokens.append("[NO_NODE1]")
         operand2 = op.get("operand2", {})
@@ -403,44 +425,49 @@ class GraphSLIDataset(SLIDataset):
             pred2 = lit.get("predicate", "UNK")
             tokens.append(f"[PRED_{pred2}]")
             for arg in lit.get("arguments", []):
-                tokens.append(f"[ARG_{arg}]")
+                if arg.startswith("VAR"):
+                    tokens.append("[VAR]")
+                elif arg.startswith("CONST"):
+                    tokens.append("[CONST]")
+                else:
+                    tokens.append(f"[ARG_{arg}]")
         elif op2_type == "node":
             tokens.append("[OPERAND2_NODE]")
             node_id2 = operand2.get("id", -1)
-            tokens.append(f"[NODE_ID_{node_id2}]")
+            # tokens.append(f"[NODE_ID_{node_id2}]")
         else:
             tokens.append("[OPERAND2_UNK]")
         tokens.append("[OP_END]")
 
-        # 处理 kb_clause（MCTS 生成数据特有）
         if "kb_clause" in op:
             for clause in op["kb_clause"]:
                 predicate = clause.get("predicate", "UNK")
-                tokens.append(f"[KB_PRED_{predicate}]")
+                # tokens.append(f"[KB_PRED_{predicate}]")
                 for arg in clause.get("arguments", []):
-                    tokens.append(f"[KB_ARG_{arg}]")
+                    if arg.startswith("VAR"):
+                        tokens.append("[VAR]")
+                    elif arg.startswith("CONST"):
+                        tokens.append("[CONST]")
+                    else:
+                        tokens.append(f"[KB_ARG_{arg}]")
                 negated = clause.get("negated", False)
                 tokens.append(f"[KB_NEG_{int(negated)}]")
         return tokens
 
     def _process_samples(self, raw_data):
-        # 先将图结构编码为 token 序列，再转换为 id 列表
         graph_tokens = self._linearize_graph()
         graph_ids = self.tokenizer.convert_tokens_to_ids(graph_tokens)
-        # 获取分隔符 [SEP] 的 id（用于分割图信息与 slitree 表示）
         sep_id = self.tokenizer.special_tokens["[SEP]"]
         
         for raw_sample in raw_data:
             tree_tokens = self._linearize_tree(raw_sample.get('state', {}).get('tree', {}))
             op_tokens = self._process_operations(raw_sample.get('available_ops', []))
-            # 全局输入：图 tokens + 分隔符 [SEP] + 树 tokens + 可用操作 tokens
             full_sequence = graph_ids + [sep_id] + self.tokenizer.convert_tokens_to_ids(tree_tokens + op_tokens)
             full_sequence = full_sequence[:self.max_seq_length]
-            # 调用修改后的 _generate_action_labels 方法，直接依据 global_reward 生成标签
             labels = self._generate_action_labels(raw_sample)
             
             candidate_params = []
-            candidate_q_values = []  # 新增：连续回归标签
+            candidate_q_values = []
             for op in raw_sample.get('available_ops', []):
                 cand_tokens = self._linearize_candidate(op)
                 if len(cand_tokens) > self.max_param_seq_length:
@@ -454,7 +481,7 @@ class GraphSLIDataset(SLIDataset):
                     q_value = op.get("reward", 0.0)
                 else:
                     reward = raw_sample.get('reward', 0.0)
-                    lamda = 0.1  # 超参数
+                    lamda = 0.1
                     q_value = reward - lamda * op.get("depth", 0)
                 candidate_q_values.append(q_value)
             
@@ -465,17 +492,11 @@ class GraphSLIDataset(SLIDataset):
                 'input_ids': full_sequence,
                 'raw_data': raw_sample,
                 'labels': labels,
-                'candidate_param_ids': candidate_params,    # [num_candidates, max_param_seq_length]
-                'candidate_q_values': candidate_q_values      # [num_candidates]
+                'candidate_param_ids': candidate_params,
+                'candidate_q_values': candidate_q_values
             })
 
     def _generate_action_labels(self, raw_sample):
-        """
-        生成动作奖励标签（1x3）。
-        本修改版本直接使用 global_reward 中 expected_by_type 信息，
-        按照固定顺序 ["EXTENSION", "FACTORING", "ANCESTRY"] 返回奖励列表，
-        若 global_reward 不存在则返回全零向量。
-        """
         op_seq = ["EXTENSION", "FACTORING", "ANCESTRY"]
         global_reward = raw_sample.get("global_reward", {})
         if isinstance(global_reward, dict) and "expected_by_type" in global_reward:
@@ -504,13 +525,12 @@ class GraphSLIDataset(SLIDataset):
             'graph_mask': graph_mask,
             'labels': torch.tensor(sample['labels'], dtype=torch.float) if sample['labels'] is not None else None,
             'reward': torch.tensor(raw_reward, dtype=torch.float),
-            'candidate_param_ids': sample['candidate_param_ids'],   # [num_candidates, max_param_seq_length]
-            'candidate_q_values': sample['candidate_q_values'],         # [num_candidates]
-            'global_reward': global_reward  # 新增：将 global_reward 一并输出
+            'candidate_param_ids': sample['candidate_param_ids'],
+            'candidate_q_values': sample['candidate_q_values'],
+            'global_reward': global_reward
         }
     
     def _create_graph_mask(self, input_ids):
-        """生成图结构注意力掩码，根据 [GRAPH_START] 和 [GRAPH_END] 标记"""
         mask = torch.zeros_like(input_ids)
         token_list = input_ids.tolist()
         try:
@@ -526,15 +546,6 @@ class GraphSLIDataset(SLIDataset):
 #########################################
 
 def collate_fn(batch, tokenizer):
-    """
-    此 collate_fn 主要完成三部分工作：
-    1. 对全局输入（input_ids、attention_mask、graph_mask）进行 padding。
-    2. 从每个样本中优先使用 labels 字段，如果不存在则从 global_reward 中提取奖励值，
-       按照顺序 ["EXTENSION", "FACTORING", "ANCESTRY"] 生成一个 [3] 的 tensor，
-       作为 labels 字段。
-    3. 对候选操作参数 candidate_param_ids 和候选连续标签 candidate_q_values 进行 padding，
-       保证整个 batch 内候选数量一致。
-    """
     # --- 1. 提取 labels ---
     labels_list = []
     for item in batch:
@@ -547,9 +558,9 @@ def collate_fn(batch, tokenizer):
             labels_list.append(label)
         else:
             labels_list.append(torch.zeros(3, dtype=torch.float))
-    labels = torch.stack(labels_list)  # shape: [B, 3]
-
-    # --- 2. 全局输入（input_ids, attention_mask, graph_mask）的 padding ---
+    labels = torch.stack(labels_list)
+    
+    # --- 2. 全局输入的 padding ---
     max_global_len = max(item["input_ids"].size(0) for item in batch)
     
     input_ids = torch.stack([
@@ -573,13 +584,13 @@ def collate_fn(batch, tokenizer):
         for item in batch
     ])
 
-    # --- 3. 对候选操作参数 candidate_param_ids 和 candidate_q_values 进行 padding ---
+    # --- 3. 对候选操作参数 padding ---
     max_candidates = max(item["candidate_param_ids"].size(0) for item in batch)
     candidate_param_ids_list = []
     candidate_q_values_list = []
     
     for item in batch:
-        cand_tensor = item["candidate_param_ids"]  # shape: [num_candidates, seq_len]
+        cand_tensor = item["candidate_param_ids"]
         num_candidates = cand_tensor.size(0)
         if num_candidates < max_candidates:
             pad_tensor = torch.full(
@@ -590,21 +601,20 @@ def collate_fn(batch, tokenizer):
             cand_tensor = torch.cat([cand_tensor, pad_tensor], dim=0)
         candidate_param_ids_list.append(cand_tensor)
         
-        q_tensor = item["candidate_q_values"]  # shape: [num_candidates]
+        q_tensor = item["candidate_q_values"]
         if q_tensor.size(0) < max_candidates:
             pad_q = torch.zeros(max_candidates - q_tensor.size(0), dtype=q_tensor.dtype)
             q_tensor = torch.cat([q_tensor, pad_q], dim=0)
         candidate_q_values_list.append(q_tensor)
     
-    candidate_param_ids = torch.stack(candidate_param_ids_list, dim=0)  # [B, max_candidates, seq_len]
-    candidate_q_values = torch.stack(candidate_q_values_list, dim=0)        # [B, max_candidates]
+    candidate_param_ids = torch.stack(candidate_param_ids_list, dim=0)
+    candidate_q_values = torch.stack(candidate_q_values_list, dim=0)
     
     return {
         "input_ids": input_ids,
         "attention_mask": attention_mask,
         "graph_mask": graph_mask,
         "labels": labels,
-        # 这里 global_reward 字段仅用于调试或其他用途，若不需要可移除
         "global_reward": None,
         "candidate_param_ids": candidate_param_ids,
         "candidate_q_values": candidate_q_values
@@ -615,16 +625,15 @@ def collate_fn(batch, tokenizer):
 #########################################
 
 if __name__ == "__main__":
-    # 假设 training_data.json 中包含提供的样例数据，
-    # k3_graph.json 为图数据文件
-    sli_file = "../../data/training_data_0.json"  # 要求文件中有 "samples" 字段
+    # 假设 training_data.json 中包含 "samples" 字段，且 k3_graph.json 为图数据文件
+    sli_file = "../../data/training_data_0.json"  
     graph_file = "../../data/k3_graph.json"
 
     dataset = GraphSLIDataset(sli_file, graph_file, max_seq_length=512, max_param_seq_length=30)
     
     print("样本总数：", len(dataset))
     
-    # 查看单个样本的处理结果
+    # 查看第 3 个样本的处理结果
     sample0 = dataset[2]
     print("单个样本全局 input_ids (长度 {}):".format(len(sample0['input_ids'])))
     print(sample0['input_ids'])
@@ -639,19 +648,15 @@ if __name__ == "__main__":
     print(sample0['labels'])
     print("单个样本候选参数 candidate_param_ids, 形状:", sample0['candidate_param_ids'].shape)
     print(sample0['candidate_param_ids'])
-    # 对每个候选参数的 id 序列进行转换，并打印对应的 token 序列
     num_candidates = sample0['candidate_param_ids'].shape[0]
     for i in range(num_candidates):
-        # 将 tensor 转换为 Python 列表
         candidate_ids = sample0['candidate_param_ids'][i].tolist()
-        # 使用 tokenizer 的 convert_ids_to_tokens 方法转换
         candidate_tokens = dataset.tokenizer.convert_ids_to_tokens(candidate_ids)
         print(f"候选参数 {i} 对应的 token 序列:")
         print(candidate_tokens)
     print("单个候选参数连续标签 candidate_q_values, 形状:", sample0['candidate_q_values'].shape)
     print(sample0['candidate_q_values'])
     
-    # 使用 DataLoader 以及 collate_fn 构造 batch，打印 batch 信息
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False,
                             collate_fn=lambda batch: collate_fn(batch, dataset.tokenizer))
     batch_sample = next(iter(dataloader))

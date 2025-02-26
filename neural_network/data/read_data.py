@@ -1,9 +1,7 @@
 import json
 import torch
 from torch.utils.data import Dataset, DataLoader
-from collections import deque
 import torch.nn.functional as F
-import re
 import os
 
 #########################################
@@ -11,43 +9,42 @@ import os
 #########################################
 
 class CustomTokenizer:
-    """完全重构的词汇表管理，解决ID冲突问题"""
+    """
+    自定义词汇表管理，所有 token 均存储在 self.vocab 中，
+    支持固定 token 与动态扩展 token。
+    """
     def __init__(self):
-        # 固定特殊标记
+        # 固定特殊标记：编号从 0 开始
         self.special_tokens = {
             '[PAD]': 0,
             '[UNK]': 1,
             '[CLS]': 2,
-            '[SEP]': 3
+            '[SEP]': 3,
         }
-        # 普通 token 从 4 开始编号
-        self.vocab = {k: v for k, v in self.special_tokens.items()}
-        self.additional_tokens = {}  # 存储动态添加的 token
-        self.next_id = len(self.special_tokens)
-
+        # 所有 token 均存储在 vocab 中（初始为特殊标记）
+        self.vocab = dict(self.special_tokens)
+        self.additional_tokens = {}  # 用于记录后续新增的 token
+        self.next_id = len(self.vocab)
+    
     def add_tokens(self, tokens):
-        """确保新增 token 的 ID 连续性"""
+        """把 token 集合加入词汇表（若已存在则跳过）"""
         for token in tokens:
-            if token not in self.vocab and token not in self.additional_tokens:
+            if token not in self.vocab:
                 self.additional_tokens[token] = self.next_id
+                self.vocab[token] = self.next_id
                 self.next_id += 1
-        # 合并词汇表
-        self.vocab.update(self.additional_tokens)
 
     def convert_tokens_to_ids(self, tokens):
-        return [
-            self.special_tokens.get(token,
-                self.additional_tokens.get(token, self.special_tokens['[UNK]'])
-            ) for token in tokens
-        ]
+        return [self.vocab.get(token, self.vocab.get("[UNK]")) for token in tokens]
     
     def convert_ids_to_tokens(self, ids):
-        # 构造反向映射字典
         id_to_token = {v: k for k, v in self.vocab.items()}
         return [id_to_token.get(i, "[UNK]") for i in ids]
 
 class SLIDataset(Dataset):
-    """支持自定义 tokenizer 的数据集类（第一阶段）"""
+    """
+    基础数据集类：用于处理状态树（sliTree）和候选操作（op）的线性化
+    """
     def __init__(self, file_path, max_seq_length=512, tokenizer_class=CustomTokenizer):
         self.max_seq_length = max_seq_length
         self.tokenizer = tokenizer_class()  # 动态指定分词器类型
@@ -60,7 +57,6 @@ class SLIDataset(Dataset):
         self._process_samples(raw_data)
     
     def _safe_get(self, data, key, default=None):
-        """安全获取字典值"""
         if data is None:
             return default
         value = data.get(key, default)
@@ -80,36 +76,40 @@ class SLIDataset(Dataset):
         self.tokenizer.add_tokens(all_tokens)
     
     def _linearize_tree(self, tree_data):
-        """线性化树结构，增加空值检查"""
+        """
+        线性化状态树：
+          - 每个节点输出 [TYPE_x] 和 [PRED_y]；
+          - 若 literal 中 negated 为 True，则输出固定 token [NEG]；
+          - 参数部分：变量统一输出 [VAR]；常量直接输出具体 token（例如 [CONST0]）
+        """
         if not tree_data:
             return []
         nodes = {n['id']: n for n in tree_data.get('nodes', [])}
-        roots = [n for n in tree_data.get('nodes', []) if n.get('depth', -1)==0]
+        roots = [n for n in tree_data.get('nodes', []) if n.get('depth', -1) == 0]
         if not roots:
             return []
         sequence = []
         stack = [(roots[0], 0)]
         while stack:
             node, depth = stack.pop()
-            if not node:
+            if not node: 
                 continue
             node_type = self._safe_get(node, 'type', 'UNKNOWN')
             literal = self._safe_get(node, 'literal', {}) or {}
-            # substitution 可能为 None时转换为空字典
             substitution = self._safe_get(node, 'substitution', {}) or {}
             children = self._safe_get(node, 'children', [])
+            # 统一只输出 [TYPE_x] 而非 [NODE_TYPE_x]
             node_features = [
-                # f"[DEPTH_{depth}]",
                 f"[TYPE_{node_type}]",
-                f"[PRED_{literal.get('predicate', 'UNK')}]",
-                f"[NEG_{int(literal.get('negated', False))}]"
+                f"[PRED_{literal.get('predicate', 'UNK')}]"
             ]
+            if literal.get('negated', False):
+                node_features.append("[NEG]")
             for arg in literal.get('arguments', []):
-                # 统一变量和常量的表示
                 if arg.startswith('VAR'):
                     node_features.append("[VAR]")
                 elif arg.startswith('CONST'):
-                    node_features.append("[CONST]")
+                    node_features.append(f"[{arg}]")
                 else:
                     node_features.append(f"[ARG_{arg}]")
             for src, tgt in substitution.items():
@@ -122,7 +122,9 @@ class SLIDataset(Dataset):
         return sequence
 
     def _process_operations(self, operations):
-        """处理 available_ops，修复操作处理中的空值问题"""
+        """
+        线性化 available_ops 的一部分（例如 action、op_type）
+        """
         op_tokens = []
         for op in operations:
             if not op:
@@ -131,23 +133,22 @@ class SLIDataset(Dataset):
             operand2 = op.get('operand2', {})
             op_tokens.append(f"[ACTION_{action}]")
             op_tokens.append(f"[OP_TYPE_{operand2.get('type', 'UNKNOWN')}]")
-            lit_info = operand2.get('literal', {})
-            # if lit_info:
-            #     op_tokens.append(f"[LIT_PRED_{lit_info.get('predicate', 'UNK')}]")
         return op_tokens
 
     def _process_samples(self, raw_data):
         for raw_sample in raw_data:
-            # 对树结构进行线性化
             tree_tokens = self._linearize_tree(self._safe_get(raw_sample.get('state', {}), 'tree', {}))
             ops = self._process_operations(raw_sample.get('available_ops', []))
-            full_sequence = self.tokenizer.convert_tokens_to_ids(tree_tokens + ops)
+            # 全局序列：图部分 + [SEP] + 状态树部分 + [TREE_OP_SEP]（分隔符）+ 操作参数部分
+            full_sequence = self.tokenizer.convert_tokens_to_ids(tree_tokens)
+            sep_between = self.tokenizer.convert_tokens_to_ids(["[TREE_OP_SEP]"])
+            op_tokens = self._process_operations(raw_sample.get('available_ops', []))
+            full_sequence = full_sequence + sep_between + self.tokenizer.convert_tokens_to_ids(op_tokens)
             full_sequence = full_sequence[:self.max_seq_length]
-            labels = None  # 第一阶段标签在此不作额外处理
+            labels = None  # 此处标签暂不处理
             
-            # 处理候选操作参数与连续标签
             candidate_params = []
-            candidate_q_values = []  # 每个候选的连续回归标签
+            candidate_q_values = []
             for op in raw_sample.get('available_ops', []):
                 cand_tokens = self._linearize_candidate(op)
                 if len(cand_tokens) > self.max_seq_length:
@@ -161,11 +162,10 @@ class SLIDataset(Dataset):
                     q_value = op.get("reward", 0.0)
                 else:
                     reward = raw_sample.get('reward', 0.0)
-                    lamda = 0.1  # 可调整的超参数
+                    lamda = 0.1
                     q_value = reward - lamda * op.get("depth", 0)
                 candidate_q_values.append(q_value)
             
-            # 转换 candidate_params 和 candidate_q_values 为 tensor
             if candidate_params:
                 candidate_params = torch.tensor(candidate_params, dtype=torch.long)
                 candidate_q_values = torch.tensor(candidate_q_values, dtype=torch.float)
@@ -183,41 +183,33 @@ class SLIDataset(Dataset):
     
     def _linearize_candidate(self, op):
         """
-        线性化单个候选操作参数，将其转换为 token 序列。
-        默认格式：
-        [OP_START] [ACTION_Extension] [DEPTH_2] [NODE1] ... [OP_END]
-        如存在 kb_clause，则附加 KB 子句 token
+        线性化候选操作参数，格式为：
+          [OP_START] [ACTION_xxx] [NODE1] ... [OP_END]
+        对于 node1 部分，统一使用 [TYPE_x] 表示节点类型；
+        literal 中若 negated 为 True则统一输出 [NEG]；
+        kb_clause 部分也仅输出一次 [NEG]。
         """
         tokens = []
         tokens.append("[OP_START]")
         action = op.get("action", "UNK")
         tokens.append(f"[ACTION_{action}]")
-        depth = op.get("depth", 0)
-        # tokens.append(f"[DEPTH_{depth}]")
         node1 = op.get("node1", {})
         tokens.append("[NODE1]")
         if node1:
-            node_id = node1.get("id", -1)
-            # tokens.append(f"[NODE_ID_{node_id}]")
             node_type = node1.get("type", "UNK")
-            tokens.append(f"[NODE_TYPE_{node_type}]")
-            node_depth = node1.get("depth", 0)
-            # tokens.append(f"[NODE_DEPTH_{node_depth}]")
+            tokens.append(f"[TYPE_{node_type}]")
             literal = node1.get("literal", {}) or {}
             pred = literal.get("predicate", "UNK")
             tokens.append(f"[PRED_{pred}]")
+            if literal.get('negated', False):
+                tokens.append("[NEG]")
             for arg in literal.get("arguments", []):
-                # 将 VAR 和 CONST 统一处理
                 if arg.startswith("VAR"):
                     tokens.append("[VAR]")
                 elif arg.startswith("CONST"):
-                    tokens.append("[CONST]")
+                    tokens.append(f"[{arg}]")
                 else:
                     tokens.append(f"[ARG_{arg}]")
-            # substitution = node1.get("substitution", {}) or {}
-            # if substitution:
-            #     for k, v in substitution.items():
-            #         tokens.append(f"[SUB_{k}_{v}]")
         else:
             tokens.append("[NO_NODE1]")
         operand2 = op.get("operand2", {})
@@ -227,36 +219,31 @@ class SLIDataset(Dataset):
             lit = operand2.get("literal", {}) or {}
             pred2 = lit.get("predicate", "UNK")
             tokens.append(f"[PRED_{pred2}]")
+            if lit.get('negated', False):
+                tokens.append("[NEG]")
             for arg in lit.get("arguments", []):
                 if arg.startswith("VAR"):
                     tokens.append("[VAR]")
                 elif arg.startswith("CONST"):
-                    tokens.append("[CONST]")
+                    tokens.append(f"[{arg}]")
                 else:
                     tokens.append(f"[ARG_{arg}]")
         elif op2_type == "node":
             tokens.append("[OPERAND2_NODE]")
-            node_id2 = operand2.get("id", -1)
-            tokens.append(f"[NODE_ID_{node_id2}]")
         else:
             tokens.append("[OPERAND2_UNK]")
         tokens.append("[OP_END]")
-
-        # 处理 kb_clause 字段（若存在）
+    
         if "kb_clause" in op:
             for clause in op["kb_clause"]:
-                predicate = clause.get("predicate", "UNK")
-                # tokens.append(f"[KB_PRED_{predicate}]")
                 for arg in clause.get("arguments", []):
                     if arg.startswith("VAR"):
                         tokens.append("[VAR]")
                     elif arg.startswith("CONST"):
-                        tokens.append("[CONST]")
+                        tokens.append(f"[{arg}]")
                     else:
                         tokens.append(f"[KB_ARG_{arg}]")
-                negated = clause.get("negated", False)
-                # tokens.append(f"[KB_NEG_{int(negated)}]")
-                tokens.append(f"[NEG]")
+                tokens.append("[NEG]")
         return tokens
 
     def __len__(self):
@@ -264,7 +251,7 @@ class SLIDataset(Dataset):
     
     def __getitem__(self, idx):
         sample = self.samples[idx]
-        pad_id = self.tokenizer.special_tokens['[PAD]']
+        pad_id = self.tokenizer.vocab['[PAD]']
         seq_len = len(sample['input_ids'])
         global_input_ids = sample['input_ids'] + [pad_id] * (self.max_seq_length - seq_len)
         attention_mask = [1] * seq_len + [0] * (self.max_seq_length - seq_len)
@@ -273,7 +260,7 @@ class SLIDataset(Dataset):
         raw_reward = self._safe_get(sample['raw_data'], 'reward', 0.0)
         if isinstance(raw_reward, dict):
             raw_reward = raw_reward.get("expected_by_type", {}).get("EXTENSION", 0.0)
-        
+    
         global_reward = self._safe_get(sample['raw_data'], 'global_reward', None)
     
         return {
@@ -288,7 +275,7 @@ class SLIDataset(Dataset):
         }
     
     def _create_graph_mask(self, input_ids):
-        """生成图结构注意力掩码，根据 [GRAPH_START] 和 [GRAPH_END] 标记"""
+        """根据 [GRAPH_START] 与 [GRAPH_END] 的位置生成图结构注意力 mask"""
         mask = torch.zeros_like(input_ids)
         token_list = input_ids.tolist()
         try:
@@ -300,169 +287,178 @@ class SLIDataset(Dataset):
         return mask
 
 #########################################
-# 增强分词器与图结构及候选参数处理
+# 增强分词器（固定部分 token，如固定谓词、否定符号、变量、分隔符等）
 #########################################
 
 class EnhancedTokenizer(CustomTokenizer):
-    """修正版增强分词器，增加图结构相关特殊标记"""
+    """
+    增强版分词器：在特殊标记基础上增加图结构相关 token，
+    同时预置固定常量（[CONST0]~[CONST9]）、固定变量（[VAR0]~[VAR9]）、
+    固定谓词及其它固定 token，并按照要求赋予具体 index。
+    """
     def __init__(self):
         super().__init__()
-        self.special_tokens.update({
+        # 预置特殊标记（保留已有 [PAD],[UNK],[CLS],[SEP]）
+        fixed_specials = {
             '[GRAPH_START]': 4,
             '[GRAPH_END]': 5,
             '[NODE]': 6,
-            '[EDGE]': 7
-        })
-        for token, idx in self.special_tokens.items():
+            '[EDGE]': 7,
+        }
+        for token, idx in fixed_specials.items():
+            self.special_tokens[token] = idx
             self.vocab[token] = idx
         self.next_id = max(self.vocab.values()) + 1
 
+        # 固定常量 token，例如 [CONST0] ~ [CONST9]
+        for i in range(10):
+            token = f"[CONST{i}]"
+            if token not in self.vocab:
+                self.vocab[token] = self.next_id
+                self.next_id += 1
+
+        # 固定谓词 token（这里固定 [PRED_E] 与 [PRED_uncol]）
+        fixed_predicates = {
+            "[PRED_E]": 8,
+            "[PRED_uncol]": 9,
+        }
+        for token, idx in fixed_predicates.items():
+            self.vocab[token] = idx
+        self.next_id = max(self.vocab.values()) + 1
+
+        # 固定变量 token：[VAR0] ~ [VAR9]
+        fixed_vars = { f"[VAR{i}]": 10+i for i in range(10) }
+        for token, idx in fixed_vars.items():
+            self.vocab[token] = idx
+        self.next_id = max(self.vocab.values()) + 1
+
+        # 固定其它 token（按照类别顺序排列）
+        fixed_tokens = {
+            # 否定相关
+            "[NEG]": 20,
+            
+            # 节点相关
+            "[NODE1]": 21,
+            
+            # 谓词相关
+            "[PRED_]": 22,
+            
+            # 类型相关
+            "[TYPE_A]": 23,
+            "[TYPE_B]": 24,
+            
+            # 操作类型相关
+            "[OP_START]": 25,
+            "[OP_END]": 26,
+            "[OP_TYPE_literal]": 27,
+            "[OP_TYPE_node]": 28,
+            "[TREE_OP_SEP]": 29,
+            
+            # 操作数相关
+            "[OPERAND2_LITERAL]": 30,
+            "[OPERAND2_NODE]": 31,
+            
+            # 动作相关
+            "[ACTION_ANCESTRY]": 32,
+            "[ACTION_FACTORING]": 33,
+            "[ACTION_EXTENSION]": 34,
+            "[ACTION_TRUNCATE]": 35
+        }
+        for token, idx in fixed_tokens.items():
+            self.vocab[token] = idx
+        self.next_id = max(self.vocab.values()) + 1
+
+        # 对于搜索路径中可能出现的动态谓词 "R" 和 "G"，不固定其 index
+        optional_predicates = ["G", "R"]
+        for pred in optional_predicates:
+            token = f"[PRED_{pred}]"
+            if token not in self.vocab:
+                self.vocab[token] = self.next_id
+                self.next_id += 1
+
 class GraphSLIDataset(SLIDataset):
     """
-    扩展自 SLIDataset，整合图结构信息以及候选操作参数信息，
-    用于第一阶段和第二阶段神经网络的数据输入。
+    在 SLIDataset 基础上整合图结构与搜索路径信息，
+    数据文件要求统一格式：顶层包含 "graph" 与 "search_path" 两个字段。
+    
+    图的线性化：每条边生成 3 个 token，顺序为：
+         [PRED_{predicate}] [second node] [first node]
+    最终图序列格式：
+         [GRAPH_START] ...边 token... [GRAPH_END]
     """
     ACTION_MAP = {
         "Extension": 0,
         "Factoring": 1,
         "Ancestry": 2,
     }
-    def __init__(self, sli_file, graph_file, max_seq_length=768, max_param_seq_length=30):
-        with open(graph_file, "r", encoding="utf-8") as f:
-            self.graph_data = json.load(f)["graphs"][0]
+    def __init__(self, unified_file, max_seq_length=768, max_param_seq_length=30):
+        with open(unified_file, "r", encoding="utf-8") as f:
+            unified_data = json.load(f)
+        self.graph_data = unified_data.get("graph", {})
         self.max_param_seq_length = max_param_seq_length
         
         tokenizer = EnhancedTokenizer()
         self.tokenizer = tokenizer
         self._build_graph_vocab()
         
-        with open(sli_file, "r", encoding="utf-8") as f:
-            raw_data = json.load(f).get('samples', [])
-        
+        raw_data = unified_data.get("search_path", [])
+        # 为防止图与状态树过长，设定全局序列长度为 max_seq_length 的两倍
         self.max_seq_length = max_seq_length * 2
-        self.samples = []  # 重新构建
+        self.samples = []
         self._build_vocab(raw_data)
         self._process_samples(raw_data)
 
     def _build_graph_vocab(self):
-        """独立构建图结构词汇表"""
+        """
+        构建图结构词汇表：
+          遍历每条边的 literal，生成三个 token：
+            [PRED_{predicate}], [second node], [first node]
+        """
         graph_tokens = set()
-        for node in self.graph_data["nodes"]:
-            graph_tokens.add(f"[NODE_{node['id']}]")
-            graph_tokens.add(f"[ALIAS_{node['alias']}]")
-        for edge in self.graph_data["edges"]:
-            for lit in edge["literals"]:
-                graph_tokens.add(f"[PRED_{lit['predicate']}]")
-                for arg in lit["arguments"]:
-                    graph_tokens.add(f"[ARG_{arg}]")
+        for edge in self.graph_data.get("edges", []):
+            for lit in edge.get("literals", []):
+                args = lit.get("arguments", [])
+                if len(args) >= 2:
+                    predicate = lit.get("predicate", "UNK")
+                    token_pred = f"[PRED_{predicate}]"
+                    token_arg1 = f"[{args[1]}]"  # 第二个节点
+                    token_arg0 = f"[{args[0]}]"  # 第一个节点
+                    graph_tokens.update([token_pred, token_arg1, token_arg0])
         self.tokenizer.add_tokens(graph_tokens)
 
     def _linearize_graph(self):
-        """将图结构编码为 token 序列"""
+        """
+        将图结构线性化为 token 序列：
+          每条边生成 3 个 token：
+             [PRED_{predicate}] [second node] [first node]
+          最终格式： [GRAPH_START] ... [GRAPH_END]
+        """
         tokens = ["[GRAPH_START]"]
-        for node in self.graph_data["nodes"]:
-            tokens.extend([
-                "[NODE]",
-                f"[NODE_{node['id']}]",
-                f"[ALIAS_{node['alias']}]"
-            ])
-        seen_edges = set()
-        for edge in self.graph_data["edges"]:
-            lit = edge["literals"][0]
-            src, tgt = lit["arguments"]
-            if (tgt, src) not in seen_edges:
-                tokens.extend([
-                    "[EDGE]",
-                    f"[PRED_{lit['predicate']}]",
-                    f"[ARG_{src}]",
-                    f"[ARG_{tgt}]"
-                ])
-                seen_edges.add((src, tgt))
+        for edge in self.graph_data.get("edges", []):
+            for lit in edge.get("literals", []):
+                args = lit.get("arguments", [])
+                if len(args) >= 2:
+                    predicate = lit.get("predicate", "UNK")
+                    token_pred = f"[PRED_{predicate}]"
+                    token_arg1 = f"[{args[1]}]"
+                    token_arg0 = f"[{args[0]}]"
+                    tokens.extend([token_pred, token_arg1, token_arg0])
         tokens.append("[GRAPH_END]")
-        return tokens
-
-    def _linearize_candidate(self, op):
-        """
-        线性化单个候选操作参数，将其转换为 token 序列。
-        兼容 MCTS 生成数据中增加的 kb_clause 信息
-        """
-        tokens = []
-        tokens.append("[OP_START]")
-        action = op.get("action", "UNK")
-        tokens.append(f"[ACTION_{action}]")
-        depth = op.get("depth", 0)
-        # tokens.append(f"[DEPTH_{depth}]")
-        node1 = op.get("node1", {})
-        tokens.append("[NODE1]")
-        if node1:
-            node_id = node1.get("id", -1)
-            # tokens.append(f"[NODE_ID_{node_id}]")
-            node_type = node1.get("type", "UNK")
-            tokens.append(f"[NODE_TYPE_{node_type}]")
-            node_depth = node1.get("depth", 0)
-            # tokens.append(f"[NODE_DEPTH_{node_depth}]")
-            literal = node1.get("literal", {}) or {}
-            pred = literal.get("predicate", "UNK")
-            tokens.append(f"[PRED_{pred}]")
-            for arg in literal.get("arguments", []):
-                if arg.startswith("VAR"):
-                    tokens.append("[VAR]")
-                elif arg.startswith("CONST"):
-                    tokens.append("[CONST]")
-                else:
-                    tokens.append(f"[ARG_{arg}]")
-            # substitution = node1.get("substitution", {}) or {}
-            # if substitution:
-            #     for k, v in substitution.items():
-            #         tokens.append(f"[SUB_{k}_{v}]")
-        else:
-            tokens.append("[NO_NODE1]")
-        operand2 = op.get("operand2", {})
-        op2_type = operand2.get("type", "").lower()
-        if op2_type == "literal":
-            tokens.append("[OPERAND2_LITERAL]")
-            lit = operand2.get("literal", {}) or {}
-            pred2 = lit.get("predicate", "UNK")
-            tokens.append(f"[PRED_{pred2}]")
-            for arg in lit.get("arguments", []):
-                if arg.startswith("VAR"):
-                    tokens.append("[VAR]")
-                elif arg.startswith("CONST"):
-                    tokens.append("[CONST]")
-                else:
-                    tokens.append(f"[ARG_{arg}]")
-        elif op2_type == "node":
-            tokens.append("[OPERAND2_NODE]")
-            node_id2 = operand2.get("id", -1)
-            # tokens.append(f"[NODE_ID_{node_id2}]")
-        else:
-            tokens.append("[OPERAND2_UNK]")
-        tokens.append("[OP_END]")
-
-        if "kb_clause" in op:
-            for clause in op["kb_clause"]:
-                predicate = clause.get("predicate", "UNK")
-                # tokens.append(f"[KB_PRED_{predicate}]")
-                for arg in clause.get("arguments", []):
-                    if arg.startswith("VAR"):
-                        tokens.append("[VAR]")
-                    elif arg.startswith("CONST"):
-                        tokens.append("[CONST]")
-                    else:
-                        tokens.append(f"[KB_ARG_{arg}]")
-                negated = clause.get("negated", False)
-                tokens.append(f"[KB_NEG_{int(negated)}]")
         return tokens
 
     def _process_samples(self, raw_data):
         graph_tokens = self._linearize_graph()
         graph_ids = self.tokenizer.convert_tokens_to_ids(graph_tokens)
-        sep_id = self.tokenizer.special_tokens["[SEP]"]
+        sep_id = self.tokenizer.vocab["[SEP]"]
         
         for raw_sample in raw_data:
             tree_tokens = self._linearize_tree(raw_sample.get('state', {}).get('tree', {}))
+            # 在状态树和操作参数之间增加新分隔符 [TREE_OP_SEP]
             op_tokens = self._process_operations(raw_sample.get('available_ops', []))
-            full_sequence = graph_ids + [sep_id] + self.tokenizer.convert_tokens_to_ids(tree_tokens + op_tokens)
+            full_sequence = graph_ids + [sep_id] \
+                           + self.tokenizer.convert_tokens_to_ids(tree_tokens) \
+                           + self.tokenizer.convert_tokens_to_ids(["[TREE_OP_SEP]"]) \
+                           + self.tokenizer.convert_tokens_to_ids(op_tokens)
             full_sequence = full_sequence[:self.max_seq_length]
             labels = self._generate_action_labels(raw_sample)
             
@@ -507,7 +503,7 @@ class GraphSLIDataset(SLIDataset):
 
     def __getitem__(self, idx):
         sample = self.samples[idx]
-        pad_id = self.tokenizer.special_tokens['[PAD]']
+        pad_id = self.tokenizer.vocab['[PAD]']
         seq_len = len(sample['input_ids'])
         global_input_ids = sample['input_ids'] + [pad_id] * (self.max_seq_length - seq_len)
         attention_mask = [1] * seq_len + [0] * (self.max_seq_length - seq_len)
@@ -546,7 +542,6 @@ class GraphSLIDataset(SLIDataset):
 #########################################
 
 def collate_fn(batch, tokenizer):
-    # --- 1. 提取 labels ---
     labels_list = []
     for item in batch:
         if item.get("labels") is not None:
@@ -560,13 +555,12 @@ def collate_fn(batch, tokenizer):
             labels_list.append(torch.zeros(3, dtype=torch.float))
     labels = torch.stack(labels_list)
     
-    # --- 2. 全局输入的 padding ---
     max_global_len = max(item["input_ids"].size(0) for item in batch)
     
     input_ids = torch.stack([
         F.pad(item["input_ids"],
               (0, max_global_len - item["input_ids"].size(0)),
-              value=tokenizer.special_tokens["[PAD]"])
+              value=tokenizer.vocab["[PAD]"])
         for item in batch
     ])
     
@@ -584,7 +578,6 @@ def collate_fn(batch, tokenizer):
         for item in batch
     ])
 
-    # --- 3. 对候选操作参数 padding ---
     max_candidates = max(item["candidate_param_ids"].size(0) for item in batch)
     candidate_param_ids_list = []
     candidate_q_values_list = []
@@ -595,7 +588,7 @@ def collate_fn(batch, tokenizer):
         if num_candidates < max_candidates:
             pad_tensor = torch.full(
                 (max_candidates - num_candidates, cand_tensor.size(1)),
-                tokenizer.special_tokens["[PAD]"],
+                tokenizer.vocab["[PAD]"],
                 dtype=cand_tensor.dtype
             )
             cand_tensor = torch.cat([cand_tensor, pad_tensor], dim=0)
@@ -625,11 +618,16 @@ def collate_fn(batch, tokenizer):
 #########################################
 
 if __name__ == "__main__":
-    # 假设 training_data.json 中包含 "samples" 字段，且 k3_graph.json 为图数据文件
-    sli_file = "../../data/training_data_0.json"  
-    graph_file = "../../data/k3_graph.json"
+    # 假设文件 "training_data_0.json" 存在，
+    # 文件内容需包含 "graph" 与 "search_path" 两个字段，
+    # 示例格式：
+    # {
+    #   "graph": { ... },
+    #   "search_path": [ { ... }, ... ]
+    # }
+    unified_file = "../../data/training_data_0.json"  
 
-    dataset = GraphSLIDataset(sli_file, graph_file, max_seq_length=512, max_param_seq_length=30)
+    dataset = GraphSLIDataset(unified_file, max_seq_length=512, max_param_seq_length=30)
     
     print("样本总数：", len(dataset))
     
@@ -658,7 +656,7 @@ if __name__ == "__main__":
     print(sample0['candidate_q_values'])
     
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False,
-                            collate_fn=lambda batch: collate_fn(batch, dataset.tokenizer))
+                              collate_fn=lambda batch: collate_fn(batch, dataset.tokenizer))
     batch_sample = next(iter(dataloader))
     print("Batch 全局 input_ids shape:", batch_sample['input_ids'].shape)
     print("Batch attention_mask shape:", batch_sample['attention_mask'].shape)

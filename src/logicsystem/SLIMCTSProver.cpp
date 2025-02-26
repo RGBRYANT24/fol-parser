@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 #include <cmath>
-#include <string> // 用于 std::string 和 std::to_string
+#include <string>     // 用于 std::string 和 std::to_string
 #include <filesystem> // C++17 文件系统
 
 #include "SLIMCTSState.h"
@@ -35,13 +35,16 @@ namespace LogicSystem
 
         // 2. 配置 MCTS 搜索
         msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
-        mcts_search.max_iterations = 2000;
-        mcts_search.max_millis = 2000;
+        mcts_search.max_iterations = 8000;
+        mcts_search.max_millis = 8000;
         mcts_search.simulation_depth = 1000;
         mcts_search.uct_k = std::sqrt(2);
 
         // 3. 初始化数据收集容器
         std::vector<json> training_samples;
+        // 生成图与搜索路径的 JSON 数据
+        DataCollector::NormalizationContext ctx; // 新鲜的上下文：保证整个样本中常量编码一致
+        nlohmann::json graph_json = DataCollector::serializeGraph(kb, ctx);
 
         // 4. 迭代执行 MCTS 搜索过程
         while (!checkEmptyClause(*(current_state.sli_tree)) && !current_state.is_terminal())
@@ -51,7 +54,7 @@ namespace LogicSystem
             auto node = mcts_result.root_node;
 
             // 通过 DataCollector 收集训练样本
-            json sample = DataCollector::collectTrainingSampleMCTS(node, kb);
+            json sample = DataCollector::collectTrainingSampleMCTS(node, kb, ctx);
             training_samples.push_back(sample);
 
             // 获取最佳动作并更新状态
@@ -80,7 +83,10 @@ namespace LogicSystem
                 std::filesystem::create_directories(save_dir);
 
                 // 保存收集的样本数据到文件
-                DataCollector::saveToFile(training_samples, fileName);
+                nlohmann::json sample;
+                sample["graph"] = graph_json;
+                sample["search_path"] = training_samples;
+                DataCollector::saveToFile(sample, fileName);
                 std::cout << "Saved training samples to file: " << fileName << std::endl;
             }
             return true;

@@ -632,7 +632,7 @@ if __name__ == "__main__":
     print("样本总数：", len(dataset))
     
     # 查看第 3 个样本的处理结果
-    sample0 = dataset[2]
+    sample0 = dataset[5]
     print("单个样本全局 input_ids (长度 {}):".format(len(sample0['input_ids'])))
     print(sample0['input_ids'])
     tokens = dataset.tokenizer.convert_ids_to_tokens(sample0['input_ids'].tolist())

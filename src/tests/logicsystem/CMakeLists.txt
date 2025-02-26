@@ -15,6 +15,7 @@ add_executable(logicsystem_tests
     VariableRenamerTest.cpp
     ColoringSLIMCTSTest.cpp
     SLIMCTSDeepCopyTest.cpp
+    RandomGraphColoringSLIMCTSTest.cpp
     # KnowledgeBaseBuilderTest.cpp
 )
 # 对于测试可执行文件

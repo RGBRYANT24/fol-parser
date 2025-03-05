@@ -286,10 +286,6 @@ class SLIDataset(Dataset):
             pass
         return mask
 
-#########################################
-# 增强分词器（固定部分 token，如固定谓词、否定符号、变量、分隔符等）
-#########################################
-
 class EnhancedTokenizer(CustomTokenizer):
     """
     增强版分词器：在特殊标记基础上增加图结构相关 token，
@@ -308,66 +304,63 @@ class EnhancedTokenizer(CustomTokenizer):
         for token, idx in fixed_specials.items():
             self.special_tokens[token] = idx
             self.vocab[token] = idx
-        self.next_id = max(self.vocab.values()) + 1
-
-        # 固定常量 token，例如 [CONST0] ~ [CONST9]
+        
+        # 固定常量 token，CONST0-9 固定为 8-17
         for i in range(10):
             token = f"[CONST{i}]"
-            if token not in self.vocab:
-                self.vocab[token] = self.next_id
-                self.next_id += 1
-
-        # 固定谓词 token（这里固定 [PRED_E] 与 [PRED_uncol]）
+            self.vocab[token] = 8 + i
+        
+        # 固定变量 token：[VAR0] ~ [VAR9]，固定为 18-27
+        for i in range(10):
+            token = f"[VAR{i}]"
+            self.vocab[token] = 18 + i
+        
+        # 固定谓词 token
         fixed_predicates = {
-            "[PRED_E]": 8,
-            "[PRED_uncol]": 9,
+            "[PRED_E]": 28,
+            "[PRED_uncol]": 29,
         }
         for token, idx in fixed_predicates.items():
             self.vocab[token] = idx
-        self.next_id = max(self.vocab.values()) + 1
-
-        # 固定变量 token：[VAR0] ~ [VAR9]
-        fixed_vars = { f"[VAR{i}]": 10+i for i in range(10) }
-        for token, idx in fixed_vars.items():
-            self.vocab[token] = idx
-        self.next_id = max(self.vocab.values()) + 1
-
+        
         # 固定其它 token（按照类别顺序排列）
         fixed_tokens = {
             # 否定相关
-            "[NEG]": 20,
+            "[NEG]": 30,
             
             # 节点相关
-            "[NODE1]": 21,
+            "[NODE1]": 31,
             
             # 谓词相关
-            "[PRED_]": 22,
+            "[PRED_]": 32,
             
             # 类型相关
-            "[TYPE_A]": 23,
-            "[TYPE_B]": 24,
+            "[TYPE_A]": 33,
+            "[TYPE_B]": 34,
             
             # 操作类型相关
-            "[OP_START]": 25,
-            "[OP_END]": 26,
-            "[OP_TYPE_literal]": 27,
-            "[OP_TYPE_node]": 28,
-            "[TREE_OP_SEP]": 29,
+            "[OP_START]": 35,
+            "[OP_END]": 36,
+            "[OP_TYPE_literal]": 37,
+            "[OP_TYPE_node]": 38,
+            "[TREE_OP_SEP]": 39,
             
             # 操作数相关
-            "[OPERAND2_LITERAL]": 30,
-            "[OPERAND2_NODE]": 31,
+            "[OPERAND2_LITERAL]": 40,
+            "[OPERAND2_NODE]": 41,
             
             # 动作相关
-            "[ACTION_ANCESTRY]": 32,
-            "[ACTION_FACTORING]": 33,
-            "[ACTION_EXTENSION]": 34,
-            "[ACTION_TRUNCATE]": 35
+            "[ACTION_ANCESTRY]": 42,
+            "[ACTION_FACTORING]": 43,
+            "[ACTION_EXTENSION]": 44,
+            "[ACTION_TRUNCATE]": 45
         }
         for token, idx in fixed_tokens.items():
             self.vocab[token] = idx
-        self.next_id = max(self.vocab.values()) + 1
-
+        
+        # 设置下一个可用的ID
+        self.next_id = 46
+        
         # 对于搜索路径中可能出现的动态谓词 "R" 和 "G"，不固定其 index
         optional_predicates = ["G", "R"]
         for pred in optional_predicates:
@@ -421,17 +414,17 @@ class GraphSLIDataset(SLIDataset):
                 if len(args) >= 2:
                     predicate = lit.get("predicate", "UNK")
                     token_pred = f"[PRED_{predicate}]"
-                    token_arg1 = f"[{args[1]}]"  # 第二个节点
-                    token_arg0 = f"[{args[0]}]"  # 第一个节点
-                    graph_tokens.update([token_pred, token_arg1, token_arg0])
+                    token_arg0 = f"[{args[0]}]"  # 第二个节点
+                    token_arg1 = f"[{args[1]}]"  # 第一个节点
+                    graph_tokens.update([token_pred, token_arg0, token_arg1])
         self.tokenizer.add_tokens(graph_tokens)
 
     def _linearize_graph(self):
         """
         将图结构线性化为 token 序列：
-          每条边生成 3 个 token：
-             [PRED_{predicate}] [second node] [first node]
-          最终格式： [GRAPH_START] ... [GRAPH_END]
+        每条边生成 3 个 token：
+            [PRED_{predicate}] [second node] [first node]
+        最终格式： [GRAPH_START] ... [GRAPH_END]
         """
         tokens = ["[GRAPH_START]"]
         for edge in self.graph_data.get("edges", []):
@@ -439,16 +432,34 @@ class GraphSLIDataset(SLIDataset):
                 args = lit.get("arguments", [])
                 if len(args) >= 2:
                     predicate = lit.get("predicate", "UNK")
+                    # Skip non-E predicates
+                    if predicate != "E":
+                        continue
+                    
                     token_pred = f"[PRED_{predicate}]"
-                    token_arg1 = f"[{args[1]}]"
-                    token_arg0 = f"[{args[0]}]"
-                    tokens.extend([token_pred, token_arg1, token_arg0])
+                    # Create node tokens with proper formatting
+                    token_arg1 = f"[{args[1]}]"  # Second node
+                    token_arg0 = f"[{args[0]}]"  # First node
+                    print('_linearize_graph Get Token', token_pred, token_arg0, token_arg1)
+                    
+                    # Ensure we're adding tokens in the right order
+                    tokens.append(token_pred)
+                    tokens.append(token_arg0)
+                    tokens.append(token_arg1)
         tokens.append("[GRAPH_END]")
+        print('_linearize_graph Final Tokens')
+        print(tokens)
         return tokens
 
     def _process_samples(self, raw_data):
         graph_tokens = self._linearize_graph()
-        graph_ids = self.tokenizer.convert_tokens_to_ids(graph_tokens)
+        print('_process_samples Get graph_tokens')
+        print(graph_tokens)
+        graph_ids = self.tokenizer.convert_tokens_to_ids(graph_tokens) # problem 
+        print('_process_samples Get graph_ids')
+        print(graph_ids)
+        print('_process_samples From graph_ids to Tokens')
+        print(self.tokenizer.convert_ids_to_tokens(graph_ids))
         sep_id = self.tokenizer.vocab["[SEP]"]
         
         for raw_sample in raw_data:

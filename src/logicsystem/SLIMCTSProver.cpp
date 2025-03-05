@@ -63,33 +63,12 @@ namespace LogicSystem
             std::cout << "Updated State: " << current_state.to_string() << std::endl;
         }
 
-        // 5. 检查证明结果，如果成功则保存数据（当且仅当传入的保存路径不为空）
-        if (checkEmptyClause(*(current_state.sli_tree)))
+        // 5. 检查证明结果并保存数据（当且仅当传入的保存路径不为空）
+        bool is_success = checkEmptyClause(*(current_state.sli_tree));
+        
+        if (is_success)
         {
             std::cout << "Proof successful!" << std::endl;
-            if (!save_dir.empty())
-            {
-                // 生成唯一文件名：使用静态计数器生成不同的文件名
-                static int test_counter = 0;
-                std::string fileName = save_dir;
-                // 确保目录路径以斜杠结尾
-                if (!fileName.empty() && fileName.back() != '/' && fileName.back() != '\\')
-                {
-                    fileName += "/";
-                }
-                fileName += "training_data_" + std::to_string(test_counter++) + ".json";
-
-                // 如果需要，可以利用 <filesystem> 检查或创建目录
-                std::filesystem::create_directories(save_dir);
-
-                // 保存收集的样本数据到文件
-                nlohmann::json sample;
-                sample["graph"] = graph_json;
-                sample["search_path"] = training_samples;
-                DataCollector::saveToFile(sample, fileName);
-                std::cout << "Saved training samples to file: " << fileName << std::endl;
-            }
-            return true;
         }
         else
         {
@@ -102,7 +81,37 @@ namespace LogicSystem
             current_state.get_actions(actions);
             std::cout << "action size " << actions.size() << std::endl;
             std::cout << "has selfloop " << !current_state.sli_tree->validateAllNodes() << std::endl;
-            return false;
         }
+        
+        // 无论成功还是失败，都保存数据
+        if (!save_dir.empty())
+        {
+            // 生成唯一文件名：使用静态计数器生成不同的文件名
+            static int test_counter = 0;
+            std::string fileName = save_dir;
+            // 确保目录路径以斜杠结尾
+            if (!fileName.empty() && fileName.back() != '/' && fileName.back() != '\\')
+            {
+                fileName += "/";
+            }
+            // 在文件名中标识成功或失败
+            fileName += "training_data_" + std::to_string(test_counter++) + 
+                       (is_success ? "_success" : "_failure") + ".json";
+
+            // 如果需要，可以利用 <filesystem> 检查或创建目录
+            std::filesystem::create_directories(save_dir);
+
+            // 保存收集的样本数据到文件
+            nlohmann::json sample;
+            sample["graph"] = graph_json;
+            sample["search_path"] = training_samples;
+            // 添加证明结果标记
+            sample["proof_result"] = is_success ? "success" : "failure";
+            
+            DataCollector::saveToFile(sample, fileName);
+            std::cout << "Saved training samples to file: " << fileName << std::endl;
+        }
+        
+        return is_success;
     }
 }

@@ -75,7 +75,8 @@ namespace msa
             void update(const std::vector<float> &rewards)
             {
                 num_visits++;
-                value = value + (rewards[agent_id] - value) / num_visits;
+                // value = value + (rewards[agent_id] - value) / num_visits;
+                value += rewards[agent_id]; //改成原来的方式试一下 不用增量更新
             }
 
             //--------------------------------------------------------------

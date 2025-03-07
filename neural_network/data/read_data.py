@@ -440,26 +440,26 @@ class GraphSLIDataset(SLIDataset):
                     # Create node tokens with proper formatting
                     token_arg1 = f"[{args[1]}]"  # Second node
                     token_arg0 = f"[{args[0]}]"  # First node
-                    print('_linearize_graph Get Token', token_pred, token_arg0, token_arg1)
+                    # print('_linearize_graph Get Token', token_pred, token_arg0, token_arg1)
                     
                     # Ensure we're adding tokens in the right order
                     tokens.append(token_pred)
                     tokens.append(token_arg0)
                     tokens.append(token_arg1)
         tokens.append("[GRAPH_END]")
-        print('_linearize_graph Final Tokens')
-        print(tokens)
+        # print('_linearize_graph Final Tokens')
+        # print(tokens)
         return tokens
 
     def _process_samples(self, raw_data):
         graph_tokens = self._linearize_graph()
-        print('_process_samples Get graph_tokens')
-        print(graph_tokens)
+        # print('_process_samples Get graph_tokens')
+        # print(graph_tokens)
         graph_ids = self.tokenizer.convert_tokens_to_ids(graph_tokens) # problem 
-        print('_process_samples Get graph_ids')
-        print(graph_ids)
-        print('_process_samples From graph_ids to Tokens')
-        print(self.tokenizer.convert_ids_to_tokens(graph_ids))
+        # print('_process_samples Get graph_ids')
+        # print(graph_ids)
+        # print('_process_samples From graph_ids to Tokens')
+        # print(self.tokenizer.convert_ids_to_tokens(graph_ids))
         sep_id = self.tokenizer.vocab["[SEP]"]
         
         for raw_sample in raw_data:
@@ -518,6 +518,17 @@ class GraphSLIDataset(SLIDataset):
         seq_len = len(sample['input_ids'])
         global_input_ids = sample['input_ids'] + [pad_id] * (self.max_seq_length - seq_len)
         attention_mask = [1] * seq_len + [0] * (self.max_seq_length - seq_len)
+
+            # 修改：找到[TREE_OP_SEP]位置并将其之后的注意力掩码设为0
+        token_list = sample['input_ids']
+        try:
+            tree_op_sep_idx = token_list.index(self.tokenizer.vocab["[TREE_OP_SEP]"])
+            for i in range(tree_op_sep_idx, len(attention_mask)):
+                attention_mask[i] = 0
+        except ValueError:
+            # 如果没有找到[TREE_OP_SEP]，则不需修改
+            pass
+
         graph_mask = self._create_graph_mask(torch.tensor(global_input_ids, dtype=torch.long))
     
         raw_reward = self._safe_get(sample['raw_data'], 'reward', 0.0)

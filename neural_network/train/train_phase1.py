@@ -2,7 +2,9 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
+import os
+import glob
 
 # read_data 模块
 from data.read_data import GraphSLIDataset, collate_fn
@@ -23,14 +25,46 @@ def train_phase1():
         'd_model': 512,
         'nhead': 8,
         'num_layers': 6,
-        'save_path': 'first_stage_model.pth'
+        'save_path': 'first_stage_model.pth',
+        'data_dir': '../data',  # 指定数据目录
+        'data_pattern': 'training_data_*.json'  # 指定数据文件匹配模式
     }
     
-    # 加载数据集（read_data 模块已实现）
-    train_dataset = GraphSLIDataset(
-        unified_file = "../data/training_data_0_success.json"  ,
-        max_seq_length=512
-    )
+    # 寻找所有匹配的数据文件
+    data_files = glob.glob(os.path.join(config['data_dir'], config['data_pattern']))
+    print(f"Found {len(data_files)} data files: {data_files}")
+    
+    # 为每个数据文件创建一个数据集
+    datasets = []
+    for file_path in data_files:
+        try:
+            dataset = GraphSLIDataset(unified_file=file_path, max_seq_length=512)
+            print(f"Loaded dataset from {file_path} with {len(dataset)} samples")
+            datasets.append(dataset)
+        except Exception as e:
+            print(f"Error loading dataset from {file_path}: {e}")
+    
+    if not datasets:
+        raise ValueError("No valid datasets found!")
+    
+    # 如果只有一个数据集，直接使用它；否则合并所有数据集
+    if len(datasets) == 1:
+        train_dataset = datasets[0]
+    else:
+        # 检查所有数据集是否共享同一个分词器
+        first_tokenizer = datasets[0].tokenizer
+        for i, ds in enumerate(datasets[1:], 1):
+            if ds.tokenizer.vocab != first_tokenizer.vocab:
+                print(f"Warning: Dataset {i} has a different tokenizer vocabulary!")
+                # 可以选择合并词汇表或使用第一个数据集的词汇表
+                # 这里我们简单地使用第一个数据集的词汇表
+                ds.tokenizer = first_tokenizer
+        
+        train_dataset = ConcatDataset(datasets)
+        # 为合并后的数据集设置分词器（用于collate_fn）
+        train_dataset.tokenizer = first_tokenizer
+    
+    print(f"Total dataset size: {len(train_dataset)} samples")
     
     train_loader = DataLoader(
         train_dataset,
@@ -39,8 +73,11 @@ def train_phase1():
         collate_fn=lambda batch: collate_fn(batch, train_dataset.tokenizer)
     )
     
+    # 使用第一个数据集的分词器作为模型的词汇表基础
+    vocab_size = len(datasets[0].tokenizer.vocab)
+    
     global_encoder = GlobalEncoder(
-        vocab_size=len(train_dataset.tokenizer.vocab),
+        vocab_size=vocab_size,
         d_model=config['d_model'],
         nhead=config['nhead'],
         num_layers=config['num_layers']
@@ -63,6 +100,7 @@ def train_phase1():
             attention_mask = batch['attention_mask'].to(device)
             graph_mask = batch['graph_mask'].to(device)
             labels = batch['labels'].to(device)                 # [B, 3]
+            
             # 添加检查代码
             if batch_idx == 0:  # 只检查第一个批次
                 if batch_idx == 0:  # 仅第一个批次
@@ -83,7 +121,7 @@ def train_phase1():
                     print(f"损失值: {criterion(test_outputs, labels).item()}")
 
                 for i in range(min(2, input_ids.size(0))):  # 检查前两个样本
-                    tokens = train_dataset.tokenizer.convert_ids_to_tokens(input_ids[i].cpu().tolist())
+                    tokens = datasets[0].tokenizer.convert_ids_to_tokens(input_ids[i].cpu().tolist())
                     sep_idx = tokens.index('[TREE_OP_SEP]') if '[TREE_OP_SEP]' in tokens else -1
                     
                     print(f"Sample {i} tokens up to [TREE_OP_SEP]:")
@@ -98,7 +136,6 @@ def train_phase1():
                     else:
                         print("No [TREE_OP_SEP] found in tokens")
             
-
             # 只检查第一个epoch的第一个batch
             if epoch == 0 and batch_idx == 0:
                 print("\n===== First Batch Input Verification =====")
@@ -106,7 +143,7 @@ def train_phase1():
                 sample_idx = 0
                 sample_input = input_ids[sample_idx].cpu().tolist()
                 sample_mask = attention_mask[sample_idx].cpu().tolist()
-                sample_tokens = train_dataset.tokenizer.convert_ids_to_tokens(sample_input)
+                sample_tokens = datasets[0].tokenizer.convert_ids_to_tokens(sample_input)
                 
                 # 找到TREE_OP_SEP的位置
                 try:

@@ -338,7 +338,7 @@ namespace LogicSystem
         std::uniform_int_distribution<int> nodeDist(3, 10);
 
         // 执行多次测试
-        int numTests = 5;
+        int numTests = 50;
         for (int test = 0; test < numTests; test++)
         {
             // 对每个测试用例创建新的知识库

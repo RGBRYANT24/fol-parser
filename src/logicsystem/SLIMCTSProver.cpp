@@ -35,9 +35,9 @@ namespace LogicSystem
 
         // 2. 配置 MCTS 搜索
         msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
-        mcts_search.max_iterations = 8000;
-        mcts_search.max_millis = 8000;
-        mcts_search.simulation_depth = 1000;
+        mcts_search.max_iterations = 10000;
+        mcts_search.max_millis = 10000;
+        mcts_search.simulation_depth = 2000;
         mcts_search.uct_k = std::sqrt(2);
 
         // 3. 初始化数据收集容器

@@ -16,9 +16,9 @@ namespace LogicSystem
         
         // 神经网络模型配置
         std::string pythonPath = "python";  // 可根据系统配置修改
-        std::string scriptPath = "neural_server.py";
-        std::string modelPath = "first_stage_model.pth";
-        std::string tokenizerPath = "unified_tokenizer.pkl";
+        std::string scriptPath = "../../../neural_network/neural_server/neural_server.py";
+        std::string modelPath = "../../../neural_network/first_stage_model.pth";
+        std::string tokenizerPath = "../../../neural_network/unified_tokenizer.pkl";
 
     public:
         SLIHeuristicProver(KnowledgeBase &kb, const Clause &goal);

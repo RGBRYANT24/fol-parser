@@ -16,6 +16,7 @@ add_executable(logicsystem_tests
     ColoringSLIMCTSTest.cpp
     SLIMCTSDeepCopyTest.cpp
     RandomGraphColoringSLIMCTSTest.cpp
+    ColoringNeuralTest.cpp
     # KnowledgeBaseBuilderTest.cpp
 )
 # 对于测试可执行文件

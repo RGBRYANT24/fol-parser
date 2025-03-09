@@ -13,7 +13,7 @@
 
 namespace LogicSystem
 {
-    bool checkEmptyClause(const SLITree &sli_tree)
+    bool checkEmptyClauseNeural(const SLITree &sli_tree)
     {
         return sli_tree.get_all_active_nodes().size() == 0;
     }
@@ -47,20 +47,21 @@ namespace LogicSystem
         int max_iterations = 2000;  // 设置最大迭代次数
         int iteration = 0;
         
-        while (!checkEmptyClause(*(current_state.sli_tree)) && !current_state.is_terminal() && iteration < max_iterations)
+        while (!checkEmptyClauseNeural(*(current_state.sli_tree)) && !current_state.is_terminal() && iteration < max_iterations)
         {
             // 使用神经网络启发式获取最佳动作
             LogicSystem::SLIMCTSAction best_action = heuristicSearch.findBestAction(current_state, kb);
+            return false;
             
-            // 如果没有可用动作，终止搜索
-            if (best_action.action == SLIAction::INVALID) {
-                std::cout << "没有可用的动作" << std::endl;
-                break;
-            }
+            // // 如果没有可用动作，终止搜索
+            // if (best_action.action == SLIActionType::INVALID) {
+            //     std::cout << "没有可用的动作" << std::endl;
+            //     break;
+            // }
             
-            // 收集训练样本
-            json sample = DataCollector::serializeOperationMCTS(best_action, current_state, kb, ctx);
-            training_samples.push_back(sample);
+            // // 收集训练样本
+            // json sample = DataCollector::serializeOperationMCTS(best_action, current_state, kb, ctx);
+            // training_samples.push_back(sample);
 
             // 应用动作并更新状态
             current_state = current_state.next_state(best_action);
@@ -70,7 +71,7 @@ namespace LogicSystem
         }
 
         // 5. 检查证明结果并保存数据
-        bool is_success = checkEmptyClause(*(current_state.sli_tree));
+        bool is_success = checkEmptyClauseNeural(*(current_state.sli_tree));
         
         if (is_success)
         {

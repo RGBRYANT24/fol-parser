@@ -37,7 +37,7 @@ namespace LogicSystem
         }
         
         // 获取神经网络提供的启发式评分
-        json getHeuristic(const SLIMCTSState& state, const KnowledgeBase& kb) {
+        json getHeuristic(const SLIMCTSState& state, KnowledgeBase& kb) {
             if (!processManager->isActive()) {
                 return {{"status", "error"}, {"error_message", "神经网络服务未初始化"}};
             }
@@ -67,7 +67,7 @@ namespace LogicSystem
         }
         
         // 启发式搜索算法：找到最佳动作
-        SLIMCTSAction findBestAction(SLIMCTSState& current_state, const KnowledgeBase& kb) {
+        SLIMCTSAction findBestAction(SLIMCTSState& current_state, KnowledgeBase& kb) {
             std::vector<SLIMCTSAction> actions;
             current_state.get_actions(actions);
             
@@ -86,6 +86,7 @@ namespace LogicSystem
             }
             
             std::vector<float> action_scores = heuristic_data["action_scores"];
+            std::cout << "Neural Heuristic Score " << action_scores[0] << " " << action_scores[1] << " " << action_scores[2] << std::endl;
             
             // 根据动作类型和启发式分数选择最佳动作
             SLIMCTSAction best_action;
@@ -94,11 +95,11 @@ namespace LogicSystem
             for (const auto& action : actions) {
                 // 获取当前动作的类型（Extension=0, Factoring=1, Ancestry=2）
                 int action_type;
-                if (action.action == SLIAction::EXTENSION) {
+                if (action.action == SLIActionType::EXTENSION) {
                     action_type = 0;
-                } else if (action.action == SLIAction::FACTORING) {
+                } else if (action.action == SLIActionType::FACTORING) {
                     action_type = 1;
-                } else if (action.action == SLIAction::ANCESTRY) {
+                } else if (action.action == SLIActionType::ANCESTRY) {
                     action_type = 2;
                 } else {
                     // 不支持的操作类型
@@ -118,7 +119,8 @@ namespace LogicSystem
             }
             
             // 如果没有找到有效动作，默认使用第一个
-            if (best_action.action == SLIAction::INVALID && !actions.empty()) {
+            //if (best_action.action == SLIActionType::INVALID && !actions.empty()) {
+            if (!actions.empty()) {
                 std::cout << "未找到最佳动作，使用第一个可用动作" << std::endl;
                 best_action = actions[0];
             }

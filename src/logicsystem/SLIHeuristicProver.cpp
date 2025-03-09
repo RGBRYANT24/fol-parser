@@ -51,7 +51,7 @@ namespace LogicSystem
         {
             // 使用神经网络启发式获取最佳动作
             LogicSystem::SLIMCTSAction best_action = heuristicSearch.findBestAction(current_state, kb);
-            return false;
+            // return false;
             
             // // 如果没有可用动作，终止搜索
             // if (best_action.action == SLIActionType::INVALID) {

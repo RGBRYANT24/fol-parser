@@ -15,6 +15,24 @@ from data.read_data import GraphSLIDataset, collate_fn, EnhancedTokenizer
 # 从第一阶段模型模块中导入
 from models.first_stage_model import GlobalEncoder, FirstStageModel
 
+def check_gpu():
+    if torch.cuda.is_available():
+        device_count = torch.cuda.device_count()
+        print(f"找到 {device_count} 个GPU设备:")
+        for i in range(device_count):
+            device_name = torch.cuda.get_device_name(i)
+            device_capability = torch.cuda.get_device_capability(i)
+            print(f"  GPU {i}: {device_name} (CUDA能力: {device_capability[0]}.{device_capability[1]})")
+        current_device = torch.cuda.current_device()
+        print(f"当前使用的GPU索引: {current_device}")
+        print(f"GPU是否可用: {'是' if torch.cuda.is_available() else '否'}")
+        print(f"当前GPU内存使用: {torch.cuda.memory_allocated()/1024**2:.2f} MB")
+        print(f"GPU内存最大分配: {torch.cuda.max_memory_allocated()/1024**2:.2f} MB")
+        return True
+    else:
+        print("警告：没有可用的GPU。训练将在CPU上进行，这会非常慢。")
+        return False
+
 def generate_square_subsequent_mask(sz):
     mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
     mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
@@ -106,14 +124,14 @@ def build_unified_tokenizer(data_files, save_path='unified_tokenizer.pkl'):
 
 def train_phase1(use_unified_tokenizer=True):
     config = {
-        'batch_size': 8,
+        'batch_size': 16,
         'lr': 1e-4,
-        'epochs': 1,
+        'epochs': 1000,
         'd_model': 512,
         'nhead': 8,
         'num_layers': 6,
         'save_path': 'first_stage_model.pth',
-        'data_dir': '../../data',  # 指定数据目录
+        'data_dir': '/home/jiangguifei01/aiderun/fol-parser/fol-parser/data',  # 指定数据目录
         'data_pattern': 'training_data_*.json',  # 指定数据文件匹配模式
         'tokenizer_path': 'unified_tokenizer.pkl',  # 统一分词器保存路径
         'vocab_analysis': True,  # 是否分析词汇表覆盖情况
@@ -137,6 +155,8 @@ def train_phase1(use_unified_tokenizer=True):
     
     # 为每个数据文件创建一个数据集
     datasets = []
+    print('os path ', os.path)
+    print('file path ',os.path.join(config['data_dir'], config['data_pattern']))
     for file_path in data_files:
         try:
             # 如果使用统一分词器，传递给数据集构造函数

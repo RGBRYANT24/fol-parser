@@ -19,6 +19,9 @@ namespace LogicSystem
         std::string scriptPath = "../../../neural_network/neural_server/neural_server.py";
         std::string modelPath = "../../../neural_network/first_stage_model.pth";
         std::string tokenizerPath = "../../../neural_network/unified_tokenizer.pkl";
+        
+        // 搜索配置
+        int maxIterations = 10000;  // 最大迭代次数
 
     public:
         SLIHeuristicProver(KnowledgeBase &kb, const Clause &goal);
@@ -27,6 +30,9 @@ namespace LogicSystem
         // 设置配置参数
         void setConfig(const std::string& python, const std::string& script, 
                       const std::string& model, const std::string& tokenizer);
+        
+        // 设置最大迭代次数
+        void setMaxIterations(int iterations);
     };
 }
 

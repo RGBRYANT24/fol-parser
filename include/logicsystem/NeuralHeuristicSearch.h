@@ -214,7 +214,7 @@ namespace LogicSystem
         }
 
         // 使用神经网络启发式的DFS搜索算法
-        bool search(KnowledgeBase &kb, const Clause &goal, int max_iterations = 10000)
+        bool search(KnowledgeBase &kb, const Clause &goal, int max_iterations = 50000)
         {
             // 初始化
             auto initialTree = std::make_shared<SLITree>(kb);
@@ -242,6 +242,7 @@ namespace LogicSystem
                 iteration++;
                 if (iteration % 100 == 0)
                 {
+                    std::cout << "NeuralHeuristicSearch::search ";
                     std::cout << "搜索迭代 " << iteration << "，栈大小: " << state_stack.size() << std::endl;
                 }
 
@@ -252,6 +253,14 @@ namespace LogicSystem
                 // 深拷贝当前状态以避免影响栈中的其他状态
                 auto copied_state = SLIOperation::deepCopyOperationState(current_state);
                 last_state = copied_state;
+
+                // if(copied_state->action == SLIActionType::TRUNCATE)
+                // {
+                //     std::cout << "TRUNCATE " << SLI_Action_to_string(copied_state->action) << std::endl;
+                //     std::cout << "Tree" << std::endl;
+                //     copied_state->sli_tree->print_tree(kb);
+                //     return false;
+                // }
 
                 // std::cout << "current state round " << iteration << std::endl;
                 // SLIOperation::printCurrentState(copied_state, kb);
@@ -338,12 +347,20 @@ namespace LogicSystem
                 }
 
                 std::vector<float> action_scores = action_scores_json["action_scores"];
+                //action_scores[2] = 1.0;
+                //action_scores[1] = 0.035;
+                action_scores.push_back(1.0);//Truncate
+                // if (action_scores[1] > action_scores[0])
+                // {
+                //     std::cout << "6" <<std::endl;
+                // }
                 std::cout << "第一阶段神经网络操作评分: ";
                 for (auto score : action_scores)
                 {
                     std::cout << score << " ";
                 }
                 std::cout << std::endl;
+                // return false;
 
                 // 将每种操作类型和对应分数配对
                 std::vector<std::pair<SLIActionType, float>> scored_actions;
@@ -376,6 +393,31 @@ namespace LogicSystem
                 std::sort(scored_actions.begin(), scored_actions.end(),
                           [](const auto &a, const auto &b)
                           { return a.second > b.second; });
+
+                // if(AC_result && !MC_result)
+                // {
+                //     std::cout << "Should Truncate " <<std::endl;
+                //     std::cout << "scored_actions size " << scored_actions.size() <<std::endl;
+                //     std::cout << "Tree " <<std::endl;
+                //     copied_state->sli_tree->print_tree(kb);
+                //     for (const auto &[action, score] : scored_actions)
+                //     {
+                //         std::cout << SLI_Action_to_string(action) << " score " << score <<std::endl;
+                //     }
+                //     // return false;
+                // }
+                // if(!AC_result && MC_result)
+                // {
+                //     std::cout << "Should Factoring or Ancestry " <<std::endl;
+                //     std::cout << "scored_actions size " << scored_actions.size() <<std::endl;
+                //     std::cout << "Tree " <<std::endl;
+                //     copied_state->sli_tree->print_tree(kb);
+                //     for (const auto &[action, score] : scored_actions)
+                //     {
+                //         std::cout << SLI_Action_to_string(action) << " score " << score <<std::endl;
+                //     }
+                //     // return false;
+                // }
 
                 // 为每种操作类型生成可能的状态
                 for (const auto &[action, score] : scored_actions)
@@ -419,10 +461,14 @@ namespace LogicSystem
             }
 
             // 未找到解决方案
-            std::cout << "未找到解决方案，达到最大迭代次数或搜索空间已耗尽" << std::endl;
+            std::cout << "NeuralHeuristicSearch::search 未找到解决方案，达到最大迭代次数或搜索空间已耗尽" << std::endl;
+            if(iteration >= max_iterations)
+            {
+                std::cout <<"NeuralHeuristicSearch::search Reach Max Iterantions" <<std::endl;
+            }
             if (last_state)
             {
-                std::cout << "最后的状态: " << std::endl;
+                std::cout << "NeuralHeuristicSearch::search最后的状态: " << std::endl;
                 last_state->sli_tree->print_tree(kb);
                 bool AC_result = last_state->sli_tree->check_all_nodes_AC();
                 bool MC_result = last_state->sli_tree->check_all_nodes_MC();

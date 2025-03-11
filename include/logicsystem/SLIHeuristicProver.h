@@ -21,7 +21,7 @@ namespace LogicSystem
         std::string tokenizerPath = "../../../neural_network/unified_tokenizer.pkl";
         
         // 搜索配置
-        int maxIterations = 10000;  // 最大迭代次数
+        int maxIterations = 50000;  // 最大迭代次数
 
     public:
         SLIHeuristicProver(KnowledgeBase &kb, const Clause &goal);

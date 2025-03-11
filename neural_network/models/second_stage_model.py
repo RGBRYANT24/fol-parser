@@ -1,7 +1,7 @@
 import math
 import torch
 import torch.nn as nn
-from neural_network.models.common import PositionalEncoding
+from models.common import PositionalEncoding
 
 class SecondStageModel(nn.Module):
     """

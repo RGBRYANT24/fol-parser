@@ -107,13 +107,13 @@ namespace LogicSystem
             auto active_nodes = this->sli_tree->get_all_active_nodes();
             if (active_nodes.empty())
             {
-                return 1.0f;
+                return 2.0f;
             }
 
             // 条件2：节点不合法 → 奖励 -10
             if (!this->sli_tree->validateAllNodes())
             {
-                return 0.0f;
+                return -1.0f;
             }
 
             // 条件3：无候选动作 → 奖励 -10
@@ -121,7 +121,7 @@ namespace LogicSystem
             get_actions(actions);
             if (actions.empty())
             {
-                return 0.0f;
+                return -1.0f;
             }
 
             // 非终局状态
@@ -149,7 +149,8 @@ namespace LogicSystem
                 rewards[0] = terminalReward.value();
             else
                 rewards[0] = 0.0f;
-            return rewards;
+            std::cout << "rewards " << rewards[0] <<std::endl;
+            return rewards; 
         }
 
         int agent_id() const

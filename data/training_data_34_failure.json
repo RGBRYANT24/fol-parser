@@ -27,8 +27,41 @@
         "literals": [
           {
             "arguments": [
+              "CONST0",
+              "CONST2"
+            ],
+            "predicate": "E"
+          }
+        ]
+      },
+      {
+        "literals": [
+          {
+            "arguments": [
               "CONST2",
-              "CONST1"
+              "CONST0"
+            ],
+            "predicate": "E"
+          }
+        ]
+      },
+      {
+        "literals": [
+          {
+            "arguments": [
+              "CONST3",
+              "CONST4"
+            ],
+            "predicate": "E"
+          }
+        ]
+      },
+      {
+        "literals": [
+          {
+            "arguments": [
+              "CONST4",
+              "CONST3"
             ],
             "predicate": "E"
           }
@@ -39,7 +72,40 @@
           {
             "arguments": [
               "CONST1",
-              "CONST2"
+              "CONST4"
+            ],
+            "predicate": "E"
+          }
+        ]
+      },
+      {
+        "literals": [
+          {
+            "arguments": [
+              "CONST4",
+              "CONST1"
+            ],
+            "predicate": "E"
+          }
+        ]
+      },
+      {
+        "literals": [
+          {
+            "arguments": [
+              "CONST0",
+              "CONST5"
+            ],
+            "predicate": "E"
+          }
+        ]
+      },
+      {
+        "literals": [
+          {
+            "arguments": [
+              "CONST5",
+              "CONST0"
             ],
             "predicate": "E"
           }
@@ -55,6 +121,15 @@
       },
       {
         "id": "CONST2"
+      },
+      {
+        "id": "CONST3"
+      },
+      {
+        "id": "CONST4"
+      },
+      {
+        "id": "CONST5"
       }
     ]
   },
@@ -98,7 +173,7 @@
             "active": true,
             "children": [],
             "depth": 1,
-            "id": 2259039,
+            "id": 1875612,
             "literal": {
               "arguments": [],
               "negated": true,
@@ -153,7 +228,7 @@
             "active": true,
             "children": [],
             "depth": 1,
-            "id": 2259039,
+            "id": 1875612,
             "literal": {
               "arguments": [],
               "negated": true,
@@ -193,10 +268,10 @@
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -209,7 +284,7 @@
               "active": true,
               "children": [],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
@@ -230,30 +305,25 @@
           "kb_clause": [
             {
               "arguments": [
-                "VAR0"
+                "CONST0",
+                "CONST5"
               ],
               "negated": false,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "G"
+              "predicate": "E"
             }
           ],
           "node1": {
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265224,
+            "id": 1880103,
             "literal": {
               "arguments": [
-                "VAR0"
+                "VAR0",
+                "VAR1"
               ],
               "negated": true,
-              "predicate": "G"
+              "predicate": "E"
             },
             "substitution": null,
             "type": "B"
@@ -261,10 +331,53 @@
           "operand2": {
             "literal": {
               "arguments": [
-                "VAR0"
+                "CONST0",
+                "CONST5"
               ],
               "negated": false,
-              "predicate": "G"
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 2,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST4",
+                "CONST1"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880103,
+            "literal": {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": null,
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST4",
+                "CONST1"
+              ],
+              "negated": false,
+              "predicate": "E"
             },
             "type": "literal"
           },
@@ -278,7 +391,7 @@
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265224,
+            "id": 1880104,
             "literal": {
               "arguments": [
                 "VAR0"
@@ -290,7 +403,7 @@
             "type": "B"
           },
           "operand2": {
-            "id": 2265225,
+            "id": 1880105,
             "type": "node"
           },
           "reward": 0.0
@@ -301,8 +414,8 @@
           "kb_clause": [
             {
               "arguments": [
-                "CONST1",
-                "CONST2"
+                "CONST3",
+                "CONST4"
               ],
               "negated": false,
               "predicate": "E"
@@ -312,7 +425,7 @@
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265223,
+            "id": 1880103,
             "literal": {
               "arguments": [
                 "VAR0",
@@ -327,50 +440,8 @@
           "operand2": {
             "literal": {
               "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 2,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST2",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": null,
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST2",
-                "CONST1"
+                "CONST3",
+                "CONST4"
               ],
               "negated": false,
               "predicate": "E"
@@ -396,7 +467,7 @@
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265223,
+            "id": 1880103,
             "literal": {
               "arguments": [
                 "VAR0",
@@ -413,6 +484,48 @@
               "arguments": [
                 "CONST0",
                 "CONST1"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 2,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST1",
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880103,
+            "literal": {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": null,
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST1",
+                "CONST0"
               ],
               "negated": false,
               "predicate": "E"
@@ -444,7 +557,179 @@
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265225,
+            "id": 1880104,
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "substitution": null,
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 2,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST1",
+                "CONST4"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880103,
+            "literal": {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": null,
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST1",
+                "CONST4"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 2,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST5",
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880103,
+            "literal": {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": null,
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST5",
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 2,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST0",
+                "CONST2"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880103,
+            "literal": {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": null,
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "CONST2"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 2,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880105,
             "literal": {
               "arguments": [
                 "VAR1"
@@ -473,7 +758,7 @@
           "kb_clause": [
             {
               "arguments": [
-                "CONST1",
+                "CONST2",
                 "CONST0"
               ],
               "negated": false,
@@ -484,7 +769,7 @@
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265223,
+            "id": 1880103,
             "literal": {
               "arguments": [
                 "VAR0",
@@ -499,8 +784,50 @@
           "operand2": {
             "literal": {
               "arguments": [
-                "CONST1",
+                "CONST2",
                 "CONST0"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 2,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST4",
+                "CONST3"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880103,
+            "literal": {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": null,
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST4",
+                "CONST3"
               ],
               "negated": false,
               "predicate": "E"
@@ -530,10 +857,10 @@
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -545,12 +872,12 @@
             {
               "active": true,
               "children": [
-                2265223,
-                2265224,
-                2265225
+                1880103,
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
@@ -563,7 +890,7 @@
               "active": true,
               "children": [],
               "depth": 2,
-              "id": 2265223,
+              "id": 1880103,
               "literal": {
                 "arguments": [
                   "VAR0",
@@ -579,7 +906,7 @@
               "active": true,
               "children": [],
               "depth": 2,
-              "id": 2265224,
+              "id": 1880104,
               "literal": {
                 "arguments": [
                   "VAR0"
@@ -594,7 +921,7 @@
               "active": true,
               "children": [],
               "depth": 2,
-              "id": 2265225,
+              "id": 1880105,
               "literal": {
                 "arguments": [
                   "VAR1"
@@ -612,348 +939,31 @@
     {
       "available_ops": [
         {
-          "action": "EXTENSION",
+          "action": "TRUNCATE",
           "depth": 3,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "G"
-            }
-          ],
+          "kb_clause": [],
           "node1": {
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265225,
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "G"
-            },
-            "substitution": {
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "G"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 3,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST2",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST2",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 3,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2271583,
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 3,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 3,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST0",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
+            "id": 1880103,
             "literal": {
               "arguments": [
                 "CONST0",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 3,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2271583,
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 3,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR1"
+                "CONST5"
               ],
               "negated": true,
               "predicate": "E"
             },
             "substitution": {
-              "VAR2": "VAR0"
+              "VAR0": "CONST0",
+              "VAR1": "CONST5"
             },
-            "type": "B"
+            "type": "A"
           },
           "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
+            "id": 0,
+            "type": "node"
           },
           "reward": 0.0
         }
@@ -970,18 +980,18 @@
         "depth": 2,
         "tree": {
           "global": {
-            "active_nodes": 6,
-            "depth": 4,
+            "active_nodes": 5,
+            "depth": 3,
             "has_self_loop": false
           },
           "nodes": [
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -993,19 +1003,20 @@
             {
               "active": true,
               "children": [
-                2265223,
-                2265224,
-                2265225
+                1880103,
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
@@ -1013,36 +1024,18 @@
               "active": true,
               "children": [],
               "depth": 2,
-              "id": 2265223,
+              "id": 1880103,
               "literal": {
                 "arguments": [
-                  "VAR0",
-                  "VAR1"
+                  "CONST0",
+                  "CONST5"
                 ],
                 "negated": true,
                 "predicate": "E"
               },
               "substitution": {
-                "VAR2": "VAR0"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [
-                2271583
-              ],
-              "depth": 2,
-              "id": 2265224,
-              "literal": {
-                "arguments": [
-                  "VAR0"
-                ],
-                "negated": true,
-                "predicate": "G"
-              },
-              "substitution": {
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
@@ -1050,33 +1043,35 @@
               "active": true,
               "children": [],
               "depth": 2,
-              "id": 2265225,
+              "id": 1880104,
               "literal": {
                 "arguments": [
-                  "VAR1"
+                  "CONST0"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "B"
             },
             {
               "active": true,
               "children": [],
-              "depth": 3,
-              "id": 2271583,
+              "depth": 2,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "VAR0"
+                  "CONST5"
                 ],
-                "negated": false,
-                "predicate": "R"
+                "negated": true,
+                "predicate": "G"
               },
               "substitution": {
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "B"
             }
@@ -1092,405 +1087,83 @@
           "kb_clause": [
             {
               "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2271583,
-            "literal": {
-              "arguments": [
                 "VAR0"
               ],
               "negated": false,
               "predicate": "R"
             },
-            "substitution": {
-              "VAR2": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
+            {
               "arguments": [
                 "VAR0"
               ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 4,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST0",
-                "CONST1"
-              ],
               "negated": false,
-              "predicate": "E"
+              "predicate": "G"
             }
           ],
           "node1": {
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265223,
+            "id": 1880104,
             "literal": {
               "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR2": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST0",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 4,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST2",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR2": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST2",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 4,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2277005,
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR2": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 4,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST1",
                 "CONST0"
               ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "CONST0",
+              "VAR1": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
               "negated": false,
-              "predicate": "E"
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 4,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
             }
           ],
           "node1": {
             "active": true,
             "children": [],
             "depth": 2,
-            "id": 2265223,
+            "id": 1880105,
             "literal": {
               "arguments": [
-                "VAR0",
-                "VAR1"
+                "CONST5"
               ],
               "negated": true,
-              "predicate": "E"
+              "predicate": "G"
             },
             "substitution": {
-              "VAR2": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 4,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2271583,
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR2": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 4,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR2": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 4,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2277005,
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR2": "VAR1"
+              "VAR0": "CONST0",
+              "VAR1": "CONST5"
             },
             "type": "B"
           },
@@ -1499,8 +1172,8 @@
               "arguments": [
                 "VAR0"
               ],
-              "negated": true,
-              "predicate": "R"
+              "negated": false,
+              "predicate": "G"
             },
             "type": "literal"
           },
@@ -1519,18 +1192,18 @@
         "depth": 3,
         "tree": {
           "global": {
-            "active_nodes": 7,
-            "depth": 4,
+            "active_nodes": 4,
+            "depth": 3,
             "has_self_loop": false
           },
           "nodes": [
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -1542,19 +1215,19 @@
             {
               "active": true,
               "children": [
-                2265223,
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR2": "VAR1"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
@@ -1562,89 +1235,35 @@
               "active": true,
               "children": [],
               "depth": 2,
-              "id": 2265223,
+              "id": 1880104,
               "literal": {
                 "arguments": [
-                  "VAR0",
-                  "VAR1"
-                ],
-                "negated": true,
-                "predicate": "E"
-              },
-              "substitution": {
-                "VAR2": "VAR1"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [
-                2271583
-              ],
-              "depth": 2,
-              "id": 2265224,
-              "literal": {
-                "arguments": [
-                  "VAR0"
+                  "CONST0"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR2": "VAR1"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [
-                2277005
-              ],
-              "depth": 2,
-              "id": 2265225,
-              "literal": {
-                "arguments": [
-                  "VAR1"
-                ],
-                "negated": true,
-                "predicate": "G"
-              },
-              "substitution": {
-                "VAR2": "VAR1"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 3,
-              "id": 2271583,
-              "literal": {
-                "arguments": [
-                  "VAR0"
-                ],
-                "negated": false,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR2": "VAR1"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "B"
             },
             {
               "active": true,
               "children": [],
-              "depth": 3,
-              "id": 2277005,
+              "depth": 2,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "VAR1"
+                  "CONST5"
                 ],
-                "negated": false,
-                "predicate": "R"
+                "negated": true,
+                "predicate": "G"
               },
               "substitution": {
-                "VAR2": "VAR1"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "B"
             }
@@ -1655,15 +1274,10 @@
     {
       "available_ops": [
         {
-          "action": "FACTORING",
+          "action": "EXTENSION",
           "depth": 5,
-          "kb_clause": [],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
+          "kb_clause": [
+            {
               "arguments": [
                 "VAR0",
                 "VAR1"
@@ -1671,43 +1285,162 @@
               "negated": true,
               "predicate": "E"
             },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 3,
+            "id": 1891472,
+            "literal": {
+              "arguments": [
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
             "substitution": {
-              "VAR2": "VAR0"
+              "VAR0": "CONST0"
             },
             "type": "B"
           },
           "operand2": {
-            "id": 2282770,
-            "type": "node"
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "type": "literal"
           },
           "reward": 0.0
         },
         {
-          "action": "ANCESTRY",
+          "action": "EXTENSION",
           "depth": 5,
-          "kb_clause": [],
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
           "node1": {
             "active": true,
-            "children": [
-              2265223,
-              2265224,
-              2265225
-            ],
-            "depth": 1,
-            "id": 2259039,
+            "children": [],
+            "depth": 3,
+            "id": 1891472,
             "literal": {
-              "arguments": [],
-              "negated": true,
-              "predicate": "uncol"
+              "arguments": [
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "R"
             },
             "substitution": {
-              "VAR2": "VAR0"
+              "VAR0": "CONST0"
             },
-            "type": "A"
+            "type": "B"
           },
           "operand2": {
-            "id": 2282772,
-            "type": "node"
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 5,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880105,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "CONST0",
+              "VAR1": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "type": "literal"
           },
           "reward": 0.0
         }
@@ -1724,18 +1457,18 @@
         "depth": 4,
         "tree": {
           "global": {
-            "active_nodes": 10,
-            "depth": 5,
+            "active_nodes": 5,
+            "depth": 4,
             "has_self_loop": false
           },
           "nodes": [
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -1747,163 +1480,74 @@
             {
               "active": true,
               "children": [
-                2265223,
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
-              "children": [],
-              "depth": 2,
-              "id": 2265223,
-              "literal": {
-                "arguments": [
-                  "VAR0",
-                  "VAR1"
-                ],
-                "negated": true,
-                "predicate": "E"
-              },
-              "substitution": {
-                "VAR2": "VAR0"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
               "children": [
-                2271583
+                1891472
               ],
               "depth": 2,
-              "id": 2265224,
+              "id": 1880104,
               "literal": {
                 "arguments": [
-                  "VAR0"
+                  "CONST0"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
-              "children": [
-                2277005
-              ],
+              "children": [],
               "depth": 2,
-              "id": 2265225,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "VAR1"
+                  "CONST5"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [
-                2282770,
-                2282771,
-                2282772
-              ],
-              "depth": 3,
-              "id": 2271583,
-              "literal": {
-                "arguments": [
-                  "VAR0"
-                ],
-                "negated": false,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR2": "VAR0"
-              },
-              "type": "A"
+              "type": "B"
             },
             {
               "active": true,
               "children": [],
               "depth": 3,
-              "id": 2277005,
+              "id": 1891472,
               "literal": {
                 "arguments": [
-                  "VAR1"
+                  "CONST0"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR2": "VAR0"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 4,
-              "id": 2282770,
-              "literal": {
-                "arguments": [
-                  "VAR0",
-                  "VAR3"
-                ],
-                "negated": true,
-                "predicate": "E"
-              },
-              "substitution": {
-                "VAR2": "VAR0"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 4,
-              "id": 2282771,
-              "literal": {
-                "arguments": [
-                  "VAR3"
-                ],
-                "negated": true,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR2": "VAR0"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 4,
-              "id": 2282772,
-              "literal": {
-                "arguments": [],
-                "negated": false,
-                "predicate": "uncol"
-              },
-              "substitution": {
-                "VAR2": "VAR0"
+                "VAR0": "CONST0"
               },
               "type": "B"
             }
@@ -1920,25 +1564,24 @@
           "node1": {
             "active": true,
             "children": [
-              2265223,
-              2265224,
-              2265225
+              1880104,
+              1880105
             ],
             "depth": 1,
-            "id": 2259039,
+            "id": 1875612,
             "literal": {
               "arguments": [],
               "negated": true,
               "predicate": "uncol"
             },
             "substitution": {
-              "VAR1": "VAR3",
-              "VAR2": "VAR0"
+              "VAR0": "CONST0",
+              "VAR1": "CONST5"
             },
             "type": "A"
           },
           "operand2": {
-            "id": 2282772,
+            "id": 1895300,
             "type": "node"
           },
           "reward": 0.0
@@ -1956,7 +1599,7 @@
         "depth": 5,
         "tree": {
           "global": {
-            "active_nodes": 9,
+            "active_nodes": 8,
             "depth": 5,
             "has_self_loop": false
           },
@@ -1964,10 +1607,10 @@
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -1979,20 +1622,39 @@
             {
               "active": true,
               "children": [
-                2265223,
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1891472
+              ],
+              "depth": 2,
+              "id": 1880104,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
@@ -2000,97 +1662,56 @@
               "active": true,
               "children": [],
               "depth": 2,
-              "id": 2265223,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "VAR0",
-                  "VAR3"
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [
+                1895298,
+                1895299,
+                1895300
+              ],
+              "depth": 3,
+              "id": 1891472,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": false,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST0"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1895298,
+              "literal": {
+                "arguments": [
+                  "CONST0",
+                  "VAR1"
                 ],
                 "negated": true,
                 "predicate": "E"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [
-                2271583
-              ],
-              "depth": 2,
-              "id": 2265224,
-              "literal": {
-                "arguments": [
-                  "VAR0"
-                ],
-                "negated": true,
-                "predicate": "G"
-              },
-              "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [
-                2277005
-              ],
-              "depth": 2,
-              "id": 2265225,
-              "literal": {
-                "arguments": [
-                  "VAR3"
-                ],
-                "negated": true,
-                "predicate": "G"
-              },
-              "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [
-                2282771,
-                2282772
-              ],
-              "depth": 3,
-              "id": 2271583,
-              "literal": {
-                "arguments": [
-                  "VAR0"
-                ],
-                "negated": false,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 3,
-              "id": 2277005,
-              "literal": {
-                "arguments": [
-                  "VAR3"
-                ],
-                "negated": false,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0"
               },
               "type": "B"
             },
@@ -2098,17 +1719,16 @@
               "active": true,
               "children": [],
               "depth": 4,
-              "id": 2282771,
+              "id": 1895299,
               "literal": {
                 "arguments": [
-                  "VAR3"
+                  "VAR1"
                 ],
                 "negated": true,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0"
               },
               "type": "B"
             },
@@ -2116,15 +1736,14 @@
               "active": true,
               "children": [],
               "depth": 4,
-              "id": 2282772,
+              "id": 1895300,
               "literal": {
                 "arguments": [],
                 "negated": false,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0"
               },
               "type": "B"
             }
@@ -2140,7 +1759,56 @@
           "kb_clause": [
             {
               "arguments": [
-                "CONST2",
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 2,
+            "id": 1880105,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "CONST0",
+              "VAR1": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 7,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST0",
                 "CONST1"
               ],
               "negated": false,
@@ -2150,27 +1818,114 @@
           "node1": {
             "active": true,
             "children": [],
-            "depth": 2,
-            "id": 2265223,
+            "depth": 4,
+            "id": 1895298,
             "literal": {
               "arguments": [
-                "VAR0",
-                "VAR3"
+                "CONST0",
+                "VAR1"
               ],
               "negated": true,
               "predicate": "E"
             },
             "substitution": {
-              "VAR1": "VAR3",
-              "VAR2": "VAR0"
+              "VAR0": "CONST0"
             },
             "type": "B"
           },
           "operand2": {
             "literal": {
               "arguments": [
-                "CONST2",
+                "CONST0",
                 "CONST1"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 7,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST0",
+                "CONST2"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 4,
+            "id": 1895298,
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": {
+              "VAR0": "CONST0"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "CONST2"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 7,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST0",
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 4,
+            "id": 1895298,
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": {
+              "VAR0": "CONST0"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "CONST5"
               ],
               "negated": false,
               "predicate": "E"
@@ -2202,17 +1957,16 @@
             "active": true,
             "children": [],
             "depth": 4,
-            "id": 2282771,
+            "id": 1895299,
             "literal": {
               "arguments": [
-                "VAR3"
+                "VAR1"
               ],
               "negated": true,
               "predicate": "R"
             },
             "substitution": {
-              "VAR1": "VAR3",
-              "VAR2": "VAR0"
+              "VAR0": "CONST0"
             },
             "type": "B"
           },
@@ -2223,265 +1977,6 @@
               ],
               "negated": false,
               "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 7,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2277005,
-            "literal": {
-              "arguments": [
-                "VAR3"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR1": "VAR3",
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 7,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2277005,
-            "literal": {
-              "arguments": [
-                "VAR3"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR1": "VAR3",
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 7,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR3"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR1": "VAR3",
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 7,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST0",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR3"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR1": "VAR3",
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST0",
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 7,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 2,
-            "id": 2265223,
-            "literal": {
-              "arguments": [
-                "VAR0",
-                "VAR3"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR1": "VAR3",
-              "VAR2": "VAR0"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
             },
             "type": "literal"
           },
@@ -2500,7 +1995,7 @@
         "depth": 6,
         "tree": {
           "global": {
-            "active_nodes": 8,
+            "active_nodes": 7,
             "depth": 5,
             "has_self_loop": false
           },
@@ -2508,10 +2003,10 @@
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -2523,20 +2018,39 @@
             {
               "active": true,
               "children": [
-                2265223,
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1891472
+              ],
+              "depth": 2,
+              "id": 1880104,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
@@ -2544,96 +2058,55 @@
               "active": true,
               "children": [],
               "depth": 2,
-              "id": 2265223,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "VAR0",
-                  "VAR3"
+                  "CONST5"
                 ],
                 "negated": true,
-                "predicate": "E"
+                "predicate": "G"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0",
+                "VAR1": "CONST5"
               },
               "type": "B"
             },
             {
               "active": true,
               "children": [
-                2271583
-              ],
-              "depth": 2,
-              "id": 2265224,
-              "literal": {
-                "arguments": [
-                  "VAR0"
-                ],
-                "negated": true,
-                "predicate": "G"
-              },
-              "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [
-                2277005
-              ],
-              "depth": 2,
-              "id": 2265225,
-              "literal": {
-                "arguments": [
-                  "VAR3"
-                ],
-                "negated": true,
-                "predicate": "G"
-              },
-              "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [
-                2282771
+                1895298,
+                1895299
               ],
               "depth": 3,
-              "id": 2271583,
+              "id": 1891472,
               "literal": {
                 "arguments": [
-                  "VAR0"
+                  "CONST0"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [],
-              "depth": 3,
-              "id": 2277005,
+              "depth": 4,
+              "id": 1895298,
               "literal": {
                 "arguments": [
-                  "VAR3"
+                  "CONST0",
+                  "VAR1"
                 ],
-                "negated": false,
-                "predicate": "R"
+                "negated": true,
+                "predicate": "E"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0"
               },
               "type": "B"
             },
@@ -2641,17 +2114,16 @@
               "active": true,
               "children": [],
               "depth": 4,
-              "id": 2282771,
+              "id": 1895299,
               "literal": {
                 "arguments": [
-                  "VAR3"
+                  "VAR1"
                 ],
                 "negated": true,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR1": "VAR3",
-                "VAR2": "VAR0"
+                "VAR0": "CONST0"
               },
               "type": "B"
             }
@@ -2662,33 +2134,304 @@
     {
       "available_ops": [
         {
-          "action": "TRUNCATE",
+          "action": "EXTENSION",
           "depth": 8,
-          "kb_clause": [],
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST0",
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
           "node1": {
             "active": true,
             "children": [],
-            "depth": 2,
-            "id": 2265223,
+            "depth": 4,
+            "id": 1895298,
             "literal": {
               "arguments": [
-                "CONST2",
-                "CONST1"
+                "CONST0",
+                "VAR1"
               ],
               "negated": true,
               "predicate": "E"
             },
             "substitution": {
-              "VAR0": "CONST2",
-              "VAR1": "VAR3",
-              "VAR2": "VAR0",
-              "VAR3": "CONST1"
+              "VAR0": "CONST5"
             },
-            "type": "A"
+            "type": "B"
           },
           "operand2": {
-            "id": 0,
-            "type": "node"
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 8,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST0",
+                "CONST2"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 4,
+            "id": 1895298,
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "CONST2"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 8,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 3,
+            "id": 1901317,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 8,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 4,
+            "id": 1895299,
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 8,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST0",
+                "CONST1"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 4,
+            "id": 1895298,
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST0",
+                "CONST1"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 8,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 3,
+            "id": 1901317,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "type": "literal"
           },
           "reward": 0.0
         }
@@ -2713,10 +2456,10 @@
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -2728,109 +2471,79 @@
             {
               "active": true,
               "children": [
-                2265223,
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 2,
-              "id": 2265223,
-              "literal": {
-                "arguments": [
-                  "CONST2",
-                  "CONST1"
-                ],
-                "negated": true,
-                "predicate": "E"
-              },
-              "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2271583
+                1891472
               ],
               "depth": 2,
-              "id": 2265224,
+              "id": 1880104,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2277005
+                1901317
               ],
               "depth": 2,
-              "id": 2265225,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2282771
+                1895298,
+                1895299
               ],
               "depth": 3,
-              "id": 2271583,
+              "id": 1891472,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5"
               },
               "type": "A"
             },
@@ -2838,19 +2551,16 @@
               "active": true,
               "children": [],
               "depth": 3,
-              "id": 2277005,
+              "id": 1901317,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5"
               },
               "type": "B"
             },
@@ -2858,19 +2568,34 @@
               "active": true,
               "children": [],
               "depth": 4,
-              "id": 2282771,
+              "id": 1895298,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST0",
+                  "VAR1"
+                ],
+                "negated": true,
+                "predicate": "E"
+              },
+              "substitution": {
+                "VAR0": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1895299,
+              "literal": {
+                "arguments": [
+                  "VAR1"
                 ],
                 "negated": true,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5"
               },
               "type": "B"
             }
@@ -2881,181 +2606,31 @@
     {
       "available_ops": [
         {
-          "action": "EXTENSION",
+          "action": "TRUNCATE",
           "depth": 9,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2277005,
-            "literal": {
-              "arguments": [
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR0": "CONST2",
-              "VAR1": "VAR3",
-              "VAR2": "VAR0",
-              "VAR3": "CONST1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 9,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 3,
-            "id": 2277005,
-            "literal": {
-              "arguments": [
-                "CONST1"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR0": "CONST2",
-              "VAR1": "VAR3",
-              "VAR2": "VAR0",
-              "VAR3": "CONST1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 9,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "G"
-            }
-          ],
+          "kb_clause": [],
           "node1": {
             "active": true,
             "children": [],
             "depth": 4,
-            "id": 2282771,
+            "id": 1895298,
             "literal": {
               "arguments": [
-                "CONST1"
+                "CONST0",
+                "CONST5"
               ],
               "negated": true,
-              "predicate": "R"
+              "predicate": "E"
             },
             "substitution": {
-              "VAR0": "CONST2",
-              "VAR1": "VAR3",
-              "VAR2": "VAR0",
-              "VAR3": "CONST1"
+              "VAR0": "CONST5",
+              "VAR1": "CONST5"
             },
-            "type": "B"
+            "type": "A"
           },
           "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "type": "literal"
+            "id": 0,
+            "type": "node"
           },
           "reward": 0.0
         }
@@ -3072,7 +2647,7 @@
         "depth": 8,
         "tree": {
           "global": {
-            "active_nodes": 7,
+            "active_nodes": 8,
             "depth": 5,
             "has_self_loop": false
           },
@@ -3080,10 +2655,10 @@
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -3095,87 +2670,80 @@
             {
               "active": true,
               "children": [
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2271583
+                1891472
               ],
               "depth": 2,
-              "id": 2265224,
+              "id": 1880104,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2277005
+                1901317
               ],
               "depth": 2,
-              "id": 2265225,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2282771
+                1895298,
+                1895299
               ],
               "depth": 3,
-              "id": 2271583,
+              "id": 1891472,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
@@ -3183,19 +2751,17 @@
               "active": true,
               "children": [],
               "depth": 3,
-              "id": 2277005,
+              "id": 1901317,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "B"
             },
@@ -3203,19 +2769,36 @@
               "active": true,
               "children": [],
               "depth": 4,
-              "id": 2282771,
+              "id": 1895298,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST0",
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "E"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1895299,
+              "literal": {
+                "arguments": [
+                  "CONST5"
                 ],
                 "negated": true,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST2",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "B"
             }
@@ -3226,33 +2809,175 @@
     {
       "available_ops": [
         {
-          "action": "ANCESTRY",
+          "action": "EXTENSION",
           "depth": 10,
-          "kb_clause": [],
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            }
+          ],
           "node1": {
             "active": true,
-            "children": [
-              2265224,
-              2265225
-            ],
-            "depth": 1,
-            "id": 2259039,
+            "children": [],
+            "depth": 4,
+            "id": 1895299,
             "literal": {
-              "arguments": [],
+              "arguments": [
+                "CONST5"
+              ],
               "negated": true,
-              "predicate": "uncol"
+              "predicate": "R"
             },
             "substitution": {
-              "VAR0": "CONST1",
-              "VAR1": "VAR3",
-              "VAR2": "VAR0",
-              "VAR3": "CONST1"
+              "VAR0": "CONST5",
+              "VAR1": "CONST5"
             },
-            "type": "A"
+            "type": "B"
           },
           "operand2": {
-            "id": 2304321,
-            "type": "node"
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 10,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 3,
+            "id": 1901317,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            "substitution": {
+              "VAR0": "CONST5",
+              "VAR1": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 10,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 3,
+            "id": 1901317,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            "substitution": {
+              "VAR0": "CONST5",
+              "VAR1": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "type": "literal"
           },
           "reward": 0.0
         }
@@ -3269,7 +2994,7 @@
         "depth": 9,
         "tree": {
           "global": {
-            "active_nodes": 10,
+            "active_nodes": 7,
             "depth": 5,
             "has_self_loop": false
           },
@@ -3277,10 +3002,10 @@
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -3292,181 +3017,115 @@
             {
               "active": true,
               "children": [
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2271583
+                1891472
               ],
               "depth": 2,
-              "id": 2265224,
+              "id": 1880104,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2277005
+                1901317
               ],
               "depth": 2,
-              "id": 2265225,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2282771
+                1895299
               ],
               "depth": 3,
-              "id": 2271583,
+              "id": 1891472,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
-              },
-              "type": "A"
-            },
-            {
-              "active": true,
-              "children": [
-                2304319,
-                2304320,
-                2304321
-              ],
-              "depth": 3,
-              "id": 2277005,
-              "literal": {
-                "arguments": [
-                  "CONST1"
-                ],
-                "negated": false,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [],
-              "depth": 4,
-              "id": 2282771,
+              "depth": 3,
+              "id": 1901317,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
-                "negated": true,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 4,
-              "id": 2304319,
-              "literal": {
-                "arguments": [
-                  "CONST1",
-                  "VAR1"
-                ],
-                "negated": true,
-                "predicate": "E"
-              },
-              "substitution": {
-                "VAR0": "CONST1"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 4,
-              "id": 2304320,
-              "literal": {
-                "arguments": [
-                  "VAR1"
-                ],
-                "negated": true,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR0": "CONST1"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 4,
-              "id": 2304321,
-              "literal": {
-                "arguments": [],
                 "negated": false,
-                "predicate": "uncol"
+                "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1895299,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "B"
             }
@@ -3482,43 +3141,118 @@
           "kb_clause": [
             {
               "arguments": [
-                "VAR0"
+                "VAR0",
+                "VAR1"
               ],
-              "negated": false,
-              "predicate": "R"
+              "negated": true,
+              "predicate": "E"
             },
             {
               "arguments": [
                 "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 3,
+            "id": 1901317,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            "substitution": {
+              "VAR0": "CONST5",
+              "VAR1": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 11,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 5,
+            "id": 1908888,
+            "literal": {
+              "arguments": [
+                "CONST5"
               ],
               "negated": false,
               "predicate": "G"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 4,
-            "id": 2304320,
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "R"
             },
             "substitution": {
-              "VAR0": "CONST1"
+              "VAR0": "CONST5"
             },
             "type": "B"
           },
           "operand2": {
             "literal": {
               "arguments": [
-                "VAR0"
+                "VAR1"
               ],
-              "negated": false,
-              "predicate": "R"
+              "negated": true,
+              "predicate": "G"
             },
             "type": "literal"
           },
@@ -3530,80 +3264,46 @@
           "kb_clause": [
             {
               "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 4,
-            "id": 2304319,
-            "literal": {
-              "arguments": [
-                "CONST1",
+                "VAR0",
                 "VAR1"
               ],
               "negated": true,
               "predicate": "E"
             },
-            "substitution": {
-              "VAR0": "CONST1"
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
             },
-            "type": "B"
-          },
-          "operand2": {
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 5,
+            "id": 1908888,
             "literal": {
               "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 11,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR0"
+                "CONST5"
               ],
               "negated": false,
               "predicate": "G"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 4,
-            "id": 2282771,
-            "literal": {
-              "arguments": [
-                "CONST1"
-              ],
-              "negated": true,
-              "predicate": "R"
             },
             "substitution": {
-              "VAR0": "CONST1",
-              "VAR1": "VAR3",
-              "VAR2": "VAR0",
-              "VAR3": "CONST1"
+              "VAR0": "CONST5"
             },
             "type": "B"
           },
@@ -3612,8 +3312,8 @@
               "arguments": [
                 "VAR0"
               ],
-              "negated": false,
-              "predicate": "R"
+              "negated": true,
+              "predicate": "G"
             },
             "type": "literal"
           },
@@ -3625,39 +3325,57 @@
           "kb_clause": [
             {
               "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 4,
-            "id": 2304319,
-            "literal": {
-              "arguments": [
-                "CONST1",
+                "VAR0",
                 "VAR1"
               ],
               "negated": true,
               "predicate": "E"
             },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 3,
+            "id": 1901317,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
             "substitution": {
-              "VAR0": "CONST1"
+              "VAR0": "CONST5",
+              "VAR1": "CONST5"
             },
             "type": "B"
           },
           "operand2": {
             "literal": {
               "arguments": [
-                "CONST1",
-                "CONST2"
+                "VAR1"
               ],
-              "negated": false,
-              "predicate": "E"
+              "negated": true,
+              "predicate": "R"
             },
             "type": "literal"
           },
@@ -3676,18 +3394,18 @@
         "depth": 10,
         "tree": {
           "global": {
-            "active_nodes": 9,
-            "depth": 5,
+            "active_nodes": 8,
+            "depth": 6,
             "has_self_loop": false
           },
           "nodes": [
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -3699,165 +3417,134 @@
             {
               "active": true,
               "children": [
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2271583
+                1891472
               ],
               "depth": 2,
-              "id": 2265224,
+              "id": 1880104,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2277005
+                1901317
               ],
               "depth": 2,
-              "id": 2265225,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2282771
+                1895299
               ],
               "depth": 3,
-              "id": 2271583,
+              "id": 1891472,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 3,
+              "id": 1901317,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": false,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "B"
             },
             {
               "active": true,
               "children": [
-                2304319,
-                2304320
+                1908888
               ],
-              "depth": 3,
-              "id": 2277005,
+              "depth": 4,
+              "id": 1895299,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
-                "negated": false,
+                "negated": true,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [],
-              "depth": 4,
-              "id": 2282771,
+              "depth": 5,
+              "id": 1908888,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
-                "negated": true,
-                "predicate": "R"
+                "negated": false,
+                "predicate": "G"
               },
               "substitution": {
-                "VAR0": "CONST1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 4,
-              "id": 2304319,
-              "literal": {
-                "arguments": [
-                  "CONST1",
-                  "VAR1"
-                ],
-                "negated": true,
-                "predicate": "E"
-              },
-              "substitution": {
-                "VAR0": "CONST1"
-              },
-              "type": "B"
-            },
-            {
-              "active": true,
-              "children": [],
-              "depth": 4,
-              "id": 2304320,
-              "literal": {
-                "arguments": [
-                  "VAR1"
-                ],
-                "negated": true,
-                "predicate": "R"
-              },
-              "substitution": {
-                "VAR0": "CONST1"
+                "VAR0": "CONST5"
               },
               "type": "B"
             }
@@ -3874,289 +3561,25 @@
           "node1": {
             "active": true,
             "children": [
-              2277005
+              1880104,
+              1880105
             ],
-            "depth": 2,
-            "id": 2265225,
+            "depth": 1,
+            "id": 1875612,
             "literal": {
-              "arguments": [
-                "CONST1"
-              ],
+              "arguments": [],
               "negated": true,
-              "predicate": "G"
+              "predicate": "uncol"
             },
             "substitution": {
-              "VAR0": "VAR1",
-              "VAR1": "VAR3",
-              "VAR2": "VAR0",
-              "VAR3": "CONST1"
+              "VAR0": "CONST5",
+              "VAR1": "CONST5"
             },
             "type": "A"
           },
           "operand2": {
-            "id": 2310114,
+            "id": 1910418,
             "type": "node"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 12,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "G"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "G"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 5,
-            "id": 2310114,
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": false,
-              "predicate": "G"
-            },
-            "substitution": {
-              "VAR0": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "G"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 12,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 4,
-            "id": 2304319,
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR0": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "CONST2"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 12,
-          "kb_clause": [
-            {
-              "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 4,
-            "id": 2304319,
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            "substitution": {
-              "VAR0": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "CONST1",
-                "CONST0"
-              ],
-              "negated": false,
-              "predicate": "E"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 12,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0",
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "E"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "G"
-            },
-            {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": true,
-              "predicate": "G"
-            },
-            {
-              "arguments": [],
-              "negated": false,
-              "predicate": "uncol"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 5,
-            "id": 2310114,
-            "literal": {
-              "arguments": [
-                "VAR1"
-              ],
-              "negated": false,
-              "predicate": "G"
-            },
-            "substitution": {
-              "VAR0": "VAR1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": true,
-              "predicate": "G"
-            },
-            "type": "literal"
-          },
-          "reward": 0.0
-        },
-        {
-          "action": "EXTENSION",
-          "depth": 12,
-          "kb_clause": [
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "G"
-            }
-          ],
-          "node1": {
-            "active": true,
-            "children": [],
-            "depth": 4,
-            "id": 2282771,
-            "literal": {
-              "arguments": [
-                "CONST1"
-              ],
-              "negated": true,
-              "predicate": "R"
-            },
-            "substitution": {
-              "VAR0": "VAR1",
-              "VAR1": "VAR3",
-              "VAR2": "VAR0",
-              "VAR3": "CONST1"
-            },
-            "type": "B"
-          },
-          "operand2": {
-            "literal": {
-              "arguments": [
-                "VAR0"
-              ],
-              "negated": false,
-              "predicate": "R"
-            },
-            "type": "literal"
           },
           "reward": 0.0
         }
@@ -4173,7 +3596,7 @@
         "depth": 11,
         "tree": {
           "global": {
-            "active_nodes": 10,
+            "active_nodes": 11,
             "depth": 6,
             "has_self_loop": false
           },
@@ -4181,10 +3604,10 @@
             {
               "active": true,
               "children": [
-                2259039
+                1875612
               ],
               "depth": 0,
-              "id": 2259038,
+              "id": 1875611,
               "literal": {
                 "arguments": [],
                 "negated": false,
@@ -4196,110 +3619,121 @@
             {
               "active": true,
               "children": [
-                2265224,
-                2265225
+                1880104,
+                1880105
               ],
               "depth": 1,
-              "id": 2259039,
+              "id": 1875612,
               "literal": {
                 "arguments": [],
                 "negated": true,
                 "predicate": "uncol"
               },
               "substitution": {
-                "VAR0": "VAR1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2271583
+                1891472
               ],
               "depth": 2,
-              "id": 2265224,
+              "id": 1880104,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "VAR1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2277005
+                1901317
               ],
               "depth": 2,
-              "id": 2265225,
+              "id": 1880105,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
                 "negated": true,
                 "predicate": "G"
               },
               "substitution": {
-                "VAR0": "VAR1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2282771
+                1895299
               ],
               "depth": 3,
-              "id": 2271583,
+              "id": 1891472,
               "literal": {
                 "arguments": [
-                  "CONST2"
+                  "CONST0"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "VAR1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
             {
               "active": true,
               "children": [
-                2304319,
-                2304320
+                1910416,
+                1910417,
+                1910418
               ],
               "depth": 3,
-              "id": 2277005,
+              "id": 1901317,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5"
                 ],
                 "negated": false,
                 "predicate": "R"
               },
               "substitution": {
-                "VAR0": "VAR1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1908888
+              ],
+              "depth": 4,
+              "id": 1895299,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
               },
               "type": "A"
             },
@@ -4307,19 +3741,17 @@
               "active": true,
               "children": [],
               "depth": 4,
-              "id": 2282771,
+              "id": 1910416,
               "literal": {
                 "arguments": [
-                  "CONST1"
+                  "CONST5",
+                  "VAR1"
                 ],
                 "negated": true,
-                "predicate": "R"
+                "predicate": "E"
               },
               "substitution": {
-                "VAR0": "VAR1",
-                "VAR1": "VAR3",
-                "VAR2": "VAR0",
-                "VAR3": "CONST1"
+                "VAR0": "CONST5"
               },
               "type": "B"
             },
@@ -4327,10 +3759,961 @@
               "active": true,
               "children": [],
               "depth": 4,
-              "id": 2304319,
+              "id": 1910417,
               "literal": {
                 "arguments": [
-                  "CONST1",
+                  "VAR1"
+                ],
+                "negated": true,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1910418,
+              "literal": {
+                "arguments": [],
+                "negated": false,
+                "predicate": "uncol"
+              },
+              "substitution": {
+                "VAR0": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 5,
+              "id": 1908888,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": false,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "CONST5"
+              },
+              "type": "B"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "available_ops": [
+        {
+          "action": "EXTENSION",
+          "depth": 13,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "G"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 4,
+            "id": 1910417,
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "R"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": false,
+              "predicate": "R"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 13,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 5,
+            "id": 1908888,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 13,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST5",
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 4,
+            "id": 1910416,
+            "literal": {
+              "arguments": [
+                "CONST5",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST5",
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 13,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 5,
+            "id": 1908888,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "CONST5"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        }
+      ],
+      "global_reward": {
+        "expected_by_type": {
+          "ANCESTRY": 0.0,
+          "EXTENSION": 0.0,
+          "FACTORING": 0.0
+        }
+      },
+      "selected_op": null,
+      "state": {
+        "depth": 12,
+        "tree": {
+          "global": {
+            "active_nodes": 10,
+            "depth": 6,
+            "has_self_loop": false
+          },
+          "nodes": [
+            {
+              "active": true,
+              "children": [
+                1875612
+              ],
+              "depth": 0,
+              "id": 1875611,
+              "literal": {
+                "arguments": [],
+                "negated": false,
+                "predicate": ""
+              },
+              "substitution": null,
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [
+                1880104,
+                1880105
+              ],
+              "depth": 1,
+              "id": 1875612,
+              "literal": {
+                "arguments": [],
+                "negated": true,
+                "predicate": "uncol"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1891472
+              ],
+              "depth": 2,
+              "id": 1880104,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1901317
+              ],
+              "depth": 2,
+              "id": 1880105,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1895299
+              ],
+              "depth": 3,
+              "id": 1891472,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": false,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1910416,
+                1910417
+              ],
+              "depth": 3,
+              "id": 1901317,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": false,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1908888
+              ],
+              "depth": 4,
+              "id": 1895299,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST5",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1910416,
+              "literal": {
+                "arguments": [
+                  "CONST5",
+                  "VAR1"
+                ],
+                "negated": true,
+                "predicate": "E"
+              },
+              "substitution": {
+                "VAR0": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1910417,
+              "literal": {
+                "arguments": [
+                  "VAR1"
+                ],
+                "negated": true,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 5,
+              "id": 1908888,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": false,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "CONST5"
+              },
+              "type": "B"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "available_ops": [
+        {
+          "action": "EXTENSION",
+          "depth": 14,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 5,
+            "id": 1908888,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "VAR1"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 14,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 5,
+            "id": 1912973,
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "VAR1"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "ANCESTRY",
+          "depth": 14,
+          "kb_clause": [],
+          "node1": {
+            "active": true,
+            "children": [
+              1901317
+            ],
+            "depth": 2,
+            "id": 1880105,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "VAR1",
+              "VAR1": "CONST5"
+            },
+            "type": "A"
+          },
+          "operand2": {
+            "id": 1912973,
+            "type": "node"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 14,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 5,
+            "id": 1908888,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "VAR1"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 14,
+          "kb_clause": [
+            {
+              "arguments": [
+                "VAR0",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            {
+              "arguments": [
+                "VAR0"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            {
+              "arguments": [],
+              "negated": false,
+              "predicate": "uncol"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 5,
+            "id": 1912973,
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": false,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "VAR1"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "EXTENSION",
+          "depth": 14,
+          "kb_clause": [
+            {
+              "arguments": [
+                "CONST5",
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "E"
+            }
+          ],
+          "node1": {
+            "active": true,
+            "children": [],
+            "depth": 4,
+            "id": 1910416,
+            "literal": {
+              "arguments": [
+                "CONST5",
+                "VAR1"
+              ],
+              "negated": true,
+              "predicate": "E"
+            },
+            "substitution": {
+              "VAR0": "VAR1"
+            },
+            "type": "B"
+          },
+          "operand2": {
+            "literal": {
+              "arguments": [
+                "CONST5",
+                "CONST0"
+              ],
+              "negated": false,
+              "predicate": "E"
+            },
+            "type": "literal"
+          },
+          "reward": 0.0
+        }
+      ],
+      "global_reward": {
+        "expected_by_type": {
+          "ANCESTRY": 0.0,
+          "EXTENSION": 0.0,
+          "FACTORING": 0.0
+        }
+      },
+      "selected_op": null,
+      "state": {
+        "depth": 13,
+        "tree": {
+          "global": {
+            "active_nodes": 11,
+            "depth": 6,
+            "has_self_loop": false
+          },
+          "nodes": [
+            {
+              "active": true,
+              "children": [
+                1875612
+              ],
+              "depth": 0,
+              "id": 1875611,
+              "literal": {
+                "arguments": [],
+                "negated": false,
+                "predicate": ""
+              },
+              "substitution": null,
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [
+                1880104,
+                1880105
+              ],
+              "depth": 1,
+              "id": 1875612,
+              "literal": {
+                "arguments": [],
+                "negated": true,
+                "predicate": "uncol"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1891472
+              ],
+              "depth": 2,
+              "id": 1880104,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1901317
+              ],
+              "depth": 2,
+              "id": 1880105,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1895299
+              ],
+              "depth": 3,
+              "id": 1891472,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": false,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1910416,
+                1910417
+              ],
+              "depth": 3,
+              "id": 1901317,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": false,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1908888
+              ],
+              "depth": 4,
+              "id": 1895299,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1910416,
+              "literal": {
+                "arguments": [
+                  "CONST5",
                   "VAR1"
                 ],
                 "negated": true,
@@ -4344,10 +4727,10 @@
             {
               "active": true,
               "children": [
-                2310114
+                1912973
               ],
               "depth": 4,
-              "id": 2304320,
+              "id": 1910417,
               "literal": {
                 "arguments": [
                   "VAR1"
@@ -4364,7 +4747,24 @@
               "active": true,
               "children": [],
               "depth": 5,
-              "id": 2310114,
+              "id": 1908888,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": false,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "VAR1"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 5,
+              "id": 1912973,
               "literal": {
                 "arguments": [
                   "VAR1"
@@ -4374,6 +4774,361 @@
               },
               "substitution": {
                 "VAR0": "VAR1"
+              },
+              "type": "B"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "available_ops": [
+        {
+          "action": "ANCESTRY",
+          "depth": 15,
+          "kb_clause": [],
+          "node1": {
+            "active": true,
+            "children": [
+              1901317
+            ],
+            "depth": 2,
+            "id": 1880105,
+            "literal": {
+              "arguments": [
+                "CONST5"
+              ],
+              "negated": true,
+              "predicate": "G"
+            },
+            "substitution": {
+              "VAR0": "VAR1",
+              "VAR1": "CONST5",
+              "VAR2": "CONST5"
+            },
+            "type": "A"
+          },
+          "operand2": {
+            "id": 1912973,
+            "type": "node"
+          },
+          "reward": 0.0
+        },
+        {
+          "action": "ANCESTRY",
+          "depth": 15,
+          "kb_clause": [],
+          "node1": {
+            "active": true,
+            "children": [
+              1880104,
+              1880105
+            ],
+            "depth": 1,
+            "id": 1875612,
+            "literal": {
+              "arguments": [],
+              "negated": true,
+              "predicate": "uncol"
+            },
+            "substitution": {
+              "VAR0": "VAR1",
+              "VAR1": "CONST5",
+              "VAR2": "CONST5"
+            },
+            "type": "A"
+          },
+          "operand2": {
+            "id": 1914475,
+            "type": "node"
+          },
+          "reward": 0.0
+        }
+      ],
+      "global_reward": {
+        "expected_by_type": {
+          "ANCESTRY": 0.0,
+          "EXTENSION": 0.0,
+          "FACTORING": 0.0
+        }
+      },
+      "selected_op": null,
+      "state": {
+        "depth": 14,
+        "tree": {
+          "global": {
+            "active_nodes": 14,
+            "depth": 7,
+            "has_self_loop": false
+          },
+          "nodes": [
+            {
+              "active": true,
+              "children": [
+                1875612
+              ],
+              "depth": 0,
+              "id": 1875611,
+              "literal": {
+                "arguments": [],
+                "negated": false,
+                "predicate": ""
+              },
+              "substitution": null,
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [
+                1880104,
+                1880105
+              ],
+              "depth": 1,
+              "id": 1875612,
+              "literal": {
+                "arguments": [],
+                "negated": true,
+                "predicate": "uncol"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5",
+                "VAR2": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1891472
+              ],
+              "depth": 2,
+              "id": 1880104,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5",
+                "VAR2": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1901317
+              ],
+              "depth": 2,
+              "id": 1880105,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5",
+                "VAR2": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1895299
+              ],
+              "depth": 3,
+              "id": 1891472,
+              "literal": {
+                "arguments": [
+                  "CONST0"
+                ],
+                "negated": false,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5",
+                "VAR2": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1910416,
+                1910417
+              ],
+              "depth": 3,
+              "id": 1901317,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": false,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5",
+                "VAR2": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1908888
+              ],
+              "depth": 4,
+              "id": 1895299,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR1": "CONST5",
+                "VAR2": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 4,
+              "id": 1910416,
+              "literal": {
+                "arguments": [
+                  "CONST5",
+                  "VAR1"
+                ],
+                "negated": true,
+                "predicate": "E"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR2": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [
+                1912973
+              ],
+              "depth": 4,
+              "id": 1910417,
+              "literal": {
+                "arguments": [
+                  "VAR1"
+                ],
+                "negated": true,
+                "predicate": "R"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR2": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [
+                1914473,
+                1914474,
+                1914475
+              ],
+              "depth": 5,
+              "id": 1908888,
+              "literal": {
+                "arguments": [
+                  "CONST5"
+                ],
+                "negated": false,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR2": "CONST5"
+              },
+              "type": "A"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 5,
+              "id": 1912973,
+              "literal": {
+                "arguments": [
+                  "VAR1"
+                ],
+                "negated": false,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR0": "VAR1",
+                "VAR2": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 6,
+              "id": 1914473,
+              "literal": {
+                "arguments": [
+                  "VAR0",
+                  "CONST5"
+                ],
+                "negated": true,
+                "predicate": "E"
+              },
+              "substitution": {
+                "VAR2": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 6,
+              "id": 1914474,
+              "literal": {
+                "arguments": [
+                  "VAR0"
+                ],
+                "negated": true,
+                "predicate": "G"
+              },
+              "substitution": {
+                "VAR2": "CONST5"
+              },
+              "type": "B"
+            },
+            {
+              "active": true,
+              "children": [],
+              "depth": 6,
+              "id": 1914475,
+              "literal": {
+                "arguments": [],
+                "negated": false,
+                "predicate": "uncol"
+              },
+              "substitution": {
+                "VAR2": "CONST5"
               },
               "type": "B"
             }

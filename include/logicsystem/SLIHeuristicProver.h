@@ -5,6 +5,7 @@
 #include <string>
 #include "KnowledgeBase.h"
 #include "Clause.h"
+#include "SLITree.h"
 
 namespace LogicSystem
 {
@@ -21,11 +22,11 @@ namespace LogicSystem
         std::string tokenizerPath = "../../../neural_network/unified_tokenizer.pkl";
         
         // 搜索配置
-        int maxIterations = 50000;  // 最大迭代次数
+        int maxIterations = 10000;  // 最大迭代次数
 
     public:
         SLIHeuristicProver(KnowledgeBase &kb, const Clause &goal);
-        bool prove(const std::string &save_dir = "");
+        SearchResult prove(const std::string &save_dir = "");
         
         // 设置配置参数
         void setConfig(const std::string& python, const std::string& script, 

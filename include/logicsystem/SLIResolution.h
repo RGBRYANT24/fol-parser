@@ -16,8 +16,9 @@ namespace LogicSystem
     class SLIResolution
     {
     public:
+        static SearchResult prove(KnowledgeBase &kb, const Clause &goal);
         static bool prove(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy);
-        static bool prove(KnowledgeBase &kb, const Clause &goal);
+        //static bool prove(KnowledgeBase &kb, const Clause &goal);
 
         // 添加新的BFS版本
         static bool proveBFS(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy);

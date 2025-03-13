@@ -109,7 +109,7 @@ namespace LogicSystem
 
         // 执行SLI消解
         SLIHeuristicProver prover(kb, goal);
-        bool proved = prover.prove("/home/adrin/Projects/fol-parser/data");
+        bool proved = prover.prove("/home/adrin/Projects/fol-parser/data").success;
 
         // 验证结果
         EXPECT_TRUE(proved);
@@ -172,7 +172,7 @@ namespace LogicSystem
 
         // 执行SLI消解
         SLIHeuristicProver prover(kb, goal);
-        bool proved = prover.prove("/home/adrin/Projects/fol-parser/data");
+        bool proved = prover.prove("/home/adrin/Projects/fol-parser/data").success;
 
         // 验证结果
         EXPECT_TRUE(proved);
@@ -245,7 +245,7 @@ namespace LogicSystem
 
         // 执行SLI消解
         SLIHeuristicProver prover(kb, goal);
-        bool proved = prover.prove("/home/adrin/Projects/fol-parser/data");
+        bool proved = prover.prove("/home/adrin/Projects/fol-parser/data").success;
 
         // 验证结果
         EXPECT_TRUE(proved);

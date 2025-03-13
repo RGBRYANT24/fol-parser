@@ -81,10 +81,12 @@ def load_unified_tokenizer(tokenizer_path):
         return None
 
 def train_phase2():
+    # 设置使用第二个GPU (索引为1)
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     config = {
         'batch_size': 8,
         'lr': 1e-4,
-        'epochs': 1000,
+        'epochs': 500,
         'd_model': 512,
         'nhead': 8,
         'num_layers': 6,

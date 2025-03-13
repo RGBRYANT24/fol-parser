@@ -3,6 +3,7 @@
 
 #include "KnowledgeBase.h"
 #include "Clause.h"
+#include "SLITree.h"
 
 namespace LogicSystem {
     // 前置声明，实际定义请参考 SLIMCTSState.h 和 SLIMCTSAction.h
@@ -17,7 +18,9 @@ namespace LogicSystem
             SLIMCTSProver(KnowledgeBase &kb, const Clause &goal);
         
             // 证明函数，返回证明是否成功
+            // SearchResult prove(const std::string &save_dir="");
             bool prove(const std::string &save_dir="");
+            SearchResult prove_search_result(const std::string &save_dir = "");
         
         private:
             KnowledgeBase &kb;

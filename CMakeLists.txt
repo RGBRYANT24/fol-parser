@@ -42,6 +42,7 @@ target_link_libraries(fol_parser
     #lexer
     #parser
     logicsystem
+    #graphcheckers
 )
 
 # Enable testing

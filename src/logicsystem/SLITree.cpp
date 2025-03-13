@@ -549,10 +549,10 @@ namespace LogicSystem
                 {
                     if (have_same_atom(gamma_L[i], gamma_L[j]))
                     {
-                        std::cout << "SLITree::check_AC have same atom in gammal_L ac failed" << std::endl;
-                        gamma_L[i]->print(kb);
-                        gamma_L[j]->print(kb);
-                        std::cout << gamma_L[i] <<" " << gamma_L[j] << std::endl;
+                        // std::cout << "SLITree::check_AC have same atom in gammal_L ac failed" << std::endl;
+                        // gamma_L[i]->print(kb);
+                        // gamma_L[j]->print(kb);
+                        // std::cout << gamma_L[i] <<" " << gamma_L[j] << std::endl;
                         return false;
                     }
                 }

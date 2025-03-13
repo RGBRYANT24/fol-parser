@@ -1,13 +1,260 @@
 // SLIResolution.cpp
 #include "SLIResolution.h"
 #include <iostream>
+#include <chrono>
 
 namespace LogicSystem
 {
     int ProofState::next_id = 0;
 
+    SearchResult SLIResolution::prove(KnowledgeBase &kb, const Clause &goal)
+    {
+        // 初始化返回结构
+        SearchResult result;
+        result.method = "DFS"; // 设置搜索方法名称
+
+        // 记录开始时间
+        auto start_time = std::chrono::high_resolution_clock::now();
+
+        // 创建初始状态
+        auto initialTree = std::make_shared<SLITree>(kb);
+
+        // 创建初始操作状态
+        auto initial_state = SLIOperation::createExtensionState(
+            initialTree,
+            initialTree->getRoot(), // 使用第一个节点作为起始节点
+            Literal(),              // 空文字
+            goal                    // 目标子句
+        );
+
+        // 搜索栈
+        std::stack<std::shared_ptr<SLIOperation::OperationState>> state_stack;
+        state_stack.push(initial_state);
+
+        // 访问集合，用于存储已访问的状态哈希值
+        std::unordered_set<size_t> visited_states;
+        visited_states.insert(initialTree->computeStateHash());
+
+        // 记录最长路径的信息
+        int max_depth = 0;
+        std::shared_ptr<SLIOperation::OperationState> max_depth_state = nullptr;
+
+        std::shared_ptr<SLIOperation::OperationState> successful_state = nullptr;
+        std::shared_ptr<SLIOperation::OperationState> last_state = nullptr;
+
+        // 节点访问计数器
+        int visited_states_count = 1; // 初始状态算作一个
+
+        while (!state_stack.empty())
+        {
+            visited_states_count++;
+
+            if (visited_states_count % 5000 == 0)
+            {
+                std::cout << "SearchResult SLIResolution::prove DFS round " << visited_states_count << std::endl;
+            }
+
+            auto current_state = state_stack.top();
+            last_state = current_state;
+            state_stack.pop();
+
+            // 更新最长路径
+            if (current_state->depth > max_depth)
+            {
+                max_depth = current_state->depth;
+                max_depth_state = current_state;
+            }
+
+            std::shared_ptr<SLIOperation::OperationState> new_state;
+            try
+            {
+                new_state = SLIOperation::deepCopyOperationState(current_state);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Error during deep copy: " << e.what() << "\n";
+
+                // 设置结果为失败
+                result.success = false;
+                result.visitedStates = visited_states_count;
+
+                // 计算用时
+                auto end_time = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                result.duration = duration;
+
+                std::cout << "证明失败，复制状态时出错。用时: " << duration
+                          << " 毫秒, 访问状态数: " << visited_states_count << std::endl;
+
+                return result;
+            }
+
+            if (visited_states_count >= 10000LL)
+            {
+                // SLIOperation::printOperationPath(last_state, kb);
+                // SLIOperation::printOperationPathAsClause(last_state, kb);
+
+                // 设置结果为失败（达到最大迭代次数）
+                result.success = false;
+                result.visitedStates = visited_states_count;
+
+                // 计算用时
+                auto end_time = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                result.duration = duration;
+
+                std::cout << "证明失败，达到最大迭代次数。用时: " << duration
+                          << " 毫秒, 访问状态数: " << visited_states_count << std::endl;
+
+                return result;
+            }
+
+            // 执行操作
+            switch (new_state->action)
+            {
+            case SLIActionType::EXTENSION:
+            {
+                if (SLIOperation::isLiteral(new_state->second_op))
+                {
+                    auto kb_lit = SLIOperation::getLiteral(new_state->second_op);
+                    auto new_nodes = new_state->sli_tree->add_node(
+                        new_state->kb_clause,
+                        kb_lit,
+                        true,
+                        new_state->lit1_node);
+                }
+                break;
+            }
+            case SLIActionType::FACTORING:
+            {
+                if (SLIOperation::isNode(new_state->second_op))
+                {
+                    auto second_node = SLIOperation::getNode(new_state->second_op);
+                    new_state->sli_tree->t_factoring(new_state->lit1_node, second_node);
+                }
+                break;
+            }
+            case SLIActionType::ANCESTRY:
+            {
+                if (SLIOperation::isNode(new_state->second_op))
+                {
+                    auto second_node = SLIOperation::getNode(new_state->second_op);
+                    new_state->sli_tree->t_ancestry(new_state->lit1_node, second_node);
+                }
+                break;
+            }
+            case SLIActionType::TRUNCATE:
+            {
+                new_state->sli_tree->truncate(new_state->lit1_node);
+                break;
+            }
+            }
+
+            // 检查空子句
+            if (checkEmptyClause(*new_state->sli_tree))
+            {
+                // 设置结果为成功
+                result.success = true;
+                result.visitedStates = visited_states_count;
+
+                // 计算用时
+                auto end_time = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                result.duration = duration;
+
+                std::cout << "证明成功! 用时: " << duration << " 毫秒, 访问状态数: " << visited_states_count << std::endl;
+
+                return result;
+            }
+
+            // 在执行操作后添加验证
+            if (!new_state->sli_tree->validateAllNodes())
+            {
+                continue; // 跳过包含无效节点的状态
+            }
+
+            // 检查是否访问过
+            size_t state_hash = new_state->sli_tree->computeStateHash();
+            if (visited_states.find(state_hash) != visited_states.end())
+            {
+                continue;
+            }
+            else
+            {
+                visited_states.insert(state_hash);
+            }
+
+            // 基本条件检查
+            bool AC_result = new_state->sli_tree->check_all_nodes_AC();
+            bool MC_result = new_state->sli_tree->check_all_nodes_MC();
+
+            auto b_lit_nodes = new_state->sli_tree->get_all_B_literals();
+
+            // 收集当前可用的操作
+            std::vector<std::shared_ptr<SLIOperation::OperationState>> available_ops;
+
+            if (AC_result && MC_result)
+            {
+                // t-extension
+                generateExtensionStates2(kb, b_lit_nodes, new_state, state_stack, available_ops);
+                // t-factoring
+                generateFactoringStates(b_lit_nodes, new_state, state_stack, available_ops);
+                // t-ancestry
+                generateAncestryStates(b_lit_nodes, new_state, state_stack, available_ops);
+                // t-truncate
+                generateTruncateStates(new_state->sli_tree->get_all_active_nodes(),
+                                       new_state, state_stack, available_ops);
+            }
+            else if (MC_result)
+            {
+                // t-factoring
+                generateFactoringStates(b_lit_nodes, new_state, state_stack, available_ops);
+                // t-ancestry
+                generateAncestryStates(b_lit_nodes, new_state, state_stack, available_ops);
+            }
+            else if (AC_result)
+            {
+                // t-truncate
+                generateTruncateStates(new_state->sli_tree->get_all_active_nodes(),
+                                       new_state, state_stack, available_ops);
+            }
+            else
+            {
+                continue;
+            }
+
+            // 记录父状态的可用操作到子状态中
+            for (auto &op : available_ops)
+            {
+                op->parent_available_ops = available_ops;
+            }
+        }
+
+        // 搜索完成但未找到解
+        SLIOperation::printOperationPath(last_state, kb);
+        std::cout << "last state is above" << std::endl;
+
+        // 设置结果为失败（搜索空间已耗尽）
+        result.success = false;
+        result.visitedStates = visited_states_count;
+
+        // 计算用时
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        result.duration = duration;
+
+        std::cout << "证明失败，搜索空间已耗尽。用时: " << duration
+                  << " 毫秒, 访问状态数: " << visited_states_count << std::endl;
+
+        return result;
+    }
+
     bool SLIResolution::prove(KnowledgeBase &kb, const Clause &goal, SearchStrategy &strategy)
     {
+
+        // // 初始化返回结构
+        // SearchResult result;
+        // result.method = "DFS"; // 设置搜索方法名称
         // std::vector<json> training_samples;
         // 创建初始状态
         auto initialTree = std::make_shared<SLITree>(kb);
@@ -57,18 +304,10 @@ namespace LogicSystem
                 // std::cout << "New maximum depth: " << max_depth << " at state id: " << current_state->state_id << std::endl;
             }
 
-            // std::cout << "Get new state " << std::endl;
-            // std::cout << "Current State before copy" << std::endl;
-            // SLIOperation::printOperationPath(current_state, kb);
-
             std::shared_ptr<SLIOperation::OperationState> new_state;
             try
             {
                 new_state = SLIOperation::deepCopyOperationState(current_state);
-                // std::cout << "new state " << std::endl;
-                // SLIOperation::printCurrentState(new_state, kb);
-                // std::cout << "old state " << std::endl;
-                // SLIOperation::printCurrentState(current_state, kb);
             }
             catch (const std::exception &e)
             {
@@ -273,7 +512,7 @@ namespace LogicSystem
         }
         // 保存训练数据
         SLIOperation::printOperationPath(last_state, kb);
-        std::cout << "last state is above" <<std::endl;
+        std::cout << "last state is above" << std::endl;
         // DataCollector::saveToFile(training_samples, "/path/to/failed_data.json");
         return false;
     }
@@ -1048,7 +1287,8 @@ namespace LogicSystem
 
                     // 计算得分（添加权重调节）
                     double score = (N == 1 && K == 0) ? 1.0 : (K * 1.0 / N); // 如果是单子句 N == 1 && K == 0 显然是权重最大的
-                    if(score - 1.0 > 1e-5) score -= (N - 1 - K) * 0.2;
+                    if (score - 1.0 > 1e-5)
+                        score -= (N - 1 - K) * 0.2;
                     scored_states.emplace_back(score, new_state);
                 }
             }

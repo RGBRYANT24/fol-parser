@@ -20,7 +20,9 @@ namespace LogicSystem
     class NeuralHeuristicSearch
     {
     private:
-        std::unique_ptr<ProcessManager> processManager;
+        // 分别为两个阶段创建进程管理器
+        std::unique_ptr<ProcessManager> phase1ProcessManager;
+        std::unique_ptr<ProcessManager> phase2ProcessManager;
 
         // 使用哈希集合跟踪已访问状态以避免循环
         std::unordered_set<size_t> visited_states;
@@ -38,9 +40,9 @@ namespace LogicSystem
         // 获取第一阶段神经网络对操作类型的评分
         json getActionScores(const std::shared_ptr<SLITree> &tree, KnowledgeBase &kb)
         {
-            if (!processManager->isActive())
+            if (!phase1ProcessManager->isActive())
             {
-                return {{"status", "error"}, {"error_message", "神经网络服务未初始化"}};
+                return {{"status", "error"}, {"error_message", "第一阶段神经网络服务未初始化"}};
             }
 
             // 针对实验模式，如果是只使用第二阶段，返回统一的默认评分
@@ -64,11 +66,11 @@ namespace LogicSystem
                 {"request_type", "action_scores"}};
 
             // 发送请求并获取响应
-            json response = processManager->sendRequest(request);
+            json response = phase1ProcessManager->sendRequest(request);
 
             if (response.contains("status") && response["status"] == "error")
             {
-                std::cerr << "神经网络服务返回错误: " << response["error_message"] << std::endl;
+                std::cerr << "第一阶段神经网络服务返回错误: " << response["error_message"] << std::endl;
                 if (response.contains("error_details"))
                 {
                     std::cerr << "错误详情: " << response["error_details"] << std::endl;
@@ -89,9 +91,9 @@ namespace LogicSystem
             const std::vector<std::shared_ptr<SLIOperation::OperationState>> &states,
             KnowledgeBase &kb)
         {
-            if (!processManager->isActive() || states.empty())
+            if (!phase2ProcessManager->isActive() || states.empty())
             {
-                return {{"status", "error"}, {"error_message", "神经网络服务未初始化或无可用操作"}};
+                return {{"status", "error"}, {"error_message", "第二阶段神经网络服务未初始化或无可用操作"}};
             }
 
             // 针对实验模式，如果是只使用第一阶段，返回统一的默认评分
@@ -161,7 +163,7 @@ namespace LogicSystem
                 {"request_type", "parameter_scores"}};
 
             // 发送请求并获取响应
-            json response = processManager->sendRequest(request);
+            json response = phase2ProcessManager->sendRequest(request);
 
             if (response.contains("status") && response["status"] == "error")
             {
@@ -365,13 +367,18 @@ namespace LogicSystem
         }
 
     public:
-        NeuralHeuristicSearch() : processManager(std::make_unique<ProcessManager>()) {}
+        NeuralHeuristicSearch() : phase1ProcessManager(std::make_unique<ProcessManager>()),
+                                  phase2ProcessManager(std::make_unique<ProcessManager>()) {}
 
         ~NeuralHeuristicSearch()
         {
-            if (processManager->isActive())
+            if (phase1ProcessManager->isActive())
             {
-                processManager->stopProcess();
+                phase1ProcessManager->stopProcess();
+            }
+            if (phase2ProcessManager->isActive())
+            {
+                phase2ProcessManager->stopProcess();
             }
         }
 
@@ -417,11 +424,52 @@ namespace LogicSystem
             return visited_states.size();
         }
 
-        // 初始化神经网络服务
+        // 修改初始化方法以支持第二阶段模型
+        bool initialize(
+            const std::string &pythonPath,
+            const std::string &phase1ScriptPath,
+            const std::string &phase1ModelPath,
+            const std::string &phase1TokenizerPath,
+            const std::string &phase2ScriptPath,
+            const std::string &phase2ModelPath,
+            const std::string &phase2TokenizerPath)
+        {
+            bool phase1Init = phase1ProcessManager->initialize(
+                pythonPath, phase1ScriptPath, phase1ModelPath, phase1TokenizerPath);
+
+            if (!phase1Init)
+            {
+                std::cerr << "第一阶段神经网络初始化失败" << std::endl;
+                return false;
+            }
+
+            bool phase2Init = phase2ProcessManager->initialize(
+                pythonPath, phase2ScriptPath, phase2ModelPath, phase2TokenizerPath);
+
+            if (!phase2Init)
+            {
+                std::cerr << "第二阶段神经网络初始化失败" << std::endl;
+                phase1ProcessManager->stopProcess(); // 关闭第一阶段进程
+                return false;
+            }
+
+            return true;
+        }
+
+        // 支持向后兼容的简化版初始化方法（仅第一阶段）
         bool initialize(const std::string &pythonPath, const std::string &scriptPath,
                         const std::string &modelPath, const std::string &tokenizerPath)
         {
-            return processManager->initialize(pythonPath, scriptPath, modelPath, tokenizerPath);
+            // 只初始化第一阶段，第二阶段将使用默认值
+            bool phase1Init = phase1ProcessManager->initialize(
+                pythonPath, scriptPath, modelPath, tokenizerPath);
+
+            if (phase1Init)
+            {
+                std::cout << "警告：仅初始化了第一阶段神经网络，第二阶段将使用默认评分" << std::endl;
+            }
+
+            return phase1Init;
         }
 
         // 使用神经网络启发式的DFS搜索算法
@@ -476,7 +524,7 @@ namespace LogicSystem
                 if (checkEmptyClause(copied_state->sli_tree))
                 {
                     std::cout << "成功找到解决方案，迭代次数: " << iteration << std::endl;
-                    //SLIOperation::printOperationPath(copied_state, kb);
+                    // SLIOperation::printOperationPath(copied_state, kb);
                     return true;
                 }
 

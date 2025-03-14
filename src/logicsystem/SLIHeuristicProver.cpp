@@ -25,9 +25,42 @@ namespace LogicSystem
 
         // 1. 初始化神经网络服务
         NeuralHeuristicSearch heuristicSearch;
-        if (!heuristicSearch.initialize(pythonPath, scriptPath, modelPath, tokenizerPath))
-        {
-            std::cerr << "初始化神经网络服务失败" << std::endl;
+        
+        // 设置实验模式（如果有指定）
+        if (experimentMode != "both_phases") {
+            heuristicSearch.setExperimentMode(experimentMode);
+        }
+        
+        // 初始化两个阶段的神经网络
+        bool init_success = false;
+        
+        // 检查是否已经配置了第二阶段模型
+        if (!phase2ModelPath.empty() && !phase2ScriptPath.empty()) {
+            // 使用两阶段初始化
+            init_success = heuristicSearch.initialize(
+                pythonPath, 
+                phase1ScriptPath, phase1ModelPath, phase1TokenizerPath,
+                phase2ScriptPath, phase2ModelPath, phase2TokenizerPath
+            );
+            
+            if (!init_success) {
+                std::cerr << "初始化两阶段神经网络服务失败" << std::endl;
+            }
+            else{
+                std::cout << "初始化两阶段神经网络服务成功" <<std::endl;
+            }
+        } else {
+            // 向后兼容，仅初始化第一阶段
+            init_success = heuristicSearch.initialize(
+                pythonPath, phase1ScriptPath, phase1ModelPath, phase1TokenizerPath
+            );
+            
+            if (!init_success) {
+                std::cerr << "初始化神经网络服务失败" << std::endl;
+            }
+        }
+        
+        if (!init_success) {
             result.success = false;
             result.visitedStates = 0;
             result.duration = 0;
@@ -66,13 +99,49 @@ namespace LogicSystem
         return result;
     }
 
+    // 设置第一阶段配置
+    void SLIHeuristicProver::setPhase1Config(const std::string &python, const std::string &script,
+                                           const std::string &model, const std::string &tokenizer)
+    {
+        pythonPath = python;
+        phase1ScriptPath = script;
+        phase1ModelPath = model;
+        phase1TokenizerPath = tokenizer;
+    }
+    
+    // 设置第二阶段配置
+    void SLIHeuristicProver::setPhase2Config(const std::string &script, const std::string &model,
+                                           const std::string &tokenizer)
+    {
+        phase2ScriptPath = script;
+        phase2ModelPath = model;
+        phase2TokenizerPath = tokenizer;
+    }
+    
+    // 设置实验模式
+    void SLIHeuristicProver::setExperimentMode(const std::string &mode)
+    {
+        if (mode == "phase1_only" || mode == "phase2_only" || mode == "both_phases") {
+            experimentMode = mode;
+        } else {
+            std::cerr << "无效的实验模式: " << mode << "，使用默认模式: both_phases" << std::endl;
+            experimentMode = "both_phases";
+        }
+    }
+
+    // 向后兼容的旧配置方法
     void SLIHeuristicProver::setConfig(const std::string &python, const std::string &script,
                                        const std::string &model, const std::string &tokenizer)
     {
         pythonPath = python;
-        scriptPath = script;
-        modelPath = model;
-        tokenizerPath = tokenizer;
+        phase1ScriptPath = script;
+        phase1ModelPath = model;
+        phase1TokenizerPath = tokenizer;
+        
+        // 清空第二阶段配置，表示只使用第一阶段
+        phase2ScriptPath = "";
+        phase2ModelPath = "";
+        phase2TokenizerPath = "";
     }
 
     void SLIHeuristicProver::setMaxIterations(int iterations)

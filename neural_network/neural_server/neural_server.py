@@ -357,6 +357,7 @@ class NeuralHeuristicServer:
             
             # 转换全局状态为tokens序列
             global_tokens = self.json_to_tokens(combined_json)
+            print('neural_server.py second stage ', global_tokens)
             
             # 通过分词器转换为ID，处理未知token
             unknown_token_id = self.tokenizer.vocab.get('[UNK]', 1)
@@ -437,7 +438,7 @@ class NeuralHeuristicServer:
                 'best_param_idx': int(best_param_idx),
                 'status': 'success'
             }
-            print('use second stage model', response)
+            # print('use second stage model', response)
             return response
             
         except Exception as e:

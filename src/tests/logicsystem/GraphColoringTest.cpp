@@ -246,10 +246,27 @@ namespace LogicSystem
                     // 根据方法选择对应的证明器并执行证明
                     SearchResult searchResult;
 
-                    if (method == "NeuralHeuristic_1")
+                    if (method == "NeuralHeuristic_ALL")
                     {
                         SLIHeuristicProver prover(kb, goal, 80000);
+                        // 设置第一阶段配置
+                        prover.setPhase1Config(
+                            "python3",
+                            "../../../neural_network/neural_server/neural_server.py",
+                            "../../../neural_network/first_stage_model.pth",
+                            "../../../neural_network/unified_tokenizer.pkl");
+
+                        // 设置第二阶段配置
+                        prover.setPhase2Config(
+                            "../../../neural_network/neural_server/neural_server.py",
+                            "../../../neural_network/second_stage_model.pth",
+                            "../../../neural_network/unified_tokenizer.pkl");
+                        prover.setExperimentMode("both_phases"); // 使用两个阶段
                         searchResult = prover.prove("");
+                    }
+                    else if (method == "NeuralHeuristic_1")
+                    {
+                        continue;
                     }
                     else
                     {

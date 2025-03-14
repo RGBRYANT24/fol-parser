@@ -26,6 +26,7 @@ namespace LogicSystem
 
     public:
         SLIHeuristicProver(KnowledgeBase &kb, const Clause &goal);
+        SLIHeuristicProver(KnowledgeBase &kb, const Clause &goal, int setMaxIterations): maxIterations(setMaxIterations),kb(kb), goal(goal) {};
         SearchResult prove(const std::string &save_dir = "");
         
         // 设置配置参数

@@ -195,9 +195,10 @@ namespace LogicSystem
         // 创建结果目录（如果不存在）
         std::filesystem::create_directories(resultsDir);
 
-        // 创建CSV文件保存结果
+        // 创建CSV文件并写入表头
         std::ofstream resultsFile(resultsDir + "/search_comparison.csv");
-        resultsFile << "FileName,GraphSize,CanTwoColored,Method,Success,VisitedStates,Duration(ms)\n";
+        resultsFile << "FileName,GraphSize,EdgeDensity,CanTwoColored,Method,Success,VisitedStates,Duration(ms)\n";
+        resultsFile.close(); // 先关闭文件，之后每次都追加写入
 
         int count = 0;
         // 遍历数据目录下的所有JSON文件
@@ -217,7 +218,6 @@ namespace LogicSystem
                     continue; // 可以二染色的跳过
 
                 // 获取图的大小（节点数）
-                // GraphInfo graphInfo = extractGraphInfo(entry.path().string());
                 int graphSize = checker.getNumNodes();
                 int edgeSize = checker.getNumEdges();
                 double edgeDensity = checker.getEdgeDensity();
@@ -248,14 +248,18 @@ namespace LogicSystem
 
                     if (method == "NeuralHeuristic_1")
                     {
-                        SLIHeuristicProver prover(kb, goal);
+                        SLIHeuristicProver prover(kb, goal, 80000);
                         searchResult = prover.prove("");
                     }
-                    else if (method == "DFS")
+                    else
                     {
-                        // SLIResolution::prove prover(kb, goal);
-                        searchResult = SLIResolution::prove(kb, goal);
+                        continue;
                     }
+                    // else if (method == "DFS")
+                    // {
+                    //     // SLIResolution::prove prover(kb, goal);
+                    //     searchResult = SLIResolution::prove(kb, goal);
+                    // }
                     // else if (method == "MCTS")
                     // {
                     //     SLIMCTSProver prover(kb, goal);
@@ -267,15 +271,34 @@ namespace LogicSystem
                     //     searchResult = prover.prove(resultsDir + "/" + filename);
                     // }
 
-                    // 记录结果到CSV
-                    resultsFile << filename << ","
-                                << graphSize << ","
-                                << edgeDensity << ","
-                                << (canTwoColored ? "Yes" : "No") << ","
-                                << method << ","
-                                << (searchResult.success ? "Yes" : "No") << ","
-                                << searchResult.visitedStates << ","
-                                << searchResult.duration << "\n";
+                    // 每次测试完一个方法后立即保存结果到CSV（追加模式）
+                    {
+                        // 使用追加模式打开文件
+                        std::ofstream appendResultsFile(resultsDir + "/search_comparison.csv", std::ios::app);
+                        if (!appendResultsFile.is_open())
+                        {
+                            std::cerr << "Failed to open results file for appending!" << std::endl;
+                            // 确保结果目录存在
+                            std::filesystem::create_directories(resultsDir);
+                            appendResultsFile.open(resultsDir + "/search_comparison.csv", std::ios::app);
+                            // 如果文件是新创建的，需要写入表头
+                            if (appendResultsFile.tellp() == 0)
+                            {
+                                appendResultsFile << "FileName,GraphSize,EdgeDensity,CanTwoColored,Method,Success,VisitedStates,Duration(ms)\n";
+                            }
+                        }
+
+                        appendResultsFile << filename << ","
+                                          << graphSize << ","
+                                          << edgeDensity << ","
+                                          << (canTwoColored ? "Yes" : "No") << ","
+                                          << method << ","
+                                          << (searchResult.success ? "Yes" : "No") << ","
+                                          << searchResult.visitedStates << ","
+                                          << searchResult.duration << "\n";
+
+                        appendResultsFile.close(); // 关闭文件以确保数据被保存
+                    }
 
                     // 输出结果
                     std::cout << "Graph " << filename << " using " << method
@@ -289,8 +312,6 @@ namespace LogicSystem
                     break; // 限制测试文件数量
             }
         }
-
-        resultsFile.close();
 
         // // 生成比较图表（可选，需要额外实现或使用Python脚本）
         // generateComparisonCharts(resultsDir + "/search_comparison.csv");

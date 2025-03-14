@@ -25,12 +25,31 @@ namespace LogicSystem
         // 使用哈希集合跟踪已访问状态以避免循环
         std::unordered_set<size_t> visited_states;
 
+        // 实验设置
+        enum ExperimentMode
+        {
+            PHASE1_ONLY, // 只使用第一阶段（操作类型评分）
+            PHASE2_ONLY, // 只使用第二阶段（参数评分）
+            BOTH_PHASES  // 两个阶段都使用
+        };
+
+        ExperimentMode experiment_mode = BOTH_PHASES;
+
         // 获取第一阶段神经网络对操作类型的评分
         json getActionScores(const std::shared_ptr<SLITree> &tree, KnowledgeBase &kb)
         {
             if (!processManager->isActive())
             {
                 return {{"status", "error"}, {"error_message", "神经网络服务未初始化"}};
+            }
+
+            // 针对实验模式，如果是只使用第二阶段，返回统一的默认评分
+            if (experiment_mode == PHASE2_ONLY)
+            {
+                return {
+                    {"status", "success"},
+                    {"action_scores", {0.25, 0.97, 0.98, 0.99}} // 均匀分布的评分
+                };
             }
 
             // 准备状态数据
@@ -54,19 +73,175 @@ namespace LogicSystem
                 {
                     std::cerr << "错误详情: " << response["error_details"] << std::endl;
                 }
+                // 出错时返回默认评分
+                return {
+                    {"status", "success"},
+                    {"action_scores", {0.25, 0.97, 0.98, 0.99}} // Extension, Factoring, Ancestry, Truncate
+                };
             }
 
             return response;
         }
 
-        // 第二阶段：获取神经网络对特定操作的参数评分（预留接口）
-        json getParameterScores(SLIActionType actionType,
-                                const std::shared_ptr<SLINode> &node,
-                                const std::shared_ptr<SLITree> &tree,
-                                KnowledgeBase &kb)
+        // 第二阶段：获取神经网络对特定操作参数的评分
+        json getParameterScores(
+            SLIActionType actionType,
+            const std::vector<std::shared_ptr<SLIOperation::OperationState>> &states,
+            KnowledgeBase &kb)
         {
-            // 目前返回默认评分，未来将由神经网络提供
-            return {{"status", "success"}, {"parameter_scores", json::array()}};
+            if (!processManager->isActive() || states.empty())
+            {
+                return {{"status", "error"}, {"error_message", "神经网络服务未初始化或无可用操作"}};
+            }
+
+            // 针对实验模式，如果是只使用第一阶段，返回统一的默认评分
+            if (experiment_mode == PHASE1_ONLY)
+            {
+                json scores = json::array();
+                // 为每个参数组合生成相同分数
+                for (size_t i = 0; i < states.size(); i++)
+                {
+                    scores.push_back(1.0);
+                }
+                return {
+                    {"status", "success"},
+                    {"parameter_scores", scores}};
+            }
+
+            // 获取参考状态（第一个状态）的树作为基准
+            auto &reference_state = states[0];
+            auto &tree = reference_state->sli_tree;
+
+            // 创建统一的上下文，确保变量/常量编码一致
+            DataCollector::NormalizationContext ctx;
+
+            // 序列化图结构（仅需一次）
+            json graph_json = DataCollector::serializeGraph(kb, ctx);
+
+            // 序列化树结构（仅需一次）
+            json tree_json = DataCollector::serializeTree(*tree, kb, ctx);
+
+            // 序列化所有可用操作
+            json operations_json = json::array();
+            for (const auto &state : states)
+            {
+                // 使用serializeOperation函数序列化操作
+                json op_json = serializeOperation(*state, kb, ctx);
+
+                // 对于EXTENSION操作，添加KB子句信息
+                if (state->action == SLIActionType::EXTENSION)
+                {
+                    json clause_literals = json::array();
+                    for (const Literal &clause_lit : state->kb_clause.getLiterals())
+                    {
+                        json clause_lit_json;
+                        clause_lit_json["predicate"] = kb.getPredicateName(clause_lit.getPredicateId());
+                        clause_lit_json["negated"] = clause_lit.isNegated();
+
+                        std::vector<std::string> clause_args;
+                        for (auto arg : clause_lit.getArgumentIds())
+                        {
+                            clause_args.push_back(ctx.normalizeSymbol(arg));
+                        }
+                        clause_lit_json["arguments"] = clause_args;
+                        clause_literals.push_back(clause_lit_json);
+                    }
+                    op_json["kb_clause"] = clause_literals;
+                }
+
+                operations_json.push_back(op_json);
+            }
+
+            // 构建最终请求
+            json request = {
+                {"state", {{"tree", tree_json}}},
+                {"graph", graph_json},
+                {"action_type", SLI_Action_to_string(actionType)},
+                {"operations", operations_json},
+                {"request_type", "parameter_scores"}};
+
+            // 发送请求并获取响应
+            json response = processManager->sendRequest(request);
+
+            if (response.contains("status") && response["status"] == "error")
+            {
+                std::cerr << "获取参数评分失败: " << response["error_message"] << std::endl;
+                if (response.contains("error_details"))
+                {
+                    std::cerr << "错误详情: " << response["error_details"] << std::endl;
+                }
+
+                // 返回默认评分
+                json scores = json::array();
+                for (size_t i = 0; i < states.size(); i++)
+                {
+                    // 简单地按顺序递减评分，给第一个最高分
+                    scores.push_back(1.0 - (static_cast<double>(i) / states.size()));
+                }
+                return {
+                    {"status", "success"},
+                    {"parameter_scores", scores}};
+            }
+
+            return response;
+        }
+
+        // 辅助函数：序列化操作状态
+        static json serializeOperation(const SLIOperation::OperationState &op,
+                                       KnowledgeBase &kb,
+                                       DataCollector::NormalizationContext &ctx)
+        {
+            json op_json;
+            op_json["state_id"] = op.state_id;
+            op_json["action"] = SLI_Action_to_string(op.action);
+            op_json["depth"] = op.depth;
+
+            if (op.lit1_node)
+            {
+                op_json["node1"] = DataCollector::serializeNode(op.lit1_node, kb, ctx);
+            }
+
+            // 处理第二个操作数
+            if (std::holds_alternative<std::shared_ptr<SLINode>>(op.second_op))
+            {
+                auto node = std::get<std::shared_ptr<SLINode>>(op.second_op);
+                if (node)
+                {
+                    op_json["operand2"] = {
+                        {"type", "node"},
+                        {"id", node->node_id},
+                        {"node", DataCollector::serializeNode(node, kb, ctx)}};
+                }
+                else
+                {
+                    op_json["operand2"] = {{"type", "null"}};
+                }
+            }
+            else if (std::holds_alternative<Literal>(op.second_op))
+            {
+                auto lit = std::get<Literal>(op.second_op);
+                json lit_json;
+                lit_json["predicate"] = kb.getPredicateName(lit.getPredicateId());
+                lit_json["negated"] = lit.isNegated();
+
+                std::vector<std::string> args;
+                for (auto arg : lit.getArgumentIds())
+                {
+                    args.push_back(ctx.normalizeSymbol(arg));
+                }
+                lit_json["arguments"] = args;
+
+                op_json["operand2"] = {
+                    {"type", "literal"},
+                    {"literal", lit_json}};
+            }
+            else
+            {
+                // 处理可能的空操作数，例如TRUNCATE操作
+                op_json["operand2"] = {{"type", "null"}};
+            }
+
+            return op_json;
         }
 
         // 检查是否到达空子句
@@ -96,7 +271,6 @@ namespace LogicSystem
                         if (Resolution::isComplementary(node->literal, lit) &&
                             Unifier::findMGU(node->literal, lit, kb))
                         {
-
                             auto new_state = SLIOperation::createExtensionState(
                                 parent_state->sli_tree,
                                 node,
@@ -105,8 +279,6 @@ namespace LogicSystem
                                 parent_state);
 
                             states.push_back(new_state);
-                            // std::cout << "NeuralHeuristicSearch::generateExtensionStates  new states" << std::endl;
-                            // SLIOperation::printCurrentState(new_state, kb);
                         }
                     }
                 }
@@ -120,7 +292,6 @@ namespace LogicSystem
             const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &parent_state)
         {
-
             std::vector<std::shared_ptr<SLIOperation::OperationState>> states;
             auto factoring_pairs = SLIResolution::findPotentialFactoringPairs(parent_state->sli_tree);
 
@@ -142,7 +313,6 @@ namespace LogicSystem
             const std::vector<std::shared_ptr<SLINode>> &b_lit_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &parent_state)
         {
-
             std::vector<std::shared_ptr<SLIOperation::OperationState>> states;
             auto ancestry_pairs = SLIResolution::findPotentialAncestryPairs(parent_state->sli_tree);
 
@@ -164,7 +334,6 @@ namespace LogicSystem
             const std::vector<std::shared_ptr<SLINode>> &active_nodes,
             const std::shared_ptr<SLIOperation::OperationState> &parent_state)
         {
-
             std::vector<std::shared_ptr<SLIOperation::OperationState>> states;
             auto truncate_nodes = SLIResolution::findPotentialTruncateNodes(parent_state->sli_tree);
 
@@ -206,6 +375,42 @@ namespace LogicSystem
             }
         }
 
+        // 设置实验模式
+        void setExperimentMode(const std::string &mode)
+        {
+            if (mode == "phase1_only")
+            {
+                experiment_mode = PHASE1_ONLY;
+                std::cout << "实验模式: 仅使用第一阶段（操作类型评分）" << std::endl;
+            }
+            else if (mode == "phase2_only")
+            {
+                experiment_mode = PHASE2_ONLY;
+                std::cout << "实验模式: 仅使用第二阶段（参数评分）" << std::endl;
+            }
+            else
+            {
+                experiment_mode = BOTH_PHASES;
+                std::cout << "实验模式: 同时使用两个阶段" << std::endl;
+            }
+        }
+
+        // 获取当前实验模式
+        std::string getExperimentMode() const
+        {
+            switch (experiment_mode)
+            {
+            case PHASE1_ONLY:
+                return "phase1_only";
+            case PHASE2_ONLY:
+                return "phase2_only";
+            case BOTH_PHASES:
+                return "both_phases";
+            default:
+                return "unknown";
+            }
+        }
+
         // 新增方法获取访问状态数
         int getVisitedStatesCount() const
         {
@@ -224,7 +429,6 @@ namespace LogicSystem
         {
             // 初始化
             auto initialTree = std::make_shared<SLITree>(kb);
-            // initialTree->add_node(goal, Literal(), false, initialTree->getRoot());
 
             // 创建初始操作状态
             auto initial_state = SLIOperation::createExtensionState(
@@ -243,12 +447,13 @@ namespace LogicSystem
             int iteration = 0;
             std::shared_ptr<SLIOperation::OperationState> last_state = initial_state;
 
+            std::cout << "开始搜索，实验模式: " << getExperimentMode() << std::endl;
+
             while (!state_stack.empty() && iteration < max_iterations)
             {
                 iteration++;
                 if (iteration % 100 == 0)
                 {
-                    std::cout << "NeuralHeuristicSearch::search ";
                     std::cout << "搜索迭代 " << iteration << "，栈大小: " << state_stack.size() << std::endl;
                 }
 
@@ -259,17 +464,6 @@ namespace LogicSystem
                 // 深拷贝当前状态以避免影响栈中的其他状态
                 auto copied_state = SLIOperation::deepCopyOperationState(current_state);
                 last_state = copied_state;
-
-                // if(copied_state->action == SLIActionType::TRUNCATE)
-                // {
-                //     std::cout << "TRUNCATE " << SLI_Action_to_string(copied_state->action) << std::endl;
-                //     std::cout << "Tree" << std::endl;
-                //     copied_state->sli_tree->print_tree(kb);
-                //     return false;
-                // }
-
-                // std::cout << "current state round " << iteration << std::endl;
-                // SLIOperation::printCurrentState(copied_state, kb);
 
                 // 执行当前操作
                 bool valid_operation = applyOperation(copied_state);
@@ -282,7 +476,7 @@ namespace LogicSystem
                 if (checkEmptyClause(copied_state->sli_tree))
                 {
                     std::cout << "成功找到解决方案，迭代次数: " << iteration << std::endl;
-                    SLIOperation::printOperationPath(copied_state, kb);
+                    //SLIOperation::printOperationPath(copied_state, kb);
                     return true;
                 }
 
@@ -305,7 +499,6 @@ namespace LogicSystem
                 auto active_nodes = copied_state->sli_tree->get_all_active_nodes();
                 bool AC_result = copied_state->sli_tree->check_all_nodes_AC();
                 bool MC_result = copied_state->sli_tree->check_all_nodes_MC();
-                // std::cout << "NeuralHeuristicSeach::search AC " << AC_result << " MC " << MC_result << std::endl;
 
                 // 根据条件决定可执行的操作类型
                 std::vector<SLIActionType> available_actions;
@@ -313,7 +506,6 @@ namespace LogicSystem
                 if (AC_result && MC_result)
                 {
                     // 可以执行所有操作
-                    // std::cout << "NeuralHeuristicSeach::search AC&&MC is true " << std::endl;
                     available_actions = {
                         SLIActionType::EXTENSION,
                         SLIActionType::FACTORING,
@@ -348,25 +540,19 @@ namespace LogicSystem
                     // 默认评分
                     action_scores_json = {
                         {"status", "success"},
-                        {"action_scores", {0.6, 0.7, 0.8, 0.9}} // Extension, Factoring, Ancestry, Truncate
+                        {"action_scores", {0.6, 0.7, 0.8, 0.5}} // Extension, Factoring, Ancestry, Truncate
                     };
                 }
 
                 std::vector<float> action_scores = action_scores_json["action_scores"];
-                action_scores[2] = 1.0;
-                action_scores[1] = 0.035;
-                action_scores.push_back(1.0); // Truncate
-                // if (action_scores[1] > action_scores[0])
-                // {
-                //     std::cout << "6" <<std::endl;
-                // }
-                // std::cout << "第一阶段神经网络操作评分: ";
-                // for (auto score : action_scores)
-                // {
-                //     std::cout << score << " ";
-                // }
-                // std::cout << std::endl;
-                // return false;
+                if (action_scores.size() < 4)
+                {
+                    // 确保有足够的评分
+                    while (action_scores.size() < 4)
+                    {
+                        action_scores.push_back(0.5);
+                    }
+                }
 
                 // 将每种操作类型和对应分数配对
                 std::vector<std::pair<SLIActionType, float>> scored_actions;
@@ -400,32 +586,7 @@ namespace LogicSystem
                           [](const auto &a, const auto &b)
                           { return a.second > b.second; });
 
-                // if(AC_result && !MC_result)
-                // {
-                //     std::cout << "Should Truncate " <<std::endl;
-                //     std::cout << "scored_actions size " << scored_actions.size() <<std::endl;
-                //     std::cout << "Tree " <<std::endl;
-                //     copied_state->sli_tree->print_tree(kb);
-                //     for (const auto &[action, score] : scored_actions)
-                //     {
-                //         std::cout << SLI_Action_to_string(action) << " score " << score <<std::endl;
-                //     }
-                //     // return false;
-                // }
-                // if(!AC_result && MC_result)
-                // {
-                //     std::cout << "Should Factoring or Ancestry " <<std::endl;
-                //     std::cout << "scored_actions size " << scored_actions.size() <<std::endl;
-                //     std::cout << "Tree " <<std::endl;
-                //     copied_state->sli_tree->print_tree(kb);
-                //     for (const auto &[action, score] : scored_actions)
-                //     {
-                //         std::cout << SLI_Action_to_string(action) << " score " << score <<std::endl;
-                //     }
-                //     // return false;
-                // }
-
-                // 为每种操作类型生成可能的状态
+                // 为每种操作类型生成并评分所有可能的状态
                 for (const auto &[action, score] : scored_actions)
                 {
                     std::vector<std::shared_ptr<SLIOperation::OperationState>> action_states;
@@ -447,34 +608,107 @@ namespace LogicSystem
                         break;
                     }
 
-                    // 为这种操作类型下的每个参数选择添加评分
-                    for (auto &state : action_states)
+                    // 如果没有可能的状态，继续下一个操作类型
+                    if (action_states.empty())
                     {
-                        state->heuristic_score = score;
+                        continue;
                     }
 
-                    // 第二阶段：对参数进行排序（预留给神经网络）
-                    // 目前使用简单的降序入栈（高分先入栈）
+                    // 第二阶段：使用神经网络对参数进行评分
+                    std::vector<double> parameter_scores;
+                    if (action_states.size() > 1) // 只有多个参数才需要评分
+                    {
+                        json parameter_scores_json = getParameterScores(action, action_states, kb);
+
+                        if (parameter_scores_json.contains("status") && parameter_scores_json["status"] == "success")
+                        {
+                            parameter_scores = parameter_scores_json["parameter_scores"].get<std::vector<double>>();
+
+                            // 确保评分数量匹配
+                            if (parameter_scores.size() != action_states.size())
+                            {
+                                std::cerr << "参数评分数量不匹配，期望 " << action_states.size()
+                                          << " 但收到 " << parameter_scores.size() << std::endl;
+
+                                // 重置为默认评分
+                                parameter_scores.clear();
+                                for (size_t i = 0; i < action_states.size(); i++)
+                                {
+                                    parameter_scores.push_back(1.0 - (static_cast<double>(i) / action_states.size()));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // 默认评分
+                            for (size_t i = 0; i < action_states.size(); i++)
+                            {
+                                parameter_scores.push_back(1.0 - (static_cast<double>(i) / action_states.size()));
+                            }
+                        }
+
+                        // 创建状态和评分的配对
+                        std::vector<std::pair<std::shared_ptr<SLIOperation::OperationState>, double>> state_scores;
+                        for (size_t i = 0; i < action_states.size(); i++)
+                        {
+                            // 根据实验模式组合评分
+                            double combined_score = 0.0;
+
+                            switch (experiment_mode)
+                            {
+                            case PHASE1_ONLY:
+                                combined_score = score; // 只使用第一阶段评分
+                                break;
+                            case PHASE2_ONLY:
+                                combined_score = parameter_scores[i]; // 只使用第二阶段评分
+                                break;
+                            case BOTH_PHASES:
+                                // 使用两个阶段的加权组合评分
+                                combined_score = 0.5 * score + 0.5 * parameter_scores[i];
+                                break;
+                            }
+
+                            action_states[i]->heuristic_score = combined_score;
+                            state_scores.push_back({action_states[i], combined_score});
+                        }
+
+                        // 按评分降序排序（高评分优先）
+                        std::sort(state_scores.begin(), state_scores.end(),
+                                  [](const auto &a, const auto &b)
+                                  {
+                                      return a.second > b.second;
+                                  });
+
+                        // 清空并重新设置已排序的动作状态
+                        action_states.clear();
+                        for (const auto &[state, _] : state_scores)
+                        {
+                            action_states.push_back(state);
+                        }
+                    }
+                    else if (action_states.size() == 1)
+                    {
+                        // 只有一个参数，直接使用操作类型评分
+                        action_states[0]->heuristic_score = score;
+                    }
 
                     // 反向入栈（确保高分的在栈顶）
                     for (int i = action_states.size() - 1; i >= 0; i--)
                     {
                         state_stack.push(action_states[i]);
-                        // std::cout << "potential action states " << std::endl;
-                        // SLIOperation::printCurrentState(action_states[i], kb);
                     }
                 }
             }
 
             // 未找到解决方案
-            std::cout << "NeuralHeuristicSearch::search 未找到解决方案，达到最大迭代次数或搜索空间已耗尽" << std::endl;
+            std::cout << "未找到解决方案，达到最大迭代次数或搜索空间已耗尽" << std::endl;
             if (iteration >= max_iterations)
             {
-                std::cout << "NeuralHeuristicSearch::search Reach Max Iterantions" << std::endl;
+                std::cout << "达到最大迭代次数: " << max_iterations << std::endl;
             }
             if (last_state)
             {
-                std::cout << "NeuralHeuristicSearch::search最后的状态: " << std::endl;
+                std::cout << "最后的状态: " << std::endl;
                 last_state->sli_tree->print_tree(kb);
                 bool AC_result = last_state->sli_tree->check_all_nodes_AC();
                 bool MC_result = last_state->sli_tree->check_all_nodes_MC();

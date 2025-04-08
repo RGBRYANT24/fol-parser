@@ -14,6 +14,7 @@ add_library(logicsystem
     SLIResolution.cpp
     VariableRenamer.cpp
     SLIMCTSProver.cpp
+    SLIHeuristicProver.cpp
     # KnowledgeBaseBuilder.cpp
 )
 

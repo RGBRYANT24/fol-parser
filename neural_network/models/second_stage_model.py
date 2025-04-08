@@ -1,7 +1,7 @@
 import math
 import torch
 import torch.nn as nn
-from neural_network.models.common import PositionalEncoding
+from models.common import PositionalEncoding
 
 class SecondStageModel(nn.Module):
     """
@@ -67,58 +67,84 @@ class SecondStageModel(nn.Module):
         return encoded
     
     def forward(self, global_input, candidate_param_ids, graph_mask=None, src_key_padding_mask=None):
-        """
+      """
         参数:
-          global_input: [seq_len, B] —— 全局输入序列（例如 SLI 树和图数据）
-          candidate_param_ids: [B, num_candidates, param_seq_length] —— 候选操作参数 token 序列
+          global_input: [seq_len, B] ---- 全局输入序列（例如 SLI 树和图数据）
+          candidate_param_ids: [B, num_candidates, param_seq_length] ---- 候选操作参数 token 序列
           graph_mask: Transformer 后续遮罩，用于全局输入编码
           src_key_padding_mask: 填充遮罩，用于全局输入编码
         返回:
-          scores: [B, num_candidates] —— 每个候选操作参数对应的连续得分
-        """
-        device = global_input.device
-        
-        # 1. 全局输入编码（传入 mask 与填充 mask）
-        global_encoded = self.encode(global_input, mask=graph_mask, src_key_padding_mask=src_key_padding_mask)
-        global_encoded = global_encoded.transpose(0, 1)  # [B, seq_len, d_model]
-        global_summary = global_encoded.mean(dim=1)      # [B, d_model]
-        
-        # 2. 候选参数编码（候选序列通常固定，无需额外 mask）
-        B, num_candidates, cand_seq_len = candidate_param_ids.size()
-        candidate_flat = candidate_param_ids.view(B * num_candidates, cand_seq_len)  # [B*num_candidates, cand_seq_len]
-        candidate_flat = candidate_flat.transpose(0, 1)  # [cand_seq_len, B*num_candidates]
-        candidate_encoded = self.encode(candidate_flat)  # [cand_seq_len, B*num_candidates, d_model]
-        candidate_encoded = candidate_encoded.transpose(0, 1)  # [B*num_candidates, cand_seq_len, d_model]
-        candidate_repr = candidate_encoded.mean(dim=1)  # [B*num_candidates, d_model]
-        candidate_repr = candidate_repr.view(B, num_candidates, self.d_model)  # [B, num_candidates, d_model]
-        
-        # 3. 分别对候选表示与全局摘要进行投影
-        candidate_proj = self.candidate_proj(candidate_repr)            # [B, num_candidates, branch_hidden_dim]
-        global_proj = self.global_proj(global_summary)                  # [B, branch_hidden_dim]
-        global_proj_expanded = global_proj.unsqueeze(1).expand(-1, num_candidates, -1)  # [B, num_candidates, branch_hidden_dim]
-        
-        # 4. 融合：拼接投影后的候选与全局特征，并通过融合网络降维
-        fused_features = torch.cat([candidate_proj, global_proj_expanded], dim=-1)  # [B, num_candidates, 2*branch_hidden_dim]
-        fused_features = self.fusion_layer(fused_features)  # [B, num_candidates, fusion_hidden_dim]
-        
-        # 5. 根据候选参数中第 2 个 token（代表候选类型）选择不同 head 进行得分预测
-        candidate_types = candidate_param_ids[:, :, 1]  # [B, num_candidates]
-        scores = torch.zeros(B, num_candidates, device=device)
-        
-        if self.ext_token_id != -1:
-            ext_mask = (candidate_types == self.ext_token_id)
-            if ext_mask.any():
-                ext_scores = self.ext_head(fused_features[ext_mask]).squeeze(-1)
-                scores[ext_mask] = ext_scores
-        if self.fact_token_id != -1:
-            fact_mask = (candidate_types == self.fact_token_id)
-            if fact_mask.any():
-                fact_scores = self.fact_head(fused_features[fact_mask]).squeeze(-1)
-                scores[fact_mask] = fact_scores
-        if self.ances_token_id != -1:
-            ances_mask = (candidate_types == self.ances_token_id)
-            if ances_mask.any():
-                ances_scores = self.ances_head(fused_features[ances_mask]).squeeze(-1)
-                scores[ances_mask] = ances_scores
-        
-        return scores
+          scores: [B, num_candidates] ---- 每个候选操作参数对应的连续得分
+      """
+      device = global_input.device
+      
+      # 1. 全局输入编码（传入 mask 与填充 mask）
+      global_encoded = self.encode(global_input, mask=graph_mask, src_key_padding_mask=src_key_padding_mask)
+      global_encoded = global_encoded.transpose(0, 1)  # [B, seq_len, d_model]
+      global_summary = global_encoded.mean(dim=1)      # [B, d_model]
+      
+      # 2. 候选参数编码（候选序列通常固定，无需额外 mask）
+      B, num_candidates, cand_seq_len = candidate_param_ids.size()
+      candidate_flat = candidate_param_ids.view(B * num_candidates, cand_seq_len)  # [B*num_candidates, cand_seq_len]
+      candidate_flat = candidate_flat.transpose(0, 1)  # [cand_seq_len, B*num_candidates]
+      candidate_encoded = self.encode(candidate_flat)  # [cand_seq_len, B*num_candidates, d_model]
+      candidate_encoded = candidate_encoded.transpose(0, 1)  # [B*num_candidates, cand_seq_len, d_model]
+      candidate_repr = candidate_encoded.mean(dim=1)  # [B*num_candidates, d_model]
+      candidate_repr = candidate_repr.view(B, num_candidates, self.d_model)  # [B, num_candidates, d_model]
+      
+      # 3. 分别对候选表示与全局摘要进行投影
+      candidate_proj = self.candidate_proj(candidate_repr)            # [B, num_candidates, branch_hidden_dim]
+      global_proj = self.global_proj(global_summary)                  # [B, branch_hidden_dim]
+      global_proj_expanded = global_proj.unsqueeze(1).expand(-1, num_candidates, -1)  # [B, num_candidates, branch_hidden_dim]
+      
+      # 4. 融合：拼接投影后的候选与全局特征，并通过融合网络降维
+      fused_features = torch.cat([candidate_proj, global_proj_expanded], dim=-1)  # [B, num_candidates, 2*branch_hidden_dim]
+      fused_features = self.fusion_layer(fused_features)  # [B, num_candidates, fusion_hidden_dim]
+      
+      # 5. 根据候选参数中第 2 个 token（代表候选类型）选择不同 head 进行得分预测
+      candidate_types = candidate_param_ids[:, :, 1]  # [B, num_candidates]
+      B, num_candidates = candidate_types.shape
+      
+      # 创建得分张量
+      scores = torch.zeros(B, num_candidates, device=global_input.device)
+      
+      # 只为每种类型计算其对应的头部得分
+      # Extension类型
+      ext_mask = (candidate_types == self.ext_token_id)
+      if ext_mask.any():
+          # 只提取extension类型的特征进行计算
+          ext_features = fused_features[ext_mask]
+          ext_scores = self.ext_head(ext_features).squeeze(-1)
+          
+          # 使用scatter操作保持梯度流
+          # 创建索引张量
+          ext_indices = torch.nonzero(ext_mask, as_tuple=True)
+          # 在scores中正确位置填入计算结果
+          scores.index_put_(ext_indices, ext_scores)
+      
+      # Factoring类型
+      fact_mask = (candidate_types == self.fact_token_id)
+      if fact_mask.any():
+          fact_features = fused_features[fact_mask]
+          fact_scores = self.fact_head(fact_features).squeeze(-1)
+          fact_indices = torch.nonzero(fact_mask, as_tuple=True)
+          scores.index_put_(fact_indices, fact_scores)
+      
+      # Ancestry类型
+      ances_mask = (candidate_types == self.ances_token_id)
+      if ances_mask.any():
+          ances_features = fused_features[ances_mask]
+          ances_scores = self.ances_head(ances_features).squeeze(-1)
+          ances_indices = torch.nonzero(ances_mask, as_tuple=True)
+          scores.index_put_(ances_indices, ances_scores)
+      
+      # 处理未知类型（如果有的话）
+      other_mask = ~(ext_mask | fact_mask | ances_mask)
+      if other_mask.any():
+          other_features = fused_features[other_mask]
+          # 对未知类型使用任意一个head
+          other_scores = self.ext_head(other_features).squeeze(-1)
+          other_indices = torch.nonzero(other_mask, as_tuple=True)
+          scores.index_put_(other_indices, other_scores)
+      
+      return scores

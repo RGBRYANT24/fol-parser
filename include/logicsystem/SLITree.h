@@ -16,6 +16,14 @@
 
 namespace LogicSystem
 {
+
+    struct SearchResult
+    {
+        bool success;
+        int visitedStates;
+        long duration;      // 毫秒
+        std::string method; // 搜索方法名称
+    };
     class SLITree
     {
     public:
@@ -118,7 +126,7 @@ namespace LogicSystem
 
         KnowledgeBase getKB() { return this->kb; }
 
-        bool validateAllNodes() 
+        bool validateAllNodes()
         {
             // 从根节点开始递归检查所有节点
             for (const auto &level : depth_map)

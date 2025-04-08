@@ -3,22 +3,20 @@
 #include <vector>
 #include <memory>
 #include <cmath>
+#include <string>     // 用于 std::string 和 std::to_string
+#include <filesystem> // C++17 文件系统
 
-// 包含相关模块的头文件（假设这些头文件均已正确定义）
-#include "SLIMCTSState.h"  // 提供 LogicSystem::SLIMCTSState 定义
-#include "SLIMCTSAction.h" // 提供 LogicSystem::SLIMCTSAction 定义
-#include "ofxMSAmcts.h"    // MCTS 框架中的 UCT 算法实现
-#include "MSALoopTimer.h"  // 定时器
-#include "DataCollector.h" // 数据采集接口
+#include "SLIMCTSState.h"
+#include "SLIMCTSAction.h"
+#include "ofxMSAmcts.h"
+#include "MSALoopTimer.h"
+#include "DataCollector.h"
 
 namespace LogicSystem
 {
-    // 假定 SLITree 类型是在 SLIMCTSState.h 中定义
-    // 辅助函数：判断 SLITree 是否包含空子句（证明是否成功）
     bool checkEmptyClause(const SLITree &sli_tree)
     {
-        // 根据 SLITree 的实际实现编写具体空子句判断逻辑
-        return sli_tree.get_all_active_nodes().size() == 0 ? true : false;
+        return sli_tree.get_all_active_nodes().size() == 0;
     }
 
     SLIMCTSProver::SLIMCTSProver(KnowledgeBase &kb, const Clause &goal)
@@ -26,59 +24,51 @@ namespace LogicSystem
     {
     }
 
-    bool SLIMCTSProver::prove()
+    // 修改 prove 函数接口，传入文件保存路径。如果传入空字符串，则不保存数据。
+    bool SLIMCTSProver::prove(const std::string &save_dir)
     {
-        // ----------------------------
         // 1. 构造初始状态
-        // ----------------------------
         auto initialTree = std::make_shared<SLITree>(kb);
         initialTree->add_node(goal, Literal(), false, initialTree->getRoot());
         LogicSystem::SLIMCTSState current_state(initialTree);
-        // 此处直接将初始 tree 赋值给状态（如果有必要可以省略，因为构造函数已经深拷贝）
         current_state.sli_tree = initialTree;
 
-        // ----------------------------
         // 2. 配置 MCTS 搜索
-        // ----------------------------
         msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
-        mcts_search.max_iterations = 15000;  // 最大迭代次数
-        mcts_search.max_millis = 3000;    // 最大搜索时间（毫秒）
-        mcts_search.simulation_depth = 400; // 模拟阶段的最大深度
-        mcts_search.uct_k = std::sqrt(6);  // UCT 中的探索系数
+        mcts_search.max_iterations = 10000;
+        mcts_search.max_millis = 10000;
+        mcts_search.simulation_depth = 2000;
+        mcts_search.uct_k = std::sqrt(2);
 
-        // ----------------------------
-        // 3. 逐步扩展证明过程
-        // ----------------------------
-        // 通过循环不断执行动作直到达到证明目的或判断为终局状态
-        int count = 0;
+        // 3. 初始化数据收集容器
+        std::vector<json> training_samples;
+        // 生成图与搜索路径的 JSON 数据
+        DataCollector::NormalizationContext ctx; // 新鲜的上下文：保证整个样本中常量编码一致
+        nlohmann::json graph_json = DataCollector::serializeGraph(kb, ctx);
+
+        // 4. 迭代执行 MCTS 搜索过程
         while (!checkEmptyClause(*(current_state.sli_tree)) && !current_state.is_terminal())
         {
-            // if(count ++ > 2) return false;
-            // 使用 MCTS 搜索来选择一条最佳的动作路径
-            LogicSystem::SLIMCTSAction best_action = mcts_search.run(current_state);
+            // 执行一次 MCTS 搜索
+            auto mcts_result = mcts_search.run(current_state);
+            auto node = mcts_result.root_node;
 
-            // std::cout << "Current State:" << std::endl;
-            // current_state.sli_tree->print_tree(kb);
-            // std::cout << "Best Action: " << best_action.to_string(kb) << std::endl;
+            // 通过 DataCollector 收集训练样本
+            json sample = DataCollector::collectTrainingSampleMCTS(node, kb, ctx);
+            training_samples.push_back(sample);
 
-            // return false;
-
-            // 生成新状态，该状态为当前状态的深拷贝，并在其上应用动作
+            // 获取最佳动作并更新状态
+            LogicSystem::SLIMCTSAction best_action = mcts_result.best_action;
             current_state = current_state.next_state(best_action);
-
-            // 可选：采集训练样本
-            // collectTrainingSamples(current_state);
-
             std::cout << "Updated State: " << current_state.to_string() << std::endl;
         }
 
-        // ----------------------------
-        // 4. 检查证明结果
-        // ----------------------------
-        if (checkEmptyClause(*(current_state.sli_tree)))
+        // 5. 检查证明结果并保存数据（当且仅当传入的保存路径不为空）
+        bool is_success = checkEmptyClause(*(current_state.sli_tree));
+
+        if (is_success)
         {
             std::cout << "Proof successful!" << std::endl;
-            return true;
         }
         else
         {
@@ -90,28 +80,162 @@ namespace LogicSystem
             std::vector<SLIMCTSAction> actions;
             current_state.get_actions(actions);
             std::cout << "action size " << actions.size() << std::endl;
-            std::cout << "has selfloop " << !current_state.sli_tree->validateAllNodes() <<std::endl;
-            return false;
+            std::cout << "has selfloop " << !current_state.sli_tree->validateAllNodes() << std::endl;
         }
+
+        // 无论成功还是失败，都保存数据
+        if (!save_dir.empty())
+        {
+            // 生成唯一文件名：使用静态计数器生成不同的文件名
+            static int test_counter = 0;
+            std::string fileName = save_dir;
+            // 确保目录路径以斜杠结尾
+            if (!fileName.empty() && fileName.back() != '/' && fileName.back() != '\\')
+            {
+                fileName += "/";
+            }
+            // 在文件名中标识成功或失败
+            fileName += "training_data_" + std::to_string(test_counter++) +
+                        (is_success ? "_success" : "_failure") + ".json";
+
+            // 如果需要，可以利用 <filesystem> 检查或创建目录
+            std::filesystem::create_directories(save_dir);
+
+            // 保存收集的样本数据到文件
+            nlohmann::json sample;
+            sample["graph"] = graph_json;
+            sample["search_path"] = training_samples;
+            // 添加证明结果标记
+            sample["proof_result"] = is_success ? "success" : "failure";
+
+            DataCollector::saveToFile(sample, fileName);
+            std::cout << "Saved training samples to file: " << fileName << std::endl;
+        }
+
+        return is_success;
     }
 
-    void SLIMCTSProver::collectTrainingSamples(const LogicSystem::SLIMCTSState &state)
+    SearchResult SLIMCTSProver::prove_search_result(const std::string &save_dir)
     {
-        // 示例：采集训练数据，具体实现需要根据实际数据结构调整
+        // 初始化返回结构
+        SearchResult result;
+        result.method = "MCTS"; // 设置搜索方法名称
+
+        // 记录开始时间
+        auto start_time = std::chrono::high_resolution_clock::now();
+
+        // 节点访问计数器
+        int visited_states_count = 0;
+
+        // 1. 构造初始状态
+        auto initialTree = std::make_shared<SLITree>(kb);
+        initialTree->add_node(goal, Literal(), false, initialTree->getRoot());
+        LogicSystem::SLIMCTSState current_state(initialTree);
+        current_state.sli_tree = initialTree;
+        visited_states_count++; // 计算初始状态
+
+        // 2. 配置 MCTS 搜索
+        msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
+        mcts_search.max_iterations = 10000;
+        mcts_search.max_millis = 10000;
+        mcts_search.simulation_depth = 2000;
+        mcts_search.uct_k = std::sqrt(2);
+
+        // 3. 初始化数据收集容器
         std::vector<json> training_samples;
-        std::string state_str = state.to_string();
-        std::cout << "Collecting training sample for state: " << state_str << std::endl;
+        // 生成图与搜索路径的 JSON 数据
+        DataCollector::NormalizationContext ctx; // 新鲜的上下文：保证整个样本中常量编码一致
+        nlohmann::json graph_json = DataCollector::serializeGraph(kb, ctx);
 
-        // 以下代码仅为伪代码示例，实际请根据你的项目需求修改：
-        /*
-        std::vector<LogicSystem::SLIMCTSAction> available_actions;
-        state.get_actions(available_actions);
-        double reward = 1.0;  // 证明成功时奖励可以设为1.0
-        json sample = DataCollector::collectTrainingSample(state, available_actions, chosen_action, reward, kb);
-        training_samples.push_back(sample);
-        */
+        // 4. 迭代执行 MCTS 搜索过程
+        int iteration = 0;
+        const int MAX_ITERATIONS = 900000; // 与DFS保持一致的最大迭代次数
 
-        // 将采集到的样本存储到文件中
-        DataCollector::saveToFile(training_samples, "training_samples.json");
+        while (!checkEmptyClause(*(current_state.sli_tree)) && !current_state.is_terminal())
+        {
+            iteration++;
+
+            if (iteration % 5000 == 0)
+            {
+                std::cout << "SearchResult SLIMCTSProver::prove MCTS round " << iteration << std::endl;
+            }
+
+            if (visited_states_count >= MAX_ITERATIONS)
+            {
+                // 设置结果为失败（达到最大迭代次数）
+                result.success = false;
+                result.visitedStates = visited_states_count;
+
+                // 计算用时
+                auto end_time = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                result.duration = duration;
+
+                std::cout << "证明失败，达到最大迭代次数。用时: " << duration
+                          << " 毫秒, 访问状态数: " << visited_states_count << std::endl;
+
+                // 保存数据（如果需要）
+                // saveSearchData(save_dir, false, graph_json, training_samples);
+
+                return result;
+            }
+
+            // 执行一次 MCTS 搜索
+            auto mcts_result = mcts_search.run(current_state);
+            auto node = mcts_result.root_node;
+
+            // 增加访问状态计数（包括MCTS内部探索的所有状态）
+            int mcts_visited_states = mcts_search.get_visited_states();
+            visited_states_count += mcts_visited_states;
+
+            std::cout << "MCTS搜索访问状态数: " << mcts_visited_states << ", 累计访问状态数: " << visited_states_count << std::endl;
+
+            // 通过 DataCollector 收集训练样本
+            json sample = DataCollector::collectTrainingSampleMCTS(node, kb, ctx);
+            training_samples.push_back(sample);
+
+            // 获取最佳动作并更新状态
+            LogicSystem::SLIMCTSAction best_action = mcts_result.best_action;
+            current_state = current_state.next_state(best_action);
+            visited_states_count++; // 计算新状态
+
+            std::cout << "Updated State: " << current_state.to_string() << std::endl;
+        }
+
+        // 5. 检查证明结果
+        bool is_success = checkEmptyClause(*(current_state.sli_tree));
+
+        // 计算用时
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+        // 设置结果
+        result.success = is_success;
+        result.visitedStates = visited_states_count;
+        result.duration = duration;
+
+        if (is_success)
+        {
+            std::cout << "证明成功! 用时: " << duration << " 毫秒, 访问状态数: " << visited_states_count << std::endl;
+        }
+        else
+        {
+            std::cout << "证明失败，搜索空间已耗尽。用时: " << duration
+                      << " 毫秒, 访问状态数: " << visited_states_count << std::endl;
+
+            current_state.sli_tree->print_tree(kb);
+            bool AC_result = current_state.sli_tree->check_all_nodes_AC();
+            bool MC_result = current_state.sli_tree->check_all_nodes_MC();
+            std::cout << "AC " << AC_result << " MC " << MC_result << std::endl;
+            std::vector<SLIMCTSAction> actions;
+            current_state.get_actions(actions);
+            std::cout << "action size " << actions.size() << std::endl;
+            std::cout << "has selfloop " << !current_state.sli_tree->validateAllNodes() << std::endl;
+        }
+
+        // 保存数据（如果需要）
+        // saveSearchData(save_dir, is_success, graph_json, training_samples);
+
+        return result;
     }
 }

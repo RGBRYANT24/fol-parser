@@ -23,7 +23,7 @@ endforeach()
 list(REMOVE_DUPLICATES INCLUDE_DIRS)
 
 include_directories(${INCLUDE_DIRS})
-
+include_directories(${CMAKE_SOURCE_DIR}/third_party)
 # Add subdirectories for each module
 add_subdirectory(src/ast)
 # 暂时注释掉parser和lexer
@@ -42,6 +42,7 @@ target_link_libraries(fol_parser
     #lexer
     #parser
     logicsystem
+    #graphcheckers
 )
 
 # Enable testing

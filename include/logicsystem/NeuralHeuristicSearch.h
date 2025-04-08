@@ -164,6 +164,7 @@ namespace LogicSystem
 
             // 发送请求并获取响应
             json response = phase2ProcessManager->sendRequest(request);
+            // std::cout << "NeuralHeuristicSearch::getParameterScores request " << request <<std::endl;
 
             if (response.contains("status") && response["status"] == "error")
             {
@@ -424,16 +425,20 @@ namespace LogicSystem
             return visited_states.size();
         }
 
-        // 修改初始化方法以支持第二阶段模型
+        // 修改initialize方法，使其使用neural_server.py和neural_server2.py两个不同的脚本
         bool initialize(
             const std::string &pythonPath,
-            const std::string &phase1ScriptPath,
-            const std::string &phase1ModelPath,
+            const std::string &phase1ScriptPath, // 第一阶段脚本路径 (neural_server.py)
+            const std::string &phase1ModelPath,  // 第一阶段模型路径
             const std::string &phase1TokenizerPath,
-            const std::string &phase2ScriptPath,
-            const std::string &phase2ModelPath,
+            const std::string &phase2ScriptPath, // 第二阶段脚本路径 (neural_server2.py)
+            const std::string &phase2ModelPath,  // 第二阶段模型路径
             const std::string &phase2TokenizerPath)
         {
+            std::cout << "NeuralHeuristicSearch::initialize Init phase1 model: " << phase1ModelPath
+                      << " script: " << phase1ScriptPath << std::endl;
+
+            // 初始化第一阶段进程，使用neural_server.py
             bool phase1Init = phase1ProcessManager->initialize(
                 pythonPath, phase1ScriptPath, phase1ModelPath, phase1TokenizerPath);
 
@@ -442,6 +447,11 @@ namespace LogicSystem
                 std::cerr << "第一阶段神经网络初始化失败" << std::endl;
                 return false;
             }
+            std::cout << "NeuralHeuristicSearch::initialize phase1 initialize ok" << std::endl;
+
+            // 初始化第二阶段进程，使用neural_server2.py
+            std::cout << "NeuralHeuristicSearch::initialize Init phase2 model: " << phase2ModelPath
+                      << " script: " << phase2ScriptPath << std::endl;
 
             bool phase2Init = phase2ProcessManager->initialize(
                 pythonPath, phase2ScriptPath, phase2ModelPath, phase2TokenizerPath);
@@ -453,20 +463,54 @@ namespace LogicSystem
                 return false;
             }
 
+            std::cout << "NeuralHeuristicSearch::initialize phase2 initialize ok" << std::endl;
             return true;
         }
 
-        // 支持向后兼容的简化版初始化方法（仅第一阶段）
+        // 保留向后兼容的简化版初始化方法，但需要进行调整以支持双阶段
         bool initialize(const std::string &pythonPath, const std::string &scriptPath,
                         const std::string &modelPath, const std::string &tokenizerPath)
         {
-            // 只初始化第一阶段，第二阶段将使用默认值
+            // 只初始化第一阶段
             bool phase1Init = phase1ProcessManager->initialize(
                 pythonPath, scriptPath, modelPath, tokenizerPath);
 
+            // 尝试自动推导第二阶段模型路径并初始化第二阶段
             if (phase1Init)
             {
-                std::cout << "警告：仅初始化了第一阶段神经网络，第二阶段将使用默认评分" << std::endl;
+                std::string phase2ScriptPath = scriptPath;
+
+                // 检查是否包含目录分隔符
+                size_t lastSlash = scriptPath.find_last_of("/\\");
+                if (lastSlash != std::string::npos)
+                {
+                    // 替换文件名部分为neural_server2.py
+                    phase2ScriptPath = scriptPath.substr(0, lastSlash + 1) + "neural_server2.py";
+                }
+                else
+                {
+                    // 没有目录分隔符，直接用neural_server2.py
+                    phase2ScriptPath = "neural_server2.py";
+                }
+
+                // 尝试找到第二阶段模型路径
+                std::string phase2ModelPath = modelPath;
+                if (modelPath.find("first_stage") != std::string::npos)
+                {
+                    phase2ModelPath = modelPath;
+                    phase2ModelPath.replace(phase2ModelPath.find("first_stage"), 11, "second_stage");
+                }
+
+                std::cout << "尝试自动初始化第二阶段，脚本: " << phase2ScriptPath
+                          << "，模型: " << phase2ModelPath << std::endl;
+
+                bool phase2Init = phase2ProcessManager->initialize(
+                    pythonPath, phase2ScriptPath, phase2ModelPath, tokenizerPath);
+
+                if (!phase2Init)
+                {
+                    std::cout << "警告：无法自动初始化第二阶段神经网络，第二阶段将使用默认评分" << std::endl;
+                }
             }
 
             return phase1Init;
@@ -684,6 +728,9 @@ namespace LogicSystem
                                 {
                                     parameter_scores.push_back(1.0 - (static_cast<double>(i) / action_states.size()));
                                 }
+                            }
+                            else{
+                                // std::cout << "NeuralHeuristicSearch::search parameter_scores ok parameter_scores.size() " << parameter_scores.size() <<std::endl;
                             }
                         }
                         else

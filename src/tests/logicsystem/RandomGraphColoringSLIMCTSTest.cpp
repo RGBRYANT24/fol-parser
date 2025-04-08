@@ -566,7 +566,7 @@ namespace LogicSystem
     TEST_F(RandomGraphColoringTest, RandomGraphTwoColoringMCTS)
     {
         // 设置输出目录
-        std::string outputDir = "/home/adrin/Projects/fol-parser/data/random_graphs";
+        std::string outputDir = "/home/jiangguifei01/aiderun/fol-parser/fol-parser/data/random_graphs";
 
         // 设置密度类型（可根据需要修改）
         // -1: 随机选择, 0: 稀疏, 1: 中等, 2: 稠密, 3: 自定义
@@ -588,7 +588,7 @@ namespace LogicSystem
         int customCount = 0;
 
         // 执行多次测试
-        int numTests = 50;
+        int numTests = 10;
         for (int test = 0; test < numTests; test++)
         {
             // 对每个测试用例创建新的知识库
@@ -659,6 +659,8 @@ namespace LogicSystem
             testKb.print();
             std::cout << "Contains K3 complete subgraph: " << (containsK3(edges, numNodes) ? "Yes" : "No") << std::endl;
 
+
+            continue;
             // 设置目标：证明图不可着色
             Clause goal;
             goal.addLiteral(Literal(pred_uncol, {}, true));

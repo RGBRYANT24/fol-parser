@@ -186,17 +186,48 @@ namespace LogicSystem
         std::map<std::string, SymbolId> constantMap;
     };
 
-    // 测试从目录读取所有图并测试2着色
+    // 测试从目录读取所有图并根据选择的算法进行测试
     TEST_F(GraphColoringTest, BatchTestTwoColoring)
     {
+        // 可选参数配置
+        //std::vector<std::string> selectedMethods = {"NeuralHeuristic_ALL", "DFS", "MCTS", "NeuralHeuristic_1", "NeuralHeuristic_2"};
+        // std::vector<std::string> selectedMethods = {"MCTS"};
+        // std::vector<std::string> selectedMethods = {"NeuralHeuristic_ALL"};
+        // std::vector<std::string> selectedMethods = {"DFS"};
+        //std::vector<std::string> selectedMethods = {"NeuralHeuristic_1", "NeuralHeuristic_2"};
+        std::vector<std::string> selectedMethods = {"NeuralHeuristic_1"};
+        int maxTestFiles = 10;
+        bool skipBipartite = true;
+
         std::string dataDir = "/home/jiangguifei01/aiderun/fol-parser/fol-parser/data";
         std::string resultsDir = "/home/jiangguifei01/aiderun/fol-parser/fol-parser/results";
 
         // 创建结果目录（如果不存在）
         std::filesystem::create_directories(resultsDir);
 
+        // 获取当前时间，用于文件名
+        auto now = std::chrono::system_clock::now();
+        auto time_t_now = std::chrono::system_clock::to_time_t(now);
+        std::tm tm_now = *std::localtime(&time_t_now);
+
+        // 格式化时间戳: YYYY-MM-DD_HH-MM-SS
+        std::ostringstream timestamp;
+        timestamp << std::put_time(&tm_now, "%Y-%m-%d_%H-%M-%S");
+
+        // 生成包含选择方法和时间戳的文件名
+        std::string methodsString;
+        for (const auto &method : selectedMethods)
+        {
+            if (!methodsString.empty())
+                methodsString += "_";
+            methodsString += method;
+        }
+
+        std::string resultFileName = "search_comparison_" + methodsString + "_" + timestamp.str() + ".csv";
+        std::string fullResultPath = resultsDir + "/" + resultFileName;
+
         // 创建CSV文件并写入表头
-        std::ofstream resultsFile(resultsDir + "/search_comparison.csv");
+        std::ofstream resultsFile(fullResultPath);
         resultsFile << "FileName,GraphSize,EdgeDensity,CanTwoColored,Method,Success,VisitedStates,Duration(ms)\n";
         resultsFile.close(); // 先关闭文件，之后每次都追加写入
 
@@ -214,8 +245,10 @@ namespace LogicSystem
                 checker.loadGraphFromJson(entry.path().string());
                 bool canTwoColored = checker.isBipartite();
                 std::cout << "Result by BFS can be two colored: " << canTwoColored << std::endl;
-                if (canTwoColored)
-                    continue; // 可以二染色的跳过
+
+                // 如果设置了跳过二分图且当前图是二分图，则跳过此图
+                if (skipBipartite && canTwoColored)
+                    continue;
 
                 // 获取图的大小（节点数）
                 int graphSize = checker.getNumNodes();
@@ -223,10 +256,8 @@ namespace LogicSystem
                 double edgeDensity = checker.getEdgeDensity();
                 std::cout << "Graph Node Size " << graphSize << " Graph Edge SIze " << edgeSize << " Graph Density " << edgeDensity << std::endl;
 
-                // 为每种搜索方法测试并记录结果
-                std::vector<std::string> searchMethods = {"NeuralHeuristic_1", "DFS", "MCTS", "NeuralHeuristic_2", "NeuralHeuristic_ALL"};
-
-                for (const auto &method : searchMethods)
+                // 只测试选定的搜索方法
+                for (const auto &method : selectedMethods)
                 {
                     std::cout << "Testing with method: " << method << std::endl;
 
@@ -258,7 +289,7 @@ namespace LogicSystem
 
                         // 设置第二阶段配置
                         prover.setPhase2Config(
-                            "../../../neural_network/neural_server/neural_server.py",
+                            "../../../neural_network/neural_server/neural_server2.py",
                             "../../../neural_network/second_stage_model.pth",
                             "../../../neural_network/unified_tokenizer.pkl");
                         prover.setExperimentMode("both_phases"); // 使用两个阶段
@@ -266,38 +297,52 @@ namespace LogicSystem
                     }
                     else if (method == "NeuralHeuristic_1")
                     {
-                        continue;
+                        SLIHeuristicProver prover(kb, goal, 80000);
+                        // 设置第一阶段配置
+                        prover.setPhase1Config(
+                            "python3",
+                            "../../../neural_network/neural_server/neural_server.py",
+                            "../../../neural_network/first_stage_model.pth",
+                            "../../../neural_network/unified_tokenizer.pkl");
+                        prover.setExperimentMode("phase1_only"); // 只使用第一阶段
+                        searchResult = prover.prove("");
+                    }
+                    else if (method == "NeuralHeuristic_2")
+                    {
+                        SLIHeuristicProver prover(kb, goal, 80000);
+                        // 设置第二阶段配置
+                        prover.setPhase2Config(
+                            "../../../neural_network/neural_server/neural_server2.py",
+                            "../../../neural_network/second_stage_model.pth",
+                            "../../../neural_network/unified_tokenizer.pkl");
+                        prover.setExperimentMode("phase2_only"); // 只使用第二阶段
+                        searchResult = prover.prove("");
+                    }
+                    else if (method == "DFS")
+                    {
+                        searchResult = SLIResolution::prove(kb, goal);
+                    }
+                    else if (method == "MCTS")
+                    {
+                        SLIMCTSProver prover(kb, goal);
+                        searchResult = prover.prove_search_result("");
                     }
                     else
                     {
+                        std::cerr << "Unknown method: " << method << ", skipping..." << std::endl;
                         continue;
                     }
-                    // else if (method == "DFS")
-                    // {
-                    //     // SLIResolution::prove prover(kb, goal);
-                    //     searchResult = SLIResolution::prove(kb, goal);
-                    // }
-                    // else if (method == "MCTS")
-                    // {
-                    //     SLIMCTSProver prover(kb, goal);
-                    //     searchResult = prover.prove(resultsDir + "/" + filename);
-                    // }
-                    // else if (method == "IDDNeuralHeuristic_2FS")
-                    // {
-                    //     SLIIDDFSProver prover(kb, goal);
-                    //     searchResult = prover.prove(resultsDir + "/" + filename);
-                    // }
 
                     // 每次测试完一个方法后立即保存结果到CSV（追加模式）
                     {
                         // 使用追加模式打开文件
-                        std::ofstream appendResultsFile(resultsDir + "/search_comparison.csv", std::ios::app);
+                        std::ofstream appendResultsFile(fullResultPath, std::ios::app);
                         if (!appendResultsFile.is_open())
                         {
                             std::cerr << "Failed to open results file for appending!" << std::endl;
                             // 确保结果目录存在
                             std::filesystem::create_directories(resultsDir);
-                            appendResultsFile.open(resultsDir + "/search_comparison.csv", std::ios::app);
+                            appendResultsFile.open(fullResultPath, std::ios::app);
                             // 如果文件是新创建的，需要写入表头
                             if (appendResultsFile.tellp() == 0)
                             {
@@ -325,13 +370,12 @@ namespace LogicSystem
                               << ", Duration: " << searchResult.duration << "ms" << std::endl;
                 }
 
-                if (++count >= 10)
-                    break; // 限制测试文件数量
+                // if (++count >= maxTestFiles)
+                //     break; // 限制测试文件数量
             }
         }
 
-        // // 生成比较图表（可选，需要额外实现或使用Python脚本）
-        // generateComparisonCharts(resultsDir + "/search_comparison.csv");
+        std::cout << "Test results saved to: " << fullResultPath << std::endl;
     }
 
     // 测试特定图文件的3着色

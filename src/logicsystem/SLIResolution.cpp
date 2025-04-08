@@ -89,7 +89,7 @@ namespace LogicSystem
                 return result;
             }
 
-            if (visited_states_count >= 10000LL)
+            if (visited_states_count >= 80000)
             {
                 // SLIOperation::printOperationPath(last_state, kb);
                 // SLIOperation::printOperationPathAsClause(last_state, kb);

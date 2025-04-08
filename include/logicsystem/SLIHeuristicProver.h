@@ -24,7 +24,7 @@ namespace LogicSystem
         std::string phase1TokenizerPath = "../../../neural_network/unified_tokenizer.pkl";
         
         // 第二阶段模型配置
-        std::string phase2ScriptPath = "../../../neural_network/neural_server/neural_server_phase2.py";
+        std::string phase2ScriptPath = "../../../neural_network/neural_server/neural_server2.py";
         std::string phase2ModelPath = "../../../neural_network/second_stage_model.pth";
         std::string phase2TokenizerPath = "../../../neural_network/unified_tokenizer.pkl";
         

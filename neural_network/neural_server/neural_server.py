@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 import os
-import sys
 import json
 import pickle
 import torch
 import numpy as np
-import signal
+import datetime
+from collections import defaultdict
+import matplotlib
+matplotlib.use('Agg')  # 设置为非交互式后端，避免需要图形界面
+import matplotlib.pyplot as plt
+import sys
+import json
 import argparse
+import signal 
 from models.first_stage_model import GlobalEncoder, FirstStageModel
 from models.second_stage_model import SecondStageModel
 
@@ -79,6 +85,238 @@ class NeuralHeuristicServer:
         else:
             print(f"未找到第二阶段模型: {second_stage_model_path}")
             self.second_stage_model = None
+        
+        # 初始化统计数据目录
+        self.stats_dir = "action_stats"
+        self.plots_dir = os.path.join(self.stats_dir, "plots")
+        os.makedirs(self.stats_dir, exist_ok=True)
+        os.makedirs(self.plots_dir, exist_ok=True)
+        
+        # 初始化统计文件路径
+        self.action_scores_file = os.path.join(self.stats_dir, "action_scores.npz")
+        self.stats_summary_file = os.path.join(self.stats_dir, "stats_summary.json")
+        
+        # 初始化或加载统计摘要
+        self._init_stats_summary()
+        
+        # 设置保存间隔
+        self.stats_save_interval = 100  # 每处理100个请求保存一次统计数据
+        
+        print("神经启发式服务器初始化完成")
+
+    def _init_stats_summary(self):
+        """初始化或加载统计摘要信息"""
+        if os.path.exists(self.stats_summary_file):
+            try:
+                with open(self.stats_summary_file, 'r') as f:
+                    self.stats_summary = json.load(f)
+                print(f"已加载统计摘要: 总请求数={self.stats_summary['total_requests']}")
+            except Exception as e:
+                print(f"加载统计摘要失败: {e}，将创建新统计")
+                self._create_new_stats_summary()
+        else:
+            print("未找到统计摘要文件，将创建新统计")
+            self._create_new_stats_summary()
+
+    def _create_new_stats_summary(self):
+        """创建新的统计摘要"""
+        self.stats_summary = {
+            "total_requests": 0,
+            "selection_counts": {
+                "Extension": 0,
+                "Factoring": 0,
+                "Ancestry": 0
+            },
+            "start_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "last_update": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        self._save_stats_summary()
+
+    def _save_stats_summary(self):
+        """保存统计摘要到文件"""
+        self.stats_summary["last_update"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(self.stats_summary_file, 'w') as f:
+            json.dump(self.stats_summary, f, indent=2)
+            
+    def _append_action_scores(self, action_scores, best_action_idx):
+        """将新的操作评分添加到文件中"""
+        action_names = ["Extension", "Factoring", "Ancestry"]
+        best_action_name = action_names[best_action_idx]
+        
+        # 更新统计摘要
+        self.stats_summary["total_requests"] += 1
+        self.stats_summary["selection_counts"][best_action_name] += 1
+        
+        # 保存评分到npz文件
+        if os.path.exists(self.action_scores_file):
+            # 加载现有数据
+            try:
+                data = np.load(self.action_scores_file)
+                extension_scores = list(data['Extension'])
+                factoring_scores = list(data['Factoring'])
+                ancestry_scores = list(data['Ancestry'])
+            except Exception as e:
+                print(f"加载评分数据失败: {e}，将创建新数据文件")
+                extension_scores = []
+                factoring_scores = []
+                ancestry_scores = []
+        else:
+            extension_scores = []
+            factoring_scores = []
+            ancestry_scores = []
+        
+        # 添加新评分
+        extension_scores.append(action_scores[0])
+        factoring_scores.append(action_scores[1])
+        ancestry_scores.append(action_scores[2])
+        
+        # 保存回文件
+        np.savez(
+            self.action_scores_file, 
+            Extension=np.array(extension_scores),
+            Factoring=np.array(factoring_scores),
+            Ancestry=np.array(ancestry_scores)
+        )
+        
+        # 定期保存统计摘要和生成图表
+        if self.stats_summary["total_requests"] % self.stats_save_interval == 0:
+            self._save_stats_summary()
+            self._log_stats()
+            self._generate_plots()
+
+    def _log_stats(self):
+        """记录当前统计信息到日志文件"""
+        log_file = os.path.join(self.stats_dir, "stats_log.txt")
+        total_requests = self.stats_summary["total_requests"]
+        
+        with open(log_file, 'a') as f:
+            f.write(f"\n===== 统计更新 [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] =====\n")
+            f.write(f"总请求数: {total_requests}\n")
+            
+            # 操作选择统计
+            f.write("\n操作选择分布:\n")
+            for action, count in self.stats_summary["selection_counts"].items():
+                percentage = (count / total_requests * 100) if total_requests > 0 else 0
+                f.write(f"  {action}: {count} 次 ({percentage:.2f}%)\n")
+            
+            # 如果有足够数据，计算评分统计
+            if os.path.exists(self.action_scores_file):
+                try:
+                    data = np.load(self.action_scores_file)
+                    f.write("\n评分统计:\n")
+                    for action in ["Extension", "Factoring", "Ancestry"]:
+                        scores = data[action]
+                        if len(scores) > 0:
+                            f.write(f"\n{action}:\n")
+                            f.write(f"  样本数: {len(scores)}\n")
+                            f.write(f"  评分范围: {scores.min():.4f} ~ {scores.max():.4f}\n")
+                            f.write(f"  平均值: {scores.mean():.4f}\n")
+                            f.write(f"  中位数: {np.median(scores):.4f}\n")
+                            f.write(f"  标准差: {scores.std():.4f}\n")
+                except Exception as e:
+                    f.write(f"\n无法加载评分数据: {e}\n")
+            
+            f.write("=================================\n")
+        
+        print(f"统计信息已记录到 {log_file}")
+
+    def _generate_plots(self):
+        """生成评分分布图表"""
+        if not os.path.exists(self.action_scores_file):
+            print("无评分数据，无法生成图表")
+            return
+        
+        try:
+            # 加载评分数据
+            data = np.load(self.action_scores_file)
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # 直方图 - 每个操作的评分分布
+            plt.figure(figsize=(15, 5))
+            
+            actions = ["Extension", "Factoring", "Ancestry"]
+            for i, action in enumerate(actions):
+                plt.subplot(1, 3, i+1)
+                scores = data[action]
+                if len(scores) > 0:
+                    plt.hist(scores, bins=30, alpha=0.7, density=True)
+                    plt.axvline(scores.mean(), color='r', linestyle='dashed', linewidth=1)
+                    plt.title(f"{action}评分分布")
+                    plt.xlabel("评分")
+                    plt.ylabel("密度")
+            
+            plt.tight_layout()
+            hist_file = os.path.join(self.plots_dir, f"score_distributions_{timestamp}.png")
+            plt.savefig(hist_file)
+            plt.close()
+            
+            # 箱线图 - 比较三种操作的评分
+            plt.figure(figsize=(10, 6))
+            box_data = [data[action] for action in actions]
+            plt.boxplot(box_data, labels=actions)
+            plt.title("三种操作评分的箱线图比较")
+            plt.ylabel("评分")
+            plt.grid(True, linestyle='--', alpha=0.7)
+            
+            boxplot_file = os.path.join(self.plots_dir, f"score_boxplot_{timestamp}.png")
+            plt.savefig(boxplot_file)
+            plt.close()
+            
+            # 另存一份最新图表(用于方便查看)
+            hist_latest = os.path.join(self.plots_dir, "latest_score_distributions.png")
+            boxplot_latest = os.path.join(self.plots_dir, "latest_score_boxplot.png")
+            
+            plt.figure(figsize=(15, 5))
+            for i, action in enumerate(actions):
+                plt.subplot(1, 3, i+1)
+                scores = data[action]
+                if len(scores) > 0:
+                    plt.hist(scores, bins=30, alpha=0.7, density=True)
+                    plt.axvline(scores.mean(), color='r', linestyle='dashed', linewidth=1)
+                    plt.title(f"{action}评分分布")
+                    plt.xlabel("评分")
+                    plt.ylabel("密度")
+            plt.tight_layout()
+            plt.savefig(hist_latest)
+            plt.close()
+            
+            plt.figure(figsize=(10, 6))
+            plt.boxplot(box_data, labels=actions)
+            plt.title("三种操作评分的箱线图比较")
+            plt.ylabel("评分")
+            plt.grid(True, linestyle='--', alpha=0.7)
+            plt.savefig(boxplot_latest)
+            plt.close()
+            
+            print(f"图表已保存到 {self.plots_dir} 目录")
+            
+            # 保存评分统计摘要
+            stats_data = {}
+            for action in actions:
+                scores = data[action]
+                if len(scores) > 0:
+                    stats_data[action] = {
+                        "count": int(len(scores)),
+                        "min": float(scores.min()),
+                        "max": float(scores.max()),
+                        "mean": float(scores.mean()),
+                        "median": float(np.median(scores)),
+                        "std": float(scores.std()),
+                        "percentile_25": float(np.percentile(scores, 25)),
+                        "percentile_75": float(np.percentile(scores, 75))
+                    }
+            
+            score_stats_file = os.path.join(self.stats_dir, f"score_stats_{timestamp}.json")
+            with open(score_stats_file, 'w') as f:
+                json.dump(stats_data, f, indent=2)
+                
+            # 同时更新最新的统计摘要
+            latest_stats_file = os.path.join(self.stats_dir, "latest_score_stats.json")
+            with open(latest_stats_file, 'w') as f:
+                json.dump(stats_data, f, indent=2)
+            
+        except Exception as e:
+            print(f"生成图表失败: {e}")
     
     def generate_mask(self, sz):
         """生成Transformer注意力掩码"""
@@ -308,6 +546,9 @@ class NeuralHeuristicServer:
                 best_action_idx = np.argmax(action_scores)
                 action_names = ["Extension", "Factoring", "Ancestry"]
                 best_action_name = action_names[best_action_idx]
+            
+            # 记录统计数据
+            self._append_action_scores(action_scores, best_action_idx)
                 
             # 准备响应
             response = {
@@ -318,7 +559,7 @@ class NeuralHeuristicServer:
             }
             
             return response
-            
+        
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
@@ -357,7 +598,7 @@ class NeuralHeuristicServer:
             
             # 转换全局状态为tokens序列
             global_tokens = self.json_to_tokens(combined_json)
-            print('neural_server.py second stage ', global_tokens)
+            # print('neural_server.py second stage ', global_tokens)
             
             # 通过分词器转换为ID，处理未知token
             unknown_token_id = self.tokenizer.vocab.get('[UNK]', 1)

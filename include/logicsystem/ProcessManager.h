@@ -108,15 +108,33 @@ private:
         }
 
         std::cout << "Python神经网络服务已启动" << std::endl;
+        std::cout << "ProcessManager::startProcess Model path " << modelPath << std::endl;
         return true;
     }
 
-    // 读取Python进程的响应
     // 读取Python进程的响应
     bool readResponse(std::string &response)
     {
         response.clear();
         char buffer[BUFFER_SIZE];
+        std::string accumulated_response;
+
+        // 首先等待并读取所有可用数据
+        fd_set readfds;
+        struct timeval tv;
+        int ready;
+
+        FD_ZERO(&readfds);
+        FD_SET(outputPipe[0], &readfds);
+        tv.tv_sec = 10; // 设置超时时间为10秒
+        tv.tv_usec = 0;
+
+        ready = select(outputPipe[0] + 1, &readfds, NULL, NULL, &tv);
+        if (ready <= 0)
+        {
+            std::cerr << "等待响应超时或发生错误" << std::endl;
+            return false;
+        }
 
         ssize_t bytesRead = read(outputPipe[0], buffer, BUFFER_SIZE - 1);
         if (bytesRead <= 0)
@@ -125,29 +143,52 @@ private:
             return false;
         }
         buffer[bytesRead] = '\0';
+        accumulated_response = buffer;
 
-        response = buffer;
-
-        // 检查是否包含"READY"消息
-        if (response.find("READY") != std::string::npos)
+        // 特殊处理READY消息
+        if (accumulated_response.find("READY") != std::string::npos)
         {
             response = "READY";
             return true;
         }
 
-        // 尝试找到最后一行（去掉可能的日志输出）
-        size_t pos = response.rfind('\n');
-        if (pos != std::string::npos && pos < response.length() - 1)
+        // 处理多行输出，查找有效的JSON
+        std::istringstream stream(accumulated_response);
+        std::string line;
+        std::string last_line;
+
+        while (std::getline(stream, line))
         {
-            response = response.substr(pos + 1);
+            // 移除尾部的空白
+            line.erase(line.find_last_not_of(" \n\r\t") + 1);
+
+            if (!line.empty())
+            {
+                // 尝试解析每一行，找到有效的JSON
+                try
+                {
+                    auto parsed_json = json::parse(line);
+                    // 如果成功解析，这是我们想要的行
+                    response = line;
+                    return true;
+                }
+                catch (...)
+                {
+                    // 不是有效的JSON，可能是调试输出
+                    std::cerr << "跳过非JSON输出: " << line << std::endl;
+                    last_line = line; // 保存最后一行，以防所有行都不是有效JSON
+                }
+            }
         }
 
-        // 移除尾部的换行符
-        if (!response.empty() && response.back() == '\n')
-        {
-            response.pop_back();
-        }
-        return true;
+        // 如果没有找到有效JSON，尝试使用最后一行
+        response = last_line;
+
+        // 打印完整响应供调试
+        std::cerr << "完整响应: " << accumulated_response << std::endl;
+        std::cerr << "选择的响应行: " << response << std::endl;
+
+        return !response.empty();
     }
 
 public:
@@ -170,10 +211,12 @@ public:
     {
         if (!processActive)
         {
+            std::cout << "ProcessManager::sendRequest Python进程未运行 processActive " << processActive << std::endl;
             return {{"status", "error"}, {"error_message", "Python进程未运行"}};
         }
 
         std::string requestStr = request.dump() + "\n";
+        // std::cout << "发送请求: " << requestStr << std::endl;
 
         ssize_t bytesWritten = write(inputPipe[1], requestStr.c_str(), requestStr.size());
         if (bytesWritten != static_cast<ssize_t>(requestStr.size()))
@@ -185,15 +228,30 @@ public:
         std::string responseStr;
         if (!readResponse(responseStr))
         {
+            std::cout << "ProcessManager::sendRequest 读取响应失败" << std::endl;
             return {{"status", "error"}, {"error_message", "读取响应失败"}};
         }
 
+        // std::cout << "接收到原始响应: [" << responseStr << "]" << std::endl;
+
         try
         {
-            return json::parse(responseStr);
+            auto parsed_response = json::parse(responseStr);
+            // std::cout << "成功解析为JSON" << std::endl;
+            return parsed_response;
         }
         catch (const json::parse_error &e)
         {
+            std::cerr << "解析响应失败: " << e.what() << std::endl;
+            std::cerr << "原始响应: [" << responseStr << "]" << std::endl;
+
+            // 尝试清理响应字符串
+            if (responseStr.find("None") != std::string::npos)
+            {
+                std::cerr << "检测到'None'响应，替换为空JSON对象" << std::endl;
+                return {{"status", "error"}, {"error_message", "Python返回了None而不是有效的JSON"}};
+            }
+
             return {{"status", "error"}, {"error_message", "解析响应失败: " + std::string(e.what())}};
         }
     }

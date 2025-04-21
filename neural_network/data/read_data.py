@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 import os
+import random
 
 #########################################
 # 自定义分词器及基础数据集实现
@@ -384,7 +385,18 @@ class GraphSLIDataset(SLIDataset):
         "Factoring": 1,
         "Ancestry": 2,
     }
-    def __init__(self, unified_file, max_seq_length=768, max_param_seq_length=30):
+    def __init__(self, unified_file, max_seq_length=768, max_param_seq_length=30, balance_ratio=None):
+        """
+        初始化数据集
+        
+        参数:
+        - unified_file: 统一格式的JSON文件路径
+        - max_seq_length: 最大序列长度
+        - max_param_seq_length: 最大参数序列长度
+        - balance_ratio: 各操作类型的目标比例，例如 {"ANCESTRY": 0.3, "EXTENSION": 0.4, "FACTORING": 0.3}
+        """
+        self.balance_ratio = balance_ratio
+        
         with open(unified_file, "r", encoding="utf-8") as f:
             unified_data = json.load(f)
         self.graph_data = unified_data.get("graph", {})
@@ -452,16 +464,66 @@ class GraphSLIDataset(SLIDataset):
         return tokens
 
     def _process_samples(self, raw_data):
+        """处理样本并进行平衡采样"""
         graph_tokens = self._linearize_graph()
-        # print('_process_samples Get graph_tokens')
-        # print(graph_tokens)
-        graph_ids = self.tokenizer.convert_tokens_to_ids(graph_tokens) # problem 
-        # print('_process_samples Get graph_ids')
-        # print(graph_ids)
-        # print('_process_samples From graph_ids to Tokens')
-        # print(self.tokenizer.convert_ids_to_tokens(graph_ids))
+        graph_ids = self.tokenizer.convert_tokens_to_ids(graph_tokens) 
         sep_id = self.tokenizer.vocab["[SEP]"]
         
+        # 如果需要平衡数据
+        if self.balance_ratio:
+            # 按操作类型分组收集样本
+            samples_by_action = {
+                "ANCESTRY": [],
+                "EXTENSION": [],
+                "FACTORING": []
+            }
+            
+            # 遍历所有原始样本，按操作类型分类
+            for sample in raw_data:
+                # 提取主要操作类型
+                ops = sample.get('available_ops', [])
+                for op in ops:
+                    action = op.get('action', '')
+                    if action in samples_by_action:
+                        # 保存样本及其操作信息
+                        samples_by_action[action].append({
+                            'sample': sample,
+                            'op': op
+                        })
+            
+            # 统计各类样本数量
+            counts = {k: len(v) for k, v in samples_by_action.items()}
+            total = sum(counts.values())
+            # print(f"原始样本分布: {counts}")
+            
+            # 计算目标采样数量
+            target_total = total  # 保持总样本数量不变
+            target_counts = {k: int(target_total * self.balance_ratio[k]) for k in self.balance_ratio}
+            # print(f"目标采样数量: {target_counts}")
+            
+            # 执行采样
+            balanced_samples = []
+            for action, target_count in target_counts.items():
+                if counts[action] == 0:
+                    print(f"警告: {action}类别没有样本")
+                    continue
+                
+                # 过采样或欠采样
+                if counts[action] >= target_count:  # 欠采样
+                    sampled = random.sample(samples_by_action[action], target_count)
+                else:  # 过采样
+                    # 随机重复采样直到达到目标数量
+                    sampled = random.choices(samples_by_action[action], k=target_count)
+                
+                # 收集平衡后的样本
+                for item in sampled:
+                    balanced_samples.append(item['sample'])
+            
+            # 使用平衡后的样本替代原始样本 
+            raw_data = balanced_samples
+            # print(f"平衡后样本总数: {len(raw_data)}")
+        
+        # 处理每个样本
         for raw_sample in raw_data:
             tree_tokens = self._linearize_tree(raw_sample.get('state', {}).get('tree', {}))
             # 在状态树和操作参数之间增加新分隔符 [TREE_OP_SEP]
@@ -492,8 +554,12 @@ class GraphSLIDataset(SLIDataset):
                     q_value = reward - lamda * op.get("depth", 0)
                 candidate_q_values.append(q_value)
             
-            candidate_params = torch.tensor(candidate_params, dtype=torch.long)
-            candidate_q_values = torch.tensor(candidate_q_values, dtype=torch.float)
+            if candidate_params:
+                candidate_params = torch.tensor(candidate_params, dtype=torch.long)
+                candidate_q_values = torch.tensor(candidate_q_values, dtype=torch.float)
+            else:
+                candidate_params = torch.empty((0, self.max_param_seq_length), dtype=torch.long)
+                candidate_q_values = torch.empty((0,), dtype=torch.float)
             
             self.samples.append({
                 'input_ids': full_sequence,
@@ -640,53 +706,209 @@ def collate_fn(batch, tokenizer):
 #########################################
 
 if __name__ == "__main__":
-    # 假设文件 "training_data_0.json" 存在，
-    # 文件内容需包含 "graph" 与 "search_path" 两个字段，
-    # 示例格式：
-    # {
-    #   "graph": { ... },
-    #   "search_path": [ { ... }, ... ]
-    # }
-    unified_file = "/home/jiangguifei01/aiderun/fol-parser/fol-parser/data/training_data_0_success.json"  
+    # 文件路径
+    unified_file = "/home/jiangguifei01/aiderun/fol-parser/fol-parser/data/training_data_0_success.json"
+    
+    # 设置目标平衡比例
+    balance_ratio = {
+        "ANCESTRY": 0.6,    # 提高比例
+        "EXTENSION": 0.1,   # 降低比例
+        "FACTORING": 0.3    # 提高比例
+    }
+    
+    # 实例化数据集，应用平衡比例
+    dataset = GraphSLIDataset(
+        unified_file=unified_file,
+        max_seq_length=512, 
+        max_param_seq_length=30,
+        balance_ratio=balance_ratio
+    )
+    
+    print(f"平衡后样本总数: {len(dataset)}")
+    
+    # 分析平衡后的样本分布
+    action_counts = {"ANCESTRY": 0, "EXTENSION": 0, "FACTORING": 0}
+    positive_action_counts = {"ANCESTRY": 0, "EXTENSION": 0, "FACTORING": 0}
+    
+    for i in range(len(dataset)):
+        sample = dataset.samples[i]
+        raw_sample = sample['raw_data']
+        
+        # 统计所有操作数量
+        for op in raw_sample.get('available_ops', []):
+            action = op.get('action', '')
+            if action in action_counts:
+                action_counts[action] += 1
+        
+        # 统计正例操作数量（global_reward > 0）
+        global_reward = raw_sample.get("global_reward", {})
+        if isinstance(global_reward, dict) and "expected_by_type" in global_reward:
+            exp_reward = global_reward["expected_by_type"]
+            for action, reward in exp_reward.items():
+                if action in positive_action_counts and reward > 0:
+                    positive_action_counts[action] += 1
+    
+    total_ops = sum(action_counts.values())
+    actual_ratios = {k: v/total_ops for k, v in action_counts.items()}
+    
+    total_positive_ops = sum(positive_action_counts.values())
+    positive_ratios = {k: (v/total_positive_ops if total_positive_ops > 0 else 0) 
+                      for k, v in positive_action_counts.items()}
+    
+    print("\n全部操作分布:")
+    print(f"操作计数: {action_counts}")
+    print(f"操作比例: {actual_ratios}")
+    
+    print("\n正例操作分布 (reward > 0):")
+    print(f"正例操作计数: {positive_action_counts}")
+    print(f"正例操作比例: {positive_ratios}")
+    
+    # 分析标签分布
+    all_labels = []
+    for i in range(len(dataset)):
+        sample = dataset.samples[i]
+        if 'labels' in sample and sample['labels'] is not None:
+            # 确保标签是tensor对象
+            if isinstance(sample['labels'], list):
+                all_labels.append(torch.tensor(sample['labels'], dtype=torch.float))
+            else:
+                all_labels.append(sample['labels'])
 
-    dataset = GraphSLIDataset(unified_file, max_seq_length=512, max_param_seq_length=30)
+    if all_labels:
+        all_labels_tensor = torch.stack(all_labels)
+        print("\n标签分布统计:")
+        for i, action in enumerate(["EXTENSION", "FACTORING", "ANCESTRY"]):
+            labels = all_labels_tensor[:, i]
+            positive_count = (labels > 0).sum().item()
+            print(f"{action}: 正例({labels > 0}): {positive_count}, 比例: {positive_count/len(all_labels):.4f}")
+            print(f"  - 平均值: {labels.mean().item():.4f}, 最大值: {labels.max().item():.4f}")
     
-    print("样本总数：", len(dataset))
+    # 分析样本和奖励分布
+    print("\n样本和奖励分析:")
     
-    # 查看第 3 个样本的处理结果
-    sample0 = dataset[5]
-    print("单个样本全局 input_ids (长度 {}):".format(len(sample0['input_ids'])))
-    print(sample0['input_ids'])
-    tokens = dataset.tokenizer.convert_ids_to_tokens(sample0['input_ids'].tolist())
-    print("对应的 token 序列：")
-    print(tokens)
-    print("单个样本 attention_mask:")
-    print(sample0['attention_mask'])
-    print("单个样本 graph_mask:")
-    print(sample0['graph_mask'])
-    print("单个样本 labels:")
-    print(sample0['labels'])
-    print("单个样本候选参数 candidate_param_ids, 形状:", sample0['candidate_param_ids'].shape)
-    print(sample0['candidate_param_ids'])
-    num_candidates = sample0['candidate_param_ids'].shape[0]
-    for i in range(num_candidates):
-        candidate_ids = sample0['candidate_param_ids'][i].tolist()
-        candidate_tokens = dataset.tokenizer.convert_ids_to_tokens(candidate_ids)
-        print(f"候选参数 {i} 对应的 token 序列:")
-        print(candidate_tokens)
-    print("单个候选参数连续标签 candidate_q_values, 形状:", sample0['candidate_q_values'].shape)
-    print(sample0['candidate_q_values'])
+    # 按操作类型收集样本
+    samples_by_action_type = {"ANCESTRY": [], "EXTENSION": [], "FACTORING": []}
     
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=False,
-                              collate_fn=lambda batch: collate_fn(batch, dataset.tokenizer))
-    batch_sample = next(iter(dataloader))
-    print("Batch 全局 input_ids shape:", batch_sample['input_ids'].shape)
-    print("Batch attention_mask shape:", batch_sample['attention_mask'].shape)
-    print("Batch graph_mask shape:", batch_sample['graph_mask'].shape)
-    print("Batch labels shape:", batch_sample['labels'].shape)
-    print("Batch candidate_param_ids shape:", batch_sample['candidate_param_ids'].shape)
-    print("Batch candidate_q_values shape:", batch_sample['candidate_q_values'].shape)
+    for i in range(len(dataset)):
+        sample = dataset.samples[i]
+        raw_sample = sample['raw_data']
+        global_reward = raw_sample.get("global_reward", {})
+        
+        if isinstance(global_reward, dict) and "expected_by_type" in global_reward:
+            exp_reward = global_reward["expected_by_type"]
+            # 找出奖励最高的操作类型
+            max_reward = -float('inf')
+            max_action = None
+            for action, reward in exp_reward.items():
+                if action in samples_by_action_type and reward > max_reward:
+                    max_reward = reward
+                    max_action = action
+            
+            if max_action and max_reward > 0:
+                samples_by_action_type[max_action].append(i)
+    
+    # 随机抽样每种操作类型的示例
+    print("\n各操作类型样本示例:")
+    for action, samples in samples_by_action_type.items():
+        print(f"\n{action} 操作样本:")
+        if not samples:
+            print(f"  没有 {action} 类型的正例样本")
+            continue
+        
+        # 随机选择最多3个样本
+        sample_count = min(3, len(samples))
+        selected_indices = random.sample(samples, sample_count)
+        
+        for idx in selected_indices:
+            sample = dataset[idx]
+            raw_sample = dataset.samples[idx]['raw_data']
+            
+            print(f"\n  样本 {idx}:")
+            
+            # 显示全局奖励
+            global_reward = raw_sample.get("global_reward", {})
+            if isinstance(global_reward, dict) and "expected_by_type" in global_reward:
+                print(f"    全局奖励: {global_reward['expected_by_type']}")
+            
+            # 显示可用操作
+            ops = raw_sample.get('available_ops', [])
+            print(f"    可用操作数: {len(ops)}")
+            
+            # 统计不同类型的操作
+            ops_by_type = {"ANCESTRY": 0, "EXTENSION": 0, "FACTORING": 0}
+            for op in ops:
+                op_type = op.get('action', '')
+                if op_type in ops_by_type:
+                    ops_by_type[op_type] += 1
+            
+            print(f"    操作类型分布: {ops_by_type}")
+            
+            # 显示奖励分布
+            q_values = sample['candidate_q_values']
+            if len(q_values) > 0:
+                print(f"    奖励分布: min={q_values.min().item():.4f}, max={q_values.max().item():.4f}, mean={q_values.mean().item():.4f}")
+    
+    # 检查输入序列和候选参数序列长度
+    input_lengths = [len(dataset.samples[i]['input_ids']) for i in range(len(dataset))]
+    param_lengths = [dataset.samples[i]['candidate_param_ids'].shape[1] if dataset.samples[i]['candidate_param_ids'].numel() > 0 else 0 for i in range(len(dataset))]
+    
+    print(f"\n输入序列长度: min={min(input_lengths)}, max={max(input_lengths)}, avg={sum(input_lengths)/len(input_lengths):.1f}")
+    if param_lengths:
+        print(f"候选参数序列长度: min={min(param_lengths)}, max={max(param_lengths)}, avg={sum(param_lengths)/len(param_lengths):.1f}")
+    
+    # Visualize data distribution (if matplotlib is available)
+    try:
+        import matplotlib.pyplot as plt
+        
+        # Create operation type distribution chart
+        plt.figure(figsize=(12, 8))
+        
+        # Create comparison subplots
+        plt.subplot(1, 2, 1)
+        plt.bar(action_counts.keys(), action_counts.values())
+        plt.title("All Operations Distribution")
+        plt.ylabel("Operation Count")
+        
+        plt.subplot(1, 2, 2)
+        plt.bar(positive_action_counts.keys(), positive_action_counts.values())
+        plt.title("Positive Operations Distribution (reward > 0)")
+        plt.ylabel("Operation Count")
+        
+        plt.tight_layout()
+        plt.savefig("balanced_action_distribution.png")
+        print("\nAction distribution chart saved to balanced_action_distribution.png")
+        
+        # Create label distribution chart
+        if all_labels:
+            all_labels_np = all_labels_tensor.numpy()
+            plt.figure(figsize=(12, 8))
+            
+            actions = ["EXTENSION", "FACTORING", "ANCESTRY"]
+            for i, action in enumerate(actions):
+                plt.subplot(1, 3, i+1)
+                plt.hist(all_labels_np[:, i], bins=20)
+                plt.title(f"{action} Reward Distribution")
+                plt.xlabel("Reward Value")
+                plt.ylabel("Sample Count")
+            
+            plt.tight_layout()
+            plt.savefig("label_distribution.png")
+            print("Label distribution chart saved to label_distribution.png")
+        
+        # Create input sequence length distribution chart
+        plt.figure(figsize=(10, 6))
+        plt.hist(input_lengths, bins=20)
+        plt.title("Input Sequence Length Distribution")
+        plt.xlabel("Sequence Length")
+        plt.ylabel("Sample Count")
+        plt.savefig("input_length_distribution.png")
+        print("Sequence length distribution chart saved to input_length_distribution.png")
+        
+    except ImportError:
+        print("\nMatplotlib not installed, skipping chart generation")
+    except Exception as e:
+        print(f"\nError generating charts: {e}")
 
-    print("完整词汇表映射：")
-    for token, idx in sorted(dataset.tokenizer.vocab.items(), key=lambda x: x[1]):
-        print(f"{token}: {idx}")
+    # 如果你想打印tokenizer的词汇表，应该是单独的代码块
+    # for token, idx in sorted(tokenizer.vocab.items(), key=lambda x: x[1]):
+    #     print(f"{token}: {idx}")

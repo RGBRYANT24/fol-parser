@@ -55,4 +55,6 @@ class FirstStageModel(nn.Module):
         global_state_seq = self.global_encoder(src, graph_mask, src_key_padding_mask)  # [B, seq_len, d_model]
         global_state = global_state_seq.mean(dim=1)  # 全局平均池化得到 [B, d_model]
         action_scores = self.action_head(global_state)  # [B, num_actions]
+        # 先用sigmoid将值映射到(0,1)区间，再用clamp确保包含边界值0和1
+        action_scores = torch.clamp(torch.sigmoid(action_scores), 0.0, 1.0)
         return action_scores

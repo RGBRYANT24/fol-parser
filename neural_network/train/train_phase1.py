@@ -77,11 +77,11 @@ def analyze_tokenizer_coverage(datasets):
         unk_count = all_tokens.count('[UNK]')
         unique_unks = len(set(unk_tokens))
         
-        print(f"\n数据集 {i+1} 词汇表覆盖分析:")
-        print(f"  - 总token数: {total_tokens}")
-        print(f"  - 唯一token数: {unique_tokens}")
-        print(f"  - UNK token数: {unk_count} ({unk_count/total_tokens*100:.2f}%)")
-        print(f"  - 唯一UNK token数: {unique_unks}")
+        # print(f"\n数据集 {i+1} 词汇表覆盖分析:")
+        # print(f"  - 总token数: {total_tokens}")
+        # print(f"  - 唯一token数: {unique_tokens}")
+        # print(f"  - UNK token数: {unk_count} ({unk_count/total_tokens*100:.2f}%)")
+        # print(f"  - 唯一UNK token数: {unique_unks}")
         
         # 如果有UNK，显示最常见的几个
         if unk_tokens:
@@ -122,6 +122,76 @@ def build_unified_tokenizer(data_files, save_path='unified_tokenizer.pkl'):
     
     return unified_tokenizer
 
+# 添加这个新函数用于分析数据集分布
+def analyze_dataset_distribution(dataset, file_path):
+    """分析数据集中操作类型的分布情况"""
+    # print(f"\n===== 数据集分布分析: {os.path.basename(file_path)} =====")
+    
+    # 统计不同操作类型的计数
+    action_counts = {"ANCESTRY": 0, "EXTENSION": 0, "FACTORING": 0}
+    positive_action_counts = {"ANCESTRY": 0, "EXTENSION": 0, "FACTORING": 0}
+    
+    for i in range(len(dataset.samples)):
+        sample = dataset.samples[i]
+        raw_sample = sample['raw_data']
+        
+        # 统计所有操作数量
+        for op in raw_sample.get('available_ops', []):
+            action = op.get('action', '')
+            if action in action_counts:
+                action_counts[action] += 1
+        
+        # 统计正例操作数量（global_reward > 0）
+        global_reward = raw_sample.get("global_reward", {})
+        if isinstance(global_reward, dict) and "expected_by_type" in global_reward:
+            exp_reward = global_reward["expected_by_type"]
+            for action, reward in exp_reward.items():
+                if action in positive_action_counts and reward > 0:
+                    positive_action_counts[action] += 1
+    
+    total_ops = sum(action_counts.values())
+    actual_ratios = {k: v/total_ops if total_ops > 0 else 0 for k, v in action_counts.items()}
+    
+    total_positive_ops = sum(positive_action_counts.values())
+    positive_ratios = {k: v/total_positive_ops if total_positive_ops > 0 else 0 
+                      for k, v in positive_action_counts.items()}
+    
+    # print("全部操作分布:")
+    # print(f"操作计数: {action_counts}")
+    # print(f"操作比例: {actual_ratios}")
+    
+    # print("\n正例操作分布 (reward > 0):")
+    # print(f"正例操作计数: {positive_action_counts}")
+    # print(f"正例操作比例: {positive_ratios}")
+    
+    # 分析标签分布
+    all_labels = []
+    for i in range(len(dataset.samples)):
+        sample = dataset.samples[i]
+        if 'labels' in sample and sample['labels'] is not None:
+            try:
+                # 确保标签是tensor对象
+                if isinstance(sample['labels'], list):
+                    label_tensor = torch.tensor(sample['labels'], dtype=torch.float)
+                else:
+                    label_tensor = sample['labels']
+                
+                all_labels.append(label_tensor)
+            except Exception as e:
+                print(f"处理样本 {i} 的标签时出错: {e}")
+    
+    # if all_labels:
+    #     try:
+    #         all_labels_tensor = torch.stack(all_labels)
+    #         print("\n标签分布统计:")
+    #         for i, action in enumerate(["EXTENSION", "FACTORING", "ANCESTRY"]):
+    #             labels = all_labels_tensor[:, i]
+    #             positive_count = (labels > 0).sum().item()
+    #             print(f"{action}: 正例({labels > 0}): {positive_count}, 比例: {positive_count/len(all_labels):.4f}")
+    #             print(f"  - 平均值: {labels.mean().item():.4f}, 最大值: {labels.max().item():.4f}")
+    #     except Exception as e:
+    #         print(f"分析标签分布时出错: {e}")
+
 def train_phase1(use_unified_tokenizer=True):
     config = {
         'batch_size': 16,
@@ -133,7 +203,7 @@ def train_phase1(use_unified_tokenizer=True):
         'save_path': 'first_stage_model.pth',
         'data_dir': '/home/jiangguifei01/aiderun/fol-parser/fol-parser/data',  # 指定数据目录
         'data_pattern': 'training_data_*.json',  # 指定数据文件匹配模式
-        'tokenizer_path': 'unified_tokenizer.pkl',  # 统一分词器保存路径
+        'tokenizer_path': '/home/jiangguifei01/aiderun/fol-parser/fol-parser/neural_network/unified_tokenizer.pkl',  # 统一分词器保存路径
         'vocab_analysis': True,  # 是否分析词汇表覆盖情况
     }
     
@@ -151,6 +221,7 @@ def train_phase1(use_unified_tokenizer=True):
                 unified_tokenizer = pickle.load(f)
         else:
             # 构建新的统一分词器
+            print('未加载已有分词器')
             unified_tokenizer = build_unified_tokenizer(data_files, config['tokenizer_path'])
     
     # 为每个数据文件创建一个数据集
@@ -159,6 +230,12 @@ def train_phase1(use_unified_tokenizer=True):
     print('file path ',os.path.join(config['data_dir'], config['data_pattern']))
     for file_path in data_files:
         try:
+            # 添加此行以设置平衡比例
+            balance_ratio = {
+                "ANCESTRY": 0.5,
+                "EXTENSION": 0.45,
+                "FACTORING": 12.14
+            }
             # 如果使用统一分词器，传递给数据集构造函数
             if unified_tokenizer:
                 # 创建一个自定义的GraphSLIDataset子类实例，它使用预定义的分词器
@@ -181,12 +258,19 @@ def train_phase1(use_unified_tokenizer=True):
                 dataset = PresetTokenizerDataset(
                     unified_file=file_path, 
                     max_seq_length=512,
-                    preset_tokenizer=unified_tokenizer
+                    preset_tokenizer=unified_tokenizer,
+                    balance_ratio=balance_ratio  # 添加平衡比例参数
                 )
             else:
-                dataset = GraphSLIDataset(unified_file=file_path, max_seq_length=512)
+                dataset = GraphSLIDataset(
+                    unified_file=file_path, 
+                    max_seq_length=512,
+                    balance_ratio=balance_ratio  # 添加平衡比例参数
+                )
             
-            print(f"从 {file_path} 加载了数据集，包含 {len(dataset)} 个样本")
+            # print(f"从 {file_path} 加载了数据集，包含 {len(dataset)} 个样本")
+            # 添加此代码分析数据集分布
+            analyze_dataset_distribution(dataset, file_path)
             datasets.append(dataset)
         except Exception as e:
             print(f"加载 {file_path} 的数据集时出错: {e}")
@@ -219,7 +303,45 @@ def train_phase1(use_unified_tokenizer=True):
             train_dataset.tokenizer = datasets[0].tokenizer
     
     print(f"总数据集大小: {len(train_dataset)} 个样本")
-    
+
+    # 添加这段代码分析合并数据集的分布
+    print("\n===== 合并后的数据集分布分析 =====")
+    overall_action_counts = {"ANCESTRY": 0, "EXTENSION": 0, "FACTORING": 0}
+    overall_positive_counts = {"ANCESTRY": 0, "EXTENSION": 0, "FACTORING": 0}
+
+    for dataset in datasets:
+        for i in range(len(dataset.samples)):
+            sample = dataset.samples[i]
+            raw_sample = sample['raw_data']
+            
+            # 统计操作
+            for op in raw_sample.get('available_ops', []):
+                action = op.get('action', '')
+                if action in overall_action_counts:
+                    overall_action_counts[action] += 1
+            
+            # 统计正例
+            global_reward = raw_sample.get("global_reward", {})
+            if isinstance(global_reward, dict) and "expected_by_type" in global_reward:
+                exp_reward = global_reward["expected_by_type"]
+                for action, reward in exp_reward.items():
+                    if action in overall_positive_counts and reward > 0:
+                        overall_positive_counts[action] += 1
+
+    total_ops = sum(overall_action_counts.values())
+    overall_ratios = {k: v/total_ops if total_ops > 0 else 0 for k, v in overall_action_counts.items()}
+
+    total_positive = sum(overall_positive_counts.values())
+    positive_ratios = {k: v/total_positive if total_positive > 0 else 0 for k, v in overall_positive_counts.items()}
+
+    print("全部操作分布:")
+    print(f"操作计数: {overall_action_counts}")
+    print(f"操作比例: {overall_ratios}")
+
+    print("\n正例操作分布 (reward > 0):")
+    print(f"正例操作计数: {overall_positive_counts}")
+    print(f"正例操作比例: {positive_ratios}")
+        
     # 保存最终使用的分词器，以便在测试阶段使用
     final_tokenizer = unified_tokenizer if unified_tokenizer else datasets[0].tokenizer
     if not os.path.exists(config['tokenizer_path']) or not unified_tokenizer:

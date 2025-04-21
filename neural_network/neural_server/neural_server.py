@@ -221,17 +221,17 @@ class NeuralHeuristicServer:
         print(f"统计信息已记录到 {log_file}")
 
     def _generate_plots(self):
-        """生成评分分布图表"""
+        """Generate score distribution charts"""
         if not os.path.exists(self.action_scores_file):
             print("无评分数据，无法生成图表")
             return
         
         try:
-            # 加载评分数据
+            # Load score data
             data = np.load(self.action_scores_file)
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             
-            # 直方图 - 每个操作的评分分布
+            # Histogram - score distribution for each operation
             plt.figure(figsize=(15, 5))
             
             actions = ["Extension", "Factoring", "Ancestry"]
@@ -241,28 +241,28 @@ class NeuralHeuristicServer:
                 if len(scores) > 0:
                     plt.hist(scores, bins=30, alpha=0.7, density=True)
                     plt.axvline(scores.mean(), color='r', linestyle='dashed', linewidth=1)
-                    plt.title(f"{action}评分分布")
-                    plt.xlabel("评分")
-                    plt.ylabel("密度")
+                    plt.title(f"{action} Score Distribution")
+                    plt.xlabel("Score")
+                    plt.ylabel("Density")
             
             plt.tight_layout()
             hist_file = os.path.join(self.plots_dir, f"score_distributions_{timestamp}.png")
             plt.savefig(hist_file)
             plt.close()
             
-            # 箱线图 - 比较三种操作的评分
+            # Box plot - compare scores for three operations
             plt.figure(figsize=(10, 6))
             box_data = [data[action] for action in actions]
             plt.boxplot(box_data, labels=actions)
-            plt.title("三种操作评分的箱线图比较")
-            plt.ylabel("评分")
+            plt.title("Box Plot Comparison of Three Operations' Scores")
+            plt.ylabel("Score")
             plt.grid(True, linestyle='--', alpha=0.7)
             
             boxplot_file = os.path.join(self.plots_dir, f"score_boxplot_{timestamp}.png")
             plt.savefig(boxplot_file)
             plt.close()
             
-            # 另存一份最新图表(用于方便查看)
+            # Save a copy of the latest charts (for easy viewing)
             hist_latest = os.path.join(self.plots_dir, "latest_score_distributions.png")
             boxplot_latest = os.path.join(self.plots_dir, "latest_score_boxplot.png")
             
@@ -273,24 +273,24 @@ class NeuralHeuristicServer:
                 if len(scores) > 0:
                     plt.hist(scores, bins=30, alpha=0.7, density=True)
                     plt.axvline(scores.mean(), color='r', linestyle='dashed', linewidth=1)
-                    plt.title(f"{action}评分分布")
-                    plt.xlabel("评分")
-                    plt.ylabel("密度")
+                    plt.title(f"{action} Score Distribution")
+                    plt.xlabel("Score")
+                    plt.ylabel("Density")
             plt.tight_layout()
             plt.savefig(hist_latest)
             plt.close()
             
             plt.figure(figsize=(10, 6))
             plt.boxplot(box_data, labels=actions)
-            plt.title("三种操作评分的箱线图比较")
-            plt.ylabel("评分")
+            plt.title("Box Plot Comparison of Three Operations' Scores")
+            plt.ylabel("Score")
             plt.grid(True, linestyle='--', alpha=0.7)
             plt.savefig(boxplot_latest)
             plt.close()
             
             print(f"图表已保存到 {self.plots_dir} 目录")
             
-            # 保存评分统计摘要
+            # Save score statistics summary
             stats_data = {}
             for action in actions:
                 scores = data[action]
@@ -310,7 +310,7 @@ class NeuralHeuristicServer:
             with open(score_stats_file, 'w') as f:
                 json.dump(stats_data, f, indent=2)
                 
-            # 同时更新最新的统计摘要
+            # Also update the latest statistics summary
             latest_stats_file = os.path.join(self.stats_dir, "latest_score_stats.json")
             with open(latest_stats_file, 'w') as f:
                 json.dump(stats_data, f, indent=2)

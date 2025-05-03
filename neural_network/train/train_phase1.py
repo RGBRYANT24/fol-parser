@@ -200,8 +200,8 @@ def train_phase1(use_unified_tokenizer=True):
         'd_model': 512,
         'nhead': 8,
         'num_layers': 6,
-        'save_path': 'first_stage_model.pth',
-        'data_dir': '/home/jiangguifei01/aiderun/fol-parser/fol-parser/data',  # 指定数据目录
+        'save_path': 'first_stage_model_revise.pth',
+        'data_dir': '/home/jiangguifei01/aiderun/fol-parser/fol-parser/data/newreward',  # 指定数据目录
         'data_pattern': 'training_data_*.json',  # 指定数据文件匹配模式
         'tokenizer_path': '/home/jiangguifei01/aiderun/fol-parser/fol-parser/neural_network/unified_tokenizer.pkl',  # 统一分词器保存路径
         'vocab_analysis': True,  # 是否分析词汇表覆盖情况

@@ -18,91 +18,149 @@ from models.second_stage_model import SecondStageModel
 
 class NeuralHeuristicServer:
     def __init__(self, model_path, tokenizer_path):
-        # 设置设备
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"使用设备: {self.device}")
-        
-        # 加载分词器
-        print(f"加载分词器: {tokenizer_path}")
-        with open(tokenizer_path, 'rb') as f:
-            self.tokenizer = pickle.load(f)
-        
-        print(f"词汇表大小: {len(self.tokenizer.vocab)}")
-        
-        # 加载第一阶段模型
-        print(f"加载第一阶段模型: {model_path}")
-        checkpoint = torch.load(model_path, map_location=self.device)
-        
-        # 从保存的配置中恢复模型参数
-        vocab_size = checkpoint.get('vocab_size', len(self.tokenizer.vocab))
-        d_model = checkpoint.get('d_model', 512)
-        nhead = checkpoint.get('nhead', 8)
-        num_layers = checkpoint.get('num_layers', 6)
-        
-        print(f"模型配置: vocab_size={vocab_size}, d_model={d_model}, nhead={nhead}, num_layers={num_layers}")
-        
-        # 创建模型实例
-        global_encoder = GlobalEncoder(
-            vocab_size=vocab_size,
-            d_model=d_model,
-            nhead=nhead,
-            num_layers=num_layers
-        )
-        
-        self.first_stage_model = FirstStageModel(global_encoder, d_model=d_model, num_actions=3)
-        self.first_stage_model.load_state_dict(checkpoint['model_state_dict'])
-        self.first_stage_model.to(self.device)
-        self.first_stage_model.eval()
-        
-        print("第一阶段模型已加载并设置为评估模式")
-        
-        # 加载第二阶段模型（如果提供）
-        second_stage_model_path = model_path.replace('first_stage', 'second_stage')
-        if os.path.exists(second_stage_model_path):
-            print(f"加载第二阶段模型: {second_stage_model_path}")
-            second_checkpoint = torch.load(second_stage_model_path, map_location=self.device)
+        try:
+            # 设置设备
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            print(f"使用设备: {self.device}")
+            
+            # 加载分词器
+            print(f"加载分词器: {tokenizer_path}")
+            try:
+                with open(tokenizer_path, 'rb') as f:
+                    self.tokenizer = pickle.load(f)
+                print(f"词汇表大小: {len(self.tokenizer.vocab)}")
+            except FileNotFoundError:
+                error_msg = f"错误: 分词器文件 '{tokenizer_path}' 不存在"
+                print(error_msg)
+                raise Exception(error_msg)
+            except Exception as e:
+                error_msg = f"加载分词器时出错: {str(e)}"
+                print(error_msg)
+                raise Exception(error_msg)
+            
+            # 加载第一阶段模型
+            print(f"加载第一阶段模型: {model_path}")
+            try:
+                checkpoint = torch.load(model_path, map_location=self.device)
+            except FileNotFoundError:
+                error_msg = f"错误: 模型文件 '{model_path}' 不存在"
+                print(error_msg)
+                raise Exception(error_msg)
+            except RuntimeError as e:
+                if "CUDA out of memory" in str(e):
+                    error_msg = f"错误: CUDA 显存不足，无法加载模型。请尝试减小模型大小或使用CPU模式。详细信息: {str(e)}"
+                else:
+                    error_msg = f"加载模型时运行时错误: {str(e)}"
+                print(error_msg)
+                raise Exception(error_msg)
+            except Exception as e:
+                error_msg = f"加载模型时出错: {str(e)}"
+                print(error_msg)
+                raise Exception(error_msg)
             
             # 从保存的配置中恢复模型参数
-            second_stage_config = second_checkpoint.get('config', {})
-            branch_hidden_dim = second_stage_config.get('branch_hidden_dim', 256)
-            fusion_hidden_dim = second_stage_config.get('fusion_hidden_dim', 128)
+            vocab_size = checkpoint.get('vocab_size', len(self.tokenizer.vocab))
+            d_model = checkpoint.get('d_model', 512)
+            nhead = checkpoint.get('nhead', 8)
+            num_layers = checkpoint.get('num_layers', 6)
             
-            # 创建第二阶段模型实例
-            self.second_stage_model = SecondStageModel(
-                vocab_size=vocab_size,
-                d_model=d_model,
-                nhead=nhead,
-                num_layers=num_layers,
-                branch_hidden_dim=branch_hidden_dim,
-                fusion_hidden_dim=fusion_hidden_dim,
-                tokenizer=self.tokenizer
-            )
+            print(f"模型配置: vocab_size={vocab_size}, d_model={d_model}, nhead={nhead}, num_layers={num_layers}")
             
-            self.second_stage_model.load_state_dict(second_checkpoint['model_state_dict'])
-            self.second_stage_model.to(self.device)
-            self.second_stage_model.eval()
-            print("第二阶段模型已加载并设置为评估模式")
-        else:
-            print(f"未找到第二阶段模型: {second_stage_model_path}")
-            self.second_stage_model = None
-        
-        # 初始化统计数据目录
-        self.stats_dir = "action_stats"
-        self.plots_dir = os.path.join(self.stats_dir, "plots")
-        os.makedirs(self.stats_dir, exist_ok=True)
-        os.makedirs(self.plots_dir, exist_ok=True)
-        
-        # 初始化统计文件路径
-        self.action_scores_file = os.path.join(self.stats_dir, "action_scores.npz")
-        self.stats_summary_file = os.path.join(self.stats_dir, "stats_summary.json")
-        
-        # 初始化或加载统计摘要
-        self._init_stats_summary()
-        
-        # 设置保存间隔
-        self.stats_save_interval = 100  # 每处理100个请求保存一次统计数据
-        
-        print("神经启发式服务器初始化完成")
+            # 创建模型实例
+            try:
+                global_encoder = GlobalEncoder(
+                    vocab_size=vocab_size,
+                    d_model=d_model,
+                    nhead=nhead,
+                    num_layers=num_layers
+                )
+                
+                self.first_stage_model = FirstStageModel(global_encoder, d_model=d_model, num_actions=3)
+                self.first_stage_model.load_state_dict(checkpoint['model_state_dict'])
+                self.first_stage_model.to(self.device)
+                self.first_stage_model.eval()
+                
+                print("第一阶段模型已加载并设置为评估模式")
+            except RuntimeError as e:
+                if "CUDA out of memory" in str(e):
+                    error_msg = f"错误: CUDA 显存不足，无法将模型迁移到GPU。请尝试使用CPU模式。详细信息: {str(e)}"
+                else:
+                    error_msg = f"初始化模型时运行时错误: {str(e)}"
+                print(error_msg)
+                raise Exception(error_msg)
+            except Exception as e:
+                error_msg = f"初始化模型时出错: {str(e)}"
+                print(error_msg)
+                raise Exception(error_msg)
+            
+            # 加载第二阶段模型（如果提供）
+            second_stage_model_path = model_path.replace('first_stage', 'second_stage')
+            if os.path.exists(second_stage_model_path):
+                print(f"加载第二阶段模型: {second_stage_model_path}")
+                try:
+                    second_checkpoint = torch.load(second_stage_model_path, map_location=self.device)
+                    
+                    # 从保存的配置中恢复模型参数
+                    second_stage_config = second_checkpoint.get('config', {})
+                    branch_hidden_dim = second_stage_config.get('branch_hidden_dim', 256)
+                    fusion_hidden_dim = second_stage_config.get('fusion_hidden_dim', 128)
+                    
+                    # 创建第二阶段模型实例
+                    self.second_stage_model = SecondStageModel(
+                        vocab_size=vocab_size,
+                        d_model=d_model,
+                        nhead=nhead,
+                        num_layers=num_layers,
+                        branch_hidden_dim=branch_hidden_dim,
+                        fusion_hidden_dim=fusion_hidden_dim,
+                        tokenizer=self.tokenizer
+                    )
+                    
+                    self.second_stage_model.load_state_dict(second_checkpoint['model_state_dict'])
+                    self.second_stage_model.to(self.device)
+                    self.second_stage_model.eval()
+                    print("第二阶段模型已加载并设置为评估模式")
+                except RuntimeError as e:
+                    if "CUDA out of memory" in str(e):
+                        error_msg = f"警告: CUDA 显存不足，无法加载第二阶段模型。将仅使用第一阶段模型。详细信息: {str(e)}"
+                        print(error_msg)
+                        self.second_stage_model = None
+                    else:
+                        error_msg = f"加载第二阶段模型时运行时错误: {str(e)}"
+                        print(error_msg)
+                        self.second_stage_model = None
+                except Exception as e:
+                    error_msg = f"加载第二阶段模型时出错: {str(e)}"
+                    print(error_msg)
+                    self.second_stage_model = None
+            else:
+                print(f"未找到第二阶段模型: {second_stage_model_path}")
+                self.second_stage_model = None
+            
+            # 初始化统计数据目录
+            self.stats_dir = "action_stats"
+            self.plots_dir = os.path.join(self.stats_dir, "plots")
+            os.makedirs(self.stats_dir, exist_ok=True)
+            os.makedirs(self.plots_dir, exist_ok=True)
+            
+            # 初始化统计文件路径
+            self.action_scores_file = os.path.join(self.stats_dir, "action_scores.npz")
+            self.stats_summary_file = os.path.join(self.stats_dir, "stats_summary.json")
+            
+            # 初始化或加载统计摘要
+            self._init_stats_summary()
+            
+            # 设置保存间隔
+            self.stats_save_interval = 100  # 每处理100个请求保存一次统计数据
+            
+            print("神经启发式服务器初始化完成")
+        except Exception as e:
+            error_message = f"初始化神经启发式服务器失败: {str(e)}"
+            print(error_message, file=sys.stderr)
+            # 在这里你可以选择直接退出程序
+            # sys.exit(1)
+            # 或者重新抛出异常以便上层捕获
+            raise
 
     def _init_stats_summary(self):
         """初始化或加载统计摘要信息"""
@@ -532,20 +590,38 @@ class NeuralHeuristicServer:
                     pass
             
             # 模型推理
-            with torch.no_grad():
-                outputs = self.first_stage_model(
-                    input_tensor.transpose(0, 1),  # 转为 [seq_len, 1]
-                    graph_mask=graph_mask,
-                    src_key_padding_mask=(attention_tensor == 0)
-                )
-                
-                # 获取操作分数
-                action_scores = outputs[0].cpu().numpy().tolist()
-                
-                # 找出最佳动作
-                best_action_idx = np.argmax(action_scores)
-                action_names = ["Extension", "Factoring", "Ancestry"]
-                best_action_name = action_names[best_action_idx]
+            try:
+                with torch.no_grad():
+                    outputs = self.first_stage_model(
+                        input_tensor.transpose(0, 1),  # 转为 [seq_len, 1]
+                        graph_mask=graph_mask,
+                        src_key_padding_mask=(attention_tensor == 0)
+                    )
+                    
+                    # 获取操作分数
+                    action_scores = outputs[0].cpu().numpy().tolist()
+                    
+                    # 找出最佳动作
+                    best_action_idx = np.argmax(action_scores)
+                    action_names = ["Extension", "Factoring", "Ancestry"]
+                    best_action_name = action_names[best_action_idx]
+            except RuntimeError as e:
+                if "CUDA out of memory" in str(e):
+                    error_msg = f"错误: 推理过程中CUDA显存不足。请尝试减小输入大小或使用CPU模式。详细信息: {str(e)}"
+                else:
+                    error_msg = f"模型推理时运行时错误: {str(e)}"
+                print(error_msg)
+                return {
+                    'status': 'error',
+                    'error_message': error_msg
+                }
+            except Exception as e:
+                error_msg = f"模型推理时出错: {str(e)}"
+                print(error_msg)
+                return {
+                    'status': 'error',
+                    'error_message': error_msg
+                }
             
             # 记录统计数据
             self._append_action_scores(action_scores, best_action_idx)
@@ -659,19 +735,37 @@ class NeuralHeuristicServer:
             graph_mask = self.generate_mask(seq_len).to(self.device)
             
             # 模型推理
-            with torch.no_grad():
-                scores = self.second_stage_model(
-                    global_tensor,  # [seq_len, 1]
-                    candidate_tensor,  # [1, num_candidates, max_param_len]
-                    graph_mask=graph_mask,
-                    src_key_padding_mask=(global_attention_tensor == 0)
-                )
-                
-                # 将评分转换为列表
-                parameter_scores = scores[0].cpu().numpy().tolist()
-                
-                # 找出最佳参数
-                best_param_idx = np.argmax(parameter_scores)
+            try:
+                with torch.no_grad():
+                    scores = self.second_stage_model(
+                        global_tensor,  # [seq_len, 1]
+                        candidate_tensor,  # [1, num_candidates, max_param_len]
+                        graph_mask=graph_mask,
+                        src_key_padding_mask=(global_attention_tensor == 0)
+                    )
+                    
+                    # 将评分转换为列表
+                    parameter_scores = scores[0].cpu().numpy().tolist()
+                    
+                    # 找出最佳参数
+                    best_param_idx = np.argmax(parameter_scores)
+            except RuntimeError as e:
+                if "CUDA out of memory" in str(e):
+                    error_msg = f"错误: 推理过程中CUDA显存不足。请尝试减小输入大小或使用CPU模式。详细信息: {str(e)}"
+                else:
+                    error_msg = f"第二阶段模型推理时运行时错误: {str(e)}"
+                print(error_msg)
+                return {
+                    'status': 'error',
+                    'error_message': error_msg
+                }
+            except Exception as e:
+                error_msg = f"第二阶段模型推理时出错: {str(e)}"
+                print(error_msg)
+                return {
+                    'status': 'error',
+                    'error_message': error_msg
+                }
                 
             # 准备响应
             response = {
@@ -722,39 +816,46 @@ class NeuralHeuristicServer:
     
     def start_server(self):
         """启动服务器，从标准输入读取请求，向标准输出写入响应"""
-        print("神经网络启发式服务器已启动，等待请求...")
-        
-        # 准备就绪信号
-        print("READY", flush=True)
-        
-        while True:
-            try:
-                # 从stdin读取请求
-                request_line = sys.stdin.readline().strip()
-                
-                # 检查是否为退出命令
-                if request_line.lower() == "exit":
-                    print("收到退出命令，服务器关闭", file=sys.stderr)
+        try:
+            print("神经网络启发式服务器已启动，等待请求...")
+            
+            # 准备就绪信号
+            print("READY", flush=True)
+            
+            while True:
+                try:
+                    # 从stdin读取请求
+                    request_line = sys.stdin.readline().strip()
+                    
+                    # 检查是否为退出命令
+                    if request_line.lower() == "exit":
+                        print("收到退出命令，服务器关闭", file=sys.stderr)
+                        break
+                    
+                    # 解析JSON请求
+                    request_data = json.loads(request_line)
+                    
+                    # 处理请求
+                    response = self.process_request(request_data)
+                    
+                    # 发送响应
+                    print(json.dumps(response), flush=True)
+                    
+                except KeyboardInterrupt:
+                    print("接收到中断信号，服务器关闭", file=sys.stderr)
                     break
-                
-                # 解析JSON请求
-                request_data = json.loads(request_line)
-                
-                # 处理请求
-                response = self.process_request(request_data)
-                
-                # 发送响应
-                print(json.dumps(response), flush=True)
-                
-            except KeyboardInterrupt:
-                print("接收到中断信号，服务器关闭", file=sys.stderr)
-                break
-            except json.JSONDecodeError:
-                print("JSON解析错误", file=sys.stderr)
-                print(json.dumps({'status': 'error', 'error_message': '无效的JSON请求'}), flush=True)
-            except Exception as e:
-                print(f"处理请求时出错: {e}", file=sys.stderr)
-                print(json.dumps({'status': 'error', 'error_message': str(e)}), flush=True)
+                except json.JSONDecodeError:
+                    print("JSON解析错误", file=sys.stderr)
+                    print(json.dumps({'status': 'error', 'error_message': '无效的JSON请求'}), flush=True)
+                except Exception as e:
+                    print(f"处理请求时出错: {e}", file=sys.stderr)
+                    print(json.dumps({'status': 'error', 'error_message': str(e)}), flush=True)
+        except Exception as e:
+            # 捕获服务器启动失败的异常
+            error_message = f"服务器启动失败: {str(e)}"
+            print(error_message, file=sys.stderr)
+            print(json.dumps({'status': 'error', 'error_message': error_message}), flush=True)
+            return
 
 def signal_handler(sig, frame):
     print("接收到信号，服务器关闭", file=sys.stderr)
@@ -766,9 +867,15 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler)
     
     parser = argparse.ArgumentParser(description='神经网络启发式服务器')
-    parser.add_argument('--model', default='first_stage_model.pth', help='第一阶段模型文件路径')
-    parser.add_argument('--tokenizer', default='unified_tokenizer.pkl', help='分词器文件路径')
+    parser.add_argument('--model', default='/home/jiangguifei01/aiderun/fol-parser/fol-parser/neural_network/first_stage_model.pth', help='第一阶段模型文件路径')
+    parser.add_argument('--tokenizer', default='/home/jiangguifei01/aiderun/fol-parser/fol-parser/neural_network/unified_tokenizer.pkl', help='分词器文件路径')
     args = parser.parse_args()
     
-    server = NeuralHeuristicServer(args.model, args.tokenizer)
-    server.start_server()
+    try:
+        server = NeuralHeuristicServer(args.model, args.tokenizer)
+        print('NeuralHeuristicServer已初始化', args.model)
+        server.start_server()
+    except Exception as e:
+        error_message = f"初始化服务器失败: {str(e)}"
+        print(error_message, file=sys.stderr)
+        sys.exit(1)

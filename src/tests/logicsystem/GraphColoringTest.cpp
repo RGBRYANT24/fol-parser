@@ -196,10 +196,11 @@ namespace LogicSystem
         // std::vector<std::string> selectedMethods = {"DFS"};
         //std::vector<std::string> selectedMethods = {"NeuralHeuristic_1", "NeuralHeuristic_2"};
         std::vector<std::string> selectedMethods = {"NeuralHeuristic_1"};
+        //std::vector<std::string> selectedMethods = {"NeuralHeuristic_2"};
         int maxTestFiles = 10;
         bool skipBipartite = true;
 
-        std::string dataDir = "/home/jiangguifei01/aiderun/fol-parser/fol-parser/data";
+        std::string dataDir = "/home/jiangguifei01/aiderun/fol-parser/fol-parser/data/newreward";
         std::string resultsDir = "/home/jiangguifei01/aiderun/fol-parser/fol-parser/results";
 
         // 创建结果目录（如果不存在）
@@ -310,6 +311,7 @@ namespace LogicSystem
                     else if (method == "NeuralHeuristic_2")
                     {
                         SLIHeuristicProver prover(kb, goal, 80000);
+                        std::cout << "NeuralHeuristic_2 " <<std::endl;
                         // 设置第二阶段配置
                         prover.setPhase2Config(
                             "../../../neural_network/neural_server/neural_server2.py",

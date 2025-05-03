@@ -196,53 +196,152 @@ namespace LogicSystem
         }
 
         ////////////////////////////
-        // 计算候选动作奖励信息（略，此处代码保持不变）
         template <class State, typename Action>
         static nlohmann::json computeExpectedOpRewards(
-            const std::shared_ptr<msa::mcts::TreeNodeT<State, Action>> &node)
+            const std::shared_ptr<msa::mcts::TreeNodeT<State, Action>> &node, int node_depth, int success_depth)
         {
-            std::unordered_map<std::string, std::pair<double, double>> reward_map;
+            std::cout << "DataCollect computeExpectedOpRewards node depth " << node_depth << " success_depth " << success_depth << std::endl;
+
+            // 定义成功节点的最小奖励值
+            const double MIN_REWARD = 0.3;
+            // 定义失败节点的奖励值
+            const double FAILURE_REWARD = 0.0;
+            // 定义最大奖励增量
+            const double MAX_REWARD_INCREMENT = 0.7;
+            // e 是自然常数
+            const double E = std::exp(1.0);
+
+            // 根据深度计算奖励的函数，实现: reward = 0.3 + 0.7/(ln(success_depth-current_depth + e))
+            auto calculate_reward = [&](int current_depth) -> double
+            {
+                // 如果证明失败或者当前深度无效，返回最小奖励
+                if (success_depth <= 0 || current_depth < 0)
+                {
+                    return FAILURE_REWARD;
+                }
+
+                // 距离成功状态的步数
+                int distance = success_depth - current_depth;
+                // 确保距离至少为0
+                distance = std::max(0, distance);
+
+                // 使用公式: 0.3 + 0.7/ln(distance + e)
+                return MIN_REWARD + MAX_REWARD_INCREMENT / std::log(distance + E);
+            };
+
+            // 存储每种操作类型的最大奖励值及其对应的深度
+            std::unordered_map<std::string, std::pair<double, int>> op_best_rewards;
             auto children = node->get_children();
+
+            // 检查是否所有子节点都是失败节点
+            bool all_children_failed = true;
+            for (const auto &child : children)
+            {
+                if (child->get_value() > 0)
+                {
+                    all_children_failed = false;
+                    break;
+                }
+            }
+
+            // 如果所有子节点都失败了，整个节点就视为失败
+            bool is_failure_node = all_children_failed || success_depth <= 0;
+
             for (const auto &child : children)
             {
                 std::string op_type = SLI_Action_to_string(child->get_action().action);
                 if (op_type == "TRUNCATE")
                     continue;
-                double normalized_reward = child->get_value() / (child->get_depth() + 1.0);
-                double visits = child->get_num_visits();
-                reward_map[op_type].first += visits * normalized_reward;
-                reward_map[op_type].second += visits;
+
+                // 计算子节点的深度
+                int child_depth = node_depth + 1;
+
+                double reward = FAILURE_REWARD; // 默认假设失败
+
+                if (!is_failure_node && child->get_value() > 0)
+                {
+                    // 只有在整体不是失败节点且当前子节点成功时，才用成功公式计算奖励
+                    reward = calculate_reward(child_depth);
+                }
+
+                // 更新该操作类型的最大奖励值
+                if (op_best_rewards.find(op_type) == op_best_rewards.end() ||
+                    reward > op_best_rewards[op_type].first)
+                {
+                    op_best_rewards[op_type] = {reward, child_depth};
+                }
+                // 如果奖励值相同但深度更接近成功状态，也更新
+                else if (reward == op_best_rewards[op_type].first &&
+                         (success_depth - child_depth) < (success_depth - op_best_rewards[op_type].second))
+                {
+                    op_best_rewards[op_type] = {reward, child_depth};
+                }
+                std::cout << "DataCollect op_best_rewards " << op_type << " reward " << reward << " depth " << child_depth << std::endl;
             }
+
             std::vector<std::string> required_ops = {"EXTENSION", "FACTORING", "ANCESTRY"};
             nlohmann::json expected_by_type;
+
+            // 使用最大奖励值来填充expected_by_type
+            const auto best_op = required_ops[0];
             for (const auto &op : required_ops)
             {
-                double exp_reward = 0.0;
-                if (reward_map.find(op) != reward_map.end() && reward_map[op].second > 0)
+                double best_reward = FAILURE_REWARD; // 默认使用失败奖励
+
+                if (!is_failure_node)
                 {
-                    exp_reward = reward_map[op].first / reward_map[op].second;
+                    // 只有整体不是失败节点时，才考虑使用成功公式计算奖励
+                    if (op_best_rewards.find(op) != op_best_rewards.end())
+                    {
+                        best_reward = op_best_rewards[op].first; // 如果有更好的子节点奖励，则使用它
+                    }
+                    // else
+                    // {
+                    //     // 如果没有对应操作类型的子节点，但节点本身不是失败节点，使用当前深度计算
+                    //     best_reward = calculate_reward(node_depth);
+                    // }
                 }
-                expected_by_type[op] = exp_reward;
+
+                // std::cout << "DataCollect computeExpectedOpRewards op " << op << " reward " << best_reward
+                //           << " is_failure_node: " << is_failure_node << std::endl;
+                expected_by_type[op] = best_reward;
             }
+
             auto available_actions = node->get_actions();
             nlohmann::json action_rewards = nlohmann::json::array();
+
             for (size_t i = 0; i < available_actions.size(); ++i)
             {
-                double reward = 0.0;
+                double reward = FAILURE_REWARD; // 默认假设失败
+                int child_depth = node_depth + 1;
+
+                // 查找对应的子节点(如果存在)
                 if (i < children.size())
                 {
                     auto child = children[i];
-                    reward = child->get_value() / (child->get_depth() + 1.0);
+                    child_depth = node_depth + 1; // 或者使用child->get_depth()如果可用
+
+                    if (!is_failure_node && child->get_value() > 0)
+                    {
+                        // 只有整体不是失败节点且子节点成功时计算奖励
+                        reward = calculate_reward(child_depth);
+                    }
                 }
+
                 nlohmann::json action_reward_info;
                 action_reward_info["index"] = i;
                 action_reward_info["op_type"] = SLI_Action_to_string(available_actions[i].action);
                 action_reward_info["reward"] = reward;
                 action_rewards.push_back(action_reward_info);
             }
+
             nlohmann::json result;
             result["expected_by_type"] = expected_by_type;
             result["action_rewards"] = action_rewards;
+            result["node_depth"] = node_depth;
+            result["success_depth"] = success_depth;
+            result["is_failure_node"] = is_failure_node;
+            result["reward_formula"] = is_failure_node ? "FAILURE_REWARD(0.0)" : "0.3 + 0.7/ln((success_depth-current_depth) + e)";
             return result;
         }
 
@@ -251,20 +350,22 @@ namespace LogicSystem
         static nlohmann::json collectTrainingSampleMCTS(
             const std::shared_ptr<msa::mcts::TreeNodeT<SLIMCTSState, SLIMCTSAction>> &tree_node,
             KnowledgeBase &kb,
-            NormalizationContext &ctx) // 使用外部传入的 ctx（保证图和 SLITree 公用同一份映射）
+            NormalizationContext &ctx, // 使用外部传入的 ctx（保证图和 SLITree 公用同一份映射）
+            int success_depth)
         {
             nlohmann::json sample;
             auto state = tree_node->get_state();
 
-            // 先序列化图，借此预注册所有图中出现的常量（确保顺序一致）  
-            // 若你的图已经单独保存，这里可以选择先调用 serializeGraph()（见后续函数）  
+            // 先序列化图，借此预注册所有图中出现的常量（确保顺序一致）
+            // 若你的图已经单独保存，这里可以选择先调用 serializeGraph()（见后续函数）
             // 否则也可以认为在构造 KB 时图中所有边都已被 normalizeSymbol 注册。
 
             sample["state"] = {
                 {"tree", serializeTree(*state.sli_tree, kb, ctx)},
                 {"depth", state.getDepth()}};
+            std::cout << "DataCollect state getDepth " << state.getDepth() << std::endl;
 
-            nlohmann::json reward_info = computeExpectedOpRewards<SLIMCTSState, SLIMCTSAction>(tree_node);
+            nlohmann::json reward_info = computeExpectedOpRewards<SLIMCTSState, SLIMCTSAction>(tree_node, state.getDepth(), success_depth);
             nlohmann::json action_rewards = reward_info["action_rewards"];
 
             nlohmann::json ops_json = nlohmann::json::array();

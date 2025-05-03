@@ -637,6 +637,12 @@ namespace LogicSystem
                 }
 
                 std::vector<float> action_scores = action_scores_json["action_scores"];
+                for(const auto score: action_scores)
+                {
+                    if(score < 0.0)
+                        std::cout << "NeuralHeuristicSearch::search first stage score < 0" << score << std::endl;
+                }
+                // std::cout << std::endl;
                 if (action_scores.size() < 4)
                 {
                     // 确保有足够的评分

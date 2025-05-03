@@ -35,78 +35,91 @@ namespace LogicSystem
 
         // 2. 配置 MCTS 搜索
         msa::mcts::UCT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction> mcts_search;
-        mcts_search.max_iterations = 10000;
+        mcts_search.max_iterations = 20000;
         mcts_search.max_millis = 10000;
-        mcts_search.simulation_depth = 2000;
+        mcts_search.simulation_depth = 3000;
         mcts_search.uct_k = std::sqrt(2);
 
         // 3. 初始化数据收集容器
-        std::vector<json> training_samples;
-        // 生成图与搜索路径的 JSON 数据
+        std::vector<std::shared_ptr<msa::mcts::TreeNodeT<LogicSystem::SLIMCTSState, LogicSystem::SLIMCTSAction>>> mcts_nodes; // 存储MCTS节点
+
+        // 生成图的 JSON 数据
         DataCollector::NormalizationContext ctx; // 新鲜的上下文：保证整个样本中常量编码一致
         nlohmann::json graph_json = DataCollector::serializeGraph(kb, ctx);
 
         // 4. 迭代执行 MCTS 搜索过程
+        int step_count = 0;
         while (!checkEmptyClause(*(current_state.sli_tree)) && !current_state.is_terminal())
         {
             // 执行一次 MCTS 搜索
             auto mcts_result = mcts_search.run(current_state);
             auto node = mcts_result.root_node;
 
-            // 通过 DataCollector 收集训练样本
-            json sample = DataCollector::collectTrainingSampleMCTS(node, kb, ctx);
-            training_samples.push_back(sample);
+            // 存储当前步骤的MCTS节点信息
+            mcts_nodes.push_back(node);
 
             // 获取最佳动作并更新状态
             LogicSystem::SLIMCTSAction best_action = mcts_result.best_action;
             current_state = current_state.next_state(best_action);
+            step_count++;
             std::cout << "Updated State: " << current_state.to_string() << std::endl;
         }
 
-        // 5. 检查证明结果并保存数据（当且仅当传入的保存路径不为空）
+        // 5. 检查证明结果
         bool is_success = checkEmptyClause(*(current_state.sli_tree));
 
         if (is_success)
         {
-            std::cout << "Proof successful!" << std::endl;
+            std::cout << "Proof successful! Total steps: " << step_count << std::endl;
         }
         else
         {
-            std::cout << "Proof failed." << std::endl;
+            std::cout << "Proof failed after " << step_count << " steps." << std::endl;
             current_state.sli_tree->print_tree(kb);
             bool AC_result = current_state.sli_tree->check_all_nodes_AC();
             bool MC_result = current_state.sli_tree->check_all_nodes_MC();
             std::cout << "AC " << AC_result << " MC " << MC_result << std::endl;
-            std::vector<SLIMCTSAction> actions;
-            current_state.get_actions(actions);
-            std::cout << "action size " << actions.size() << std::endl;
+            std::vector<SLIMCTSAction> remaining_actions;
+            current_state.get_actions(remaining_actions);
+            std::cout << "action size " << remaining_actions.size() << std::endl;
             std::cout << "has selfloop " << !current_state.sli_tree->validateAllNodes() << std::endl;
         }
 
-        // 无论成功还是失败，都保存数据
-        if (!save_dir.empty())
+        // 6. 根据路径长度生成训练样本
+        std::vector<json> training_samples;
+
+        // 无论成功失败，都记录样本
+        int success_depth = is_success ? step_count : -1;
+
+        for (int i = 0; i < mcts_nodes.size(); i++)
         {
-            // 生成唯一文件名：使用静态计数器生成不同的文件名
+            // 使用collectTrainingSampleMCTS函数，传入success_depth参数
+            json sample = DataCollector::collectTrainingSampleMCTS(mcts_nodes[i], kb, ctx, success_depth);
+            training_samples.push_back(sample);
+        }
+
+        // 7. 保存数据
+        if (!save_dir.empty() && !training_samples.empty())
+        {
+            // 生成唯一文件名
             static int test_counter = 0;
             std::string fileName = save_dir;
-            // 确保目录路径以斜杠结尾
             if (!fileName.empty() && fileName.back() != '/' && fileName.back() != '\\')
             {
                 fileName += "/";
             }
-            // 在文件名中标识成功或失败
             fileName += "training_data_" + std::to_string(test_counter++) +
                         (is_success ? "_success" : "_failure") + ".json";
 
-            // 如果需要，可以利用 <filesystem> 检查或创建目录
             std::filesystem::create_directories(save_dir);
 
             // 保存收集的样本数据到文件
             nlohmann::json sample;
             sample["graph"] = graph_json;
             sample["search_path"] = training_samples;
-            // 添加证明结果标记
             sample["proof_result"] = is_success ? "success" : "failure";
+            sample["total_steps"] = step_count;
+            sample["success_depth"] = success_depth;
 
             DataCollector::saveToFile(sample, fileName);
             std::cout << "Saved training samples to file: " << fileName << std::endl;
@@ -191,8 +204,8 @@ namespace LogicSystem
             std::cout << "MCTS搜索访问状态数: " << mcts_visited_states << ", 累计访问状态数: " << visited_states_count << std::endl;
 
             // 通过 DataCollector 收集训练样本
-            json sample = DataCollector::collectTrainingSampleMCTS(node, kb, ctx);
-            training_samples.push_back(sample);
+            // json sample = DataCollector::collectTrainingSampleMCTS(node, kb, ctx);
+            // training_samples.push_back(sample);
 
             // 获取最佳动作并更新状态
             LogicSystem::SLIMCTSAction best_action = mcts_result.best_action;

@@ -77,7 +77,7 @@ namespace msa
                 num_visits++;
                 // value = value + (rewards[agent_id] - value) / num_visits;
                 // value += rewards[agent_id]; //改成原来的方式试一下 不用增量更新
-                value = value > rewards[agent_id] ? value : rewards[agent_id];
+                value = value > rewards[agent_id] ? value : rewards[agent_id];//value = max(reward, value)
             }
 
             //--------------------------------------------------------------
@@ -149,6 +149,7 @@ namespace msa
                 child_node->action = new_action;
                 // 在子节点上应用动作，从而得到新的（深拷贝后的）状态
                 child_node->state.apply_action(new_action);
+                // std::cout << "MCTS TreeNode.h child depth " << child_node->get_depth() << " parent depth " << this->get_depth() << std::endl;
                 children.push_back(child_node);
                 return child_node;
             }

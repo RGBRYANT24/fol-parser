@@ -20,7 +20,7 @@ namespace LogicSystem
         
         // 第一阶段模型配置
         std::string phase1ScriptPath = "../../../neural_network/neural_server/neural_server.py";
-        std::string phase1ModelPath = "../../../neural_network/first_stage_model.pth";
+        std::string phase1ModelPath = "../../../neural_network/train/first_stage_model_revise.pth";
         std::string phase1TokenizerPath = "../../../neural_network/unified_tokenizer.pkl";
         
         // 第二阶段模型配置
